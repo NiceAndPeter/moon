@@ -1,10 +1,8 @@
 /*
-** $Id: lgc.c $
 ** Garbage Collector
 ** See Copyright Notice in lua.h
 */
 
-#define lgc_c
 #define LUA_CORE
 
 #include "lprefix.h"

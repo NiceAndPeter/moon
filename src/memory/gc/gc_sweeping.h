@@ -1,5 +1,4 @@
 /*
-** $Id: gc_sweeping.h $
 ** Garbage Collector - Sweeping Module
 ** See Copyright Notice in lua.h
 */

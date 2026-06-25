@@ -1,5 +1,4 @@
 /*
-** $Id: gc_marking.h $
 ** Garbage Collector - Marking Module
 ** See Copyright Notice in lua.h
 */

@@ -1,5 +1,4 @@
 /*
-** $Id: luaallocator.h $
 ** Standard C++ Allocator for Lua Memory Management
 ** See Copyright Notice in lua.h
 */

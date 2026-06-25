@@ -1,10 +1,8 @@
 /*
-** $Id: gc_marking.cpp $
 ** Garbage Collector - Marking Module
 ** See Copyright Notice in lua.h
 */
 
-#define lgc_c
 #define LUA_CORE
 
 #include "lprefix.h"

@@ -1,10 +1,8 @@
 /*
-** $Id: gc_weak.cpp $
 ** Garbage Collector - Weak Table Module
 ** See Copyright Notice in lua.h
 */
 
-#define lgc_c
 #define LUA_CORE
 
 #include "lprefix.h"

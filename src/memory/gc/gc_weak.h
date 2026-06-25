@@ -1,5 +1,4 @@
 /*
-** $Id: gc_weak.h $
 ** Garbage Collector - Weak Table Module
 ** See Copyright Notice in lua.h
 */

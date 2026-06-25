@@ -1,5 +1,4 @@
 /*
-** $Id: gc_finalizer.h $
 ** Garbage Collector - Finalizer Module
 ** See Copyright Notice in lua.h
 */

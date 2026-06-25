@@ -1,10 +1,8 @@
 /*
-** $Id: lmem.c $
 ** Interface to Memory Manager
 ** See Copyright Notice in lua.h
 */
 
-#define lmem_c
 #define LUA_CORE
 
 #include "lprefix.h"

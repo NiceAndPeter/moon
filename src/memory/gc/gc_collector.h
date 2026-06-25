@@ -1,5 +1,4 @@
 /*
-** $Id: gc_collector.h $
 ** Garbage Collector - Main Orchestration Module
 ** See Copyright Notice in lua.h
 */

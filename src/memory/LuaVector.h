@@ -1,5 +1,4 @@
 /*
-** $Id: LuaVector.h $
 ** Type alias for std::vector with LuaAllocator
 ** See Copyright Notice in lua.h
 */
