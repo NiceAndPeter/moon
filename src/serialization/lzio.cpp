@@ -1,10 +1,8 @@
 /*
-** $Id: lzio.c $
 ** Buffered streams
 ** See Copyright Notice in lua.h
 */
 
-#define lzio_c
 #define LUA_CORE
 
 #include "lprefix.h"

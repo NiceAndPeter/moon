@@ -1,5 +1,4 @@
 /*
-** $Id: ltests.h $
 ** Internal Header for Debugging of the Lua Implementation
 ** See Copyright Notice in lua.h
 */

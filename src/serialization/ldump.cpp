@@ -1,10 +1,8 @@
 /*
-** $Id: ldump.c $
 ** save precompiled Lua chunks
 ** See Copyright Notice in lua.h
 */
 
-#define ldump_c
 #define LUA_CORE
 
 #include "lprefix.h"

@@ -1,10 +1,8 @@
 /*
-** $Id: lauxlib.c $
 ** Auxiliary functions for building Lua libraries
 ** See Copyright Notice in lua.h
 */
 
-#define lauxlib_c
 #define LUA_LIB
 
 #include "lprefix.h"

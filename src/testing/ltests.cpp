@@ -1,10 +1,8 @@
 /*
-** $Id: ltests.c $
 ** Internal Module for Debugging of the Lua Implementation
 ** See Copyright Notice in lua.h
 */
 
-#define ltests_c
 #define LUA_CORE
 
 #include "lprefix.h"
