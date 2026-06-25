@@ -1,10 +1,8 @@
 /*
-** $Id: lcode.c $
 ** Code generator for Lua
 ** See Copyright Notice in lua.h
 */
 
-#define lcode_c
 #define LUA_CORE
 
 #include "lprefix.h"

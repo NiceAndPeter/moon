@@ -1,10 +1,8 @@
 /*
-** $Id: lparser.c $
 ** Lua Parser - Utility Functions
 ** See Copyright Notice in lua.h
 */
 
-#define lparser_c
 #define LUA_CORE
 
 #include "lprefix.h"

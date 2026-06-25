@@ -1,10 +1,8 @@
 /*
-** $Id: llex.c $
 ** Lexical Analyzer
 ** See Copyright Notice in lua.h
 */
 
-#define llex_c
 #define LUA_CORE
 
 #include "lprefix.h"

@@ -1,10 +1,8 @@
 /*
-** $Id: lparser.c $
 ** Lua Parser - Label and Goto Management
 ** See Copyright Notice in lua.h
 */
 
-#define lparser_c
 #define LUA_CORE
 
 #include "lprefix.h"
