@@ -1,5 +1,4 @@
 /*
-** $Id: lstack.h $
 ** Lua Stack Management
 ** See Copyright Notice in lua.h
 */

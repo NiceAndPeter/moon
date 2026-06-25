@@ -1,10 +1,8 @@
 /*
-** $Id: ldo.c $
 ** Stack and Call structure of Lua
 ** See Copyright Notice in lua.h
 */
 
-#define ldo_c
 #define LUA_CORE
 
 #include "lprefix.h"

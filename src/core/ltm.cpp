@@ -1,10 +1,8 @@
 /*
-** $Id: ltm.c $
 ** Tag methods
 ** See Copyright Notice in lua.h
 */
 
-#define ltm_c
 #define LUA_CORE
 
 #include "lprefix.h"

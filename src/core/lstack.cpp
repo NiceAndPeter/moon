@@ -1,10 +1,8 @@
 /*
-** $Id: lstack.c $
 ** Lua Stack Management
 ** See Copyright Notice in lua.h
 */
 
-#define lstack_c
 #define LUA_CORE
 
 #include "lprefix.h"

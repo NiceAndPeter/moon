@@ -1,10 +1,8 @@
 /*
-** $Id: lstate.c $
 ** Global State
 ** See Copyright Notice in lua.h
 */
 
-#define lstate_c
 #define LUA_CORE
 
 #include "lprefix.h"
