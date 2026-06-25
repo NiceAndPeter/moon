@@ -1,10 +1,8 @@
 /*
-** $Id: lstring.c $
 ** String table (keeps all strings handled by Lua)
 ** See Copyright Notice in lua.h
 */
 
-#define lstring_c
 #define LUA_CORE
 
 #include "lprefix.h"
@@ -139,47 +137,19 @@ void TString::init(lua_State* L) {
 }
 
 
-// Phase 122: Removed luaS_sizelngstr - now TString::calculateLongStringSize()
-
-
 /*
-** creates a new string object
-** Phase 50: Now uses placement new to call constructor
+** Create a new string object of exactly 'totalsize' bytes.
+**
+** Strings are variable-length: a short string needs only
+** contentsOffset() + length + 1 bytes, which can be smaller than sizeof(TString)
+** (the long-string-only fields are absent). We therefore allocate the exact
+** size via luaC_newobj() rather than a fixed-size placement-new, and manually
+** initialise only the header fields that exist in the allocated memory.
 */
 static TString *createstrobj (lua_State *L, size_t totalsize, LuaT tag,
                               unsigned h) {
-  // For TString, we need to allocate exactly totalsize bytes, not sizeof(TString)
-  // For short strings: totalsize = contentsOffset() + string_length + 1
-  // For long strings: totalsize might be larger than sizeof(TString)
-  // The placement new will receive sizeof(TString) as the 'size' parameter,
-  // so we calculate extra = totalsize - sizeof(TString)
-  // This might be negative for short strings, so we need to handle that carefully.
+  lua_assert(totalsize >= TString::contentsOffset());
 
-  // Actually, we can't pass negative extra! The issue is that operator new
-  // receives sizeof(TString) automatically. We need totalsize total bytes.
-  // So: extra = totalsize - sizeof(TString) (might be negative!)
-  // But we can't allocate less than sizeof(TString) with placement new!
-
-  // The real fix: pass the full totalsize as extra, and modify operator new
-  // NO - that won't work either because operator new gets sizeof(TString) automatically.
-
-  // The ACTUAL fix: We should pass totalsize directly to luaC_newobj, not go through
-  // operator new at all! Or we need a different signature.
-
-  // For now, let's calculate correctly:
-  // We want to allocate totalsize bytes total.
-  // operator new will do: luaC_newobj(L, tt, sizeof(TString) + extra)
-  // So: sizeof(TString) + extra = totalsize
-  // Therefore: extra = totalsize - sizeof(TString)
-  // This can be negative! So we need to cast through signed:
-
-  lua_assert(totalsize >= TString::contentsOffset());  // Sanity check
-
-  // For short strings, totalsize < sizeof(TString) because we don't need falloc/ud fields
-  // But placement new always passes sizeof(TString). So we can't use extra!
-  // We need to call luaC_newobj directly or change the approach.
-
-  // Allocate exactly the size we need
   GCObject *o = luaC_newobj(*L, tag, totalsize);
   TString *ts = gco2ts(o);
 
@@ -213,9 +183,6 @@ TString* TString::createLongString(lua_State* L, size_t l) {
   ts->getContentsField()[l] = '\0';  /* ending 0 */
   return ts;
 }
-
-
-// Phase 26: Removed luaS_remove - now TString::remove() method
 
 
 static void growstrtab (lua_State *L, stringtable *tb) {

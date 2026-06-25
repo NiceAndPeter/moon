@@ -1,10 +1,8 @@
 /*
-** $Id: lobject.c $
 ** Some generic functions over Lua objects
 ** See Copyright Notice in lua.h
 */
 
-#define lobject_c
 #define LUA_CORE
 
 #include "lprefix.h"

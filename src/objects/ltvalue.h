@@ -1,5 +1,4 @@
 /*
-** $Id: ltvalue.h $
 ** Tagged Values (TValue class)
 ** See Copyright Notice in lua.h
 */

@@ -1,10 +1,8 @@
 /*
-** $Id: lfunc.c $
 ** Auxiliary functions to manipulate prototypes and closures
 ** See Copyright Notice in lua.h
 */
 
-#define lfunc_c
 #define LUA_CORE
 
 #include "lprefix.h"

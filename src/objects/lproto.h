@@ -1,5 +1,4 @@
 /*
-** $Id: lproto.h $
 ** Function prototypes and debug information
 ** See Copyright Notice in lua.h
 */

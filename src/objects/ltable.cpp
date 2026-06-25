@@ -1,10 +1,8 @@
 /*
-** $Id: ltable.c $
 ** Lua tables (hash)
 ** See Copyright Notice in lua.h
 */
 
-#define ltable_c
 #define LUA_CORE
 
 #include "lprefix.h"

@@ -1,5 +1,4 @@
 /*
-** $Id: lobject_core.h $
 ** Core GC object types and TValue helpers
 ** See Copyright Notice in lua.h
 */
