@@ -191,6 +191,19 @@ protected:
   mutable GCObject* next;     /* GC list linkage (mutable for GC bookkeeping) */
   LuaT tt;                     /* Type tag (immutable) */
   mutable lu_byte marked;      /* GC mark bits (mutable for GC bookkeeping) */
+  /*
+  ** Reserve the remaining bytes of this 16-byte aligned header so that derived
+  ** GC types cannot reuse GCObject's tail padding for their own members.
+  **
+  ** This is REQUIRED for correctness, not cosmetic. GC objects are allocated by
+  ** luaC_newobjdt(), which sets 'tt' and 'marked' BEFORE the derived type's
+  ** constructor runs (placement new). If a derived type (e.g. Proto) places its
+  ** first members in this tail padding, the compiler may initialise them with a
+  ** store to the enclosing aligned word, clobbering 'tt'/'marked' that were just
+  ** set by the allocator. The corrupted type tag then trips the GC marker.
+  ** Reserving the padding forces derived members past the header (offset 16).
+  */
+  lu_byte gcHeaderReserved_[sizeof(GCObject*) - 2 * sizeof(lu_byte)];
 
 public:
   // Inline accessors

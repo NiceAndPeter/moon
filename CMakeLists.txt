@@ -49,6 +49,16 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         -Wlogical-op
         -Wno-aggressive-loop-optimizations
         -Wno-invalid-offsetof
+        # GCC's -Wmaybe-uninitialized (enabled by -Wextra) cannot see through the
+        # GC's custom placement-new allocator, which sets GCObject mark bits before
+        # constructors run. It produces false positives on fresh objects (e.g.
+        # luaC_objbarrier in LClosure::initUpvals). Keep it as a warning, not fatal.
+        -Wno-error=maybe-uninitialized
+        # GCC 15's -Wformat-truncation loses track of fixed-size stack buffers
+        # through inlining (e.g. l_sprintf into LUA_N2SBUFFSZ buffers in
+        # luaO_tostringbuff) and reports a bogus "null destination pointer". Keep
+        # it as a warning, not fatal.
+        -Wno-error=format-truncation
     )
 endif()
 
