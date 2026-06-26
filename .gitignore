@@ -23,3 +23,6 @@ coverage_html/
 coverage_*.info
 build_coverage/
 tags
+
+# Local Claude Code session resume helper (not part of the project)
+continue.txt
