@@ -56,10 +56,9 @@ static bool checkbuffer (ZIO *z) {
 
 size_t luaZ_read (ZIO *z, void *b, size_t n) {
   while (n) {
-    size_t m;
     if (!checkbuffer(z))
       return n;  // no more input; return number of missing bytes
-    m = (n <= z->n) ? n : z->n;  // min. between n and z->n
+    const size_t m = (n <= z->n) ? n : z->n;  // min. between n and z->n
     memcpy(b, z->p, m);
     z->n -= m;
     z->p += m;
