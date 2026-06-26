@@ -51,13 +51,13 @@ l_mem GCCore::objsize(GCObject* o) {
             break;
         }
         case static_cast<int>(ctb(LuaT::SHRSTR)): {
-            TString* ts = gco2ts(o);
-            res = sizestrshr(cast_uint(ts->getShrlen()));
+            TString* tstring = gco2ts(o);
+            res = sizestrshr(cast_uint(tstring->getShrlen()));
             break;
         }
         case static_cast<int>(ctb(LuaT::LNGSTR)): {
-            TString* ts = gco2ts(o);
-            res = TString::calculateLongStringSize(ts->getLnglen(), ts->getShrlen());
+            TString* tstring = gco2ts(o);
+            res = TString::calculateLongStringSize(tstring->getLnglen(), tstring->getShrlen());
             break;
         }
         case static_cast<int>(ctb(LuaT::UPVAL)): {

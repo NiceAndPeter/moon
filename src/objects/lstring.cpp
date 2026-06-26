@@ -151,37 +151,37 @@ static TString *createstrobj (lua_State *L, size_t totalsize, LuaT tag,
   lua_assert(totalsize >= TString::contentsOffset());
 
   GCObject *o = luaC_newobj(*L, tag, totalsize);
-  TString *ts = gco2ts(o);
+  TString *tstring = gco2ts(o);
 
   // Manually initialize fields (can't use constructor - it might write to all fields)
   // Only initialize fields that actually exist in the allocated memory
-  ts->setExtra(0);
-  ts->setShrlen(0);
-  ts->setHash(h);
-  ts->setLnglen(0);  // Zero-initialize union
+  tstring->setExtra(0);
+  tstring->setShrlen(0);
+  tstring->setHash(h);
+  tstring->setLnglen(0);  // Zero-initialize union
 
   // For long strings, only initialize fields that actually exist in the allocated memory
   // LSTRFIX: allocates 40 bytes (up to but not including falloc)
   // LSTRREG: allocates 40 + string length (up to but not including falloc)
   // LSTRMEM: allocates full sizeof(TString) = 56 bytes (includes falloc and ud)
   if (tag == LuaT::LNGSTR) {
-    ts->setContents(nullptr);
+    tstring->setContents(nullptr);
     // DON'T initialize falloc/ud here - they may not exist in allocated memory!
     // They will be initialized by the caller if needed (e.g., luaS_newextlstr for LSTRMEM)
   }
 
-  return ts;
+  return tstring;
 }
 
 
 TString* TString::createLongString(lua_State* L, size_t l) {
   size_t totalsize = calculateLongStringSize(l, LSTRREG);
-  TString *ts = createstrobj(L, totalsize, ctb(LuaT::LNGSTR), G(L)->getSeed());
-  ts->setLnglen(l);
-  ts->setShrlen(LSTRREG);  // signals that it is a regular long string
-  ts->setContents(cast_charp(ts) + tstringFallocOffset());
-  ts->getContentsField()[l] = '\0';  // ending 0
-  return ts;
+  TString *tstring = createstrobj(L, totalsize, ctb(LuaT::LNGSTR), G(L)->getSeed());
+  tstring->setLnglen(l);
+  tstring->setShrlen(LSTRREG);  // signals that it is a regular long string
+  tstring->setContents(cast_charp(tstring) + tstringFallocOffset());
+  tstring->getContentsField()[l] = '\0';  // ending 0
+  return tstring;
 }
 
 
@@ -200,19 +200,19 @@ static void growstrtab (lua_State *L, StringTable *tb) {
 ** Checks whether short string exists and reuses it or creates a new one.
 */
 static TString *internshrstr (lua_State *L, const char *str, size_t l) {
-  TString *ts;
+  TString *tstring;
   GlobalState *g = G(L);
   StringTable *tb = g->getStringTable();
   unsigned int h = TString::computeHash(str, l, g->getSeed());
   TString **list = &tb->getHash()[lmod(h, tb->getSize())];
   lua_assert(str != nullptr);  // otherwise 'memcmp'/'memcpy' are undefined
-  for (ts = *list; ts != nullptr; ts = ts->getNext()) {
-    if (l == cast_uint(ts->getShrlen()) &&
-        (memcmp(str, getShortStringContents(ts), l * sizeof(char)) == 0)) {
+  for (tstring = *list; tstring != nullptr; tstring = tstring->getNext()) {
+    if (l == cast_uint(tstring->getShrlen()) &&
+        (memcmp(str, getShortStringContents(tstring), l * sizeof(char)) == 0)) {
       // found!
-      if (isdead(g, ts))  // dead (but not collected yet)?
-        changewhite(ts);  // resurrect it
-      return ts;
+      if (isdead(g, tstring))  // dead (but not collected yet)?
+        changewhite(tstring);  // resurrect it
+      return tstring;
     }
   }
   // else must create a new string
@@ -221,14 +221,14 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
     list = &tb->getHash()[lmod(h, tb->getSize())];  // rehash with new size
   }
   size_t allocsize = sizestrshr(l);
-  ts = createstrobj(L, allocsize, ctb(LuaT::SHRSTR), h);
-  ts->setShrlen(static_cast<ls_byte>(l));
-  getShortStringContents(ts)[l] = '\0';  // ending 0
-  std::copy_n(str, l, getShortStringContents(ts));
-  ts->setNext(*list);
-  *list = ts;
+  tstring = createstrobj(L, allocsize, ctb(LuaT::SHRSTR), h);
+  tstring->setShrlen(static_cast<ls_byte>(l));
+  getShortStringContents(tstring)[l] = '\0';  // ending 0
+  std::copy_n(str, l, getShortStringContents(tstring));
+  tstring->setNext(*list);
+  *list = tstring;
   tb->incrementNumElements();
-  return ts;
+  return tstring;
 }
 
 
@@ -236,12 +236,12 @@ TString* TString::create(lua_State* L, const char* str, size_t l) {
   if (l <= LUAI_MAXSHORTLEN)  // short string?
     return internshrstr(L, str, l);
   else {
-    TString *ts;
+    TString *tstring;
     if (l_unlikely(l * sizeof(char) >= (MAX_SIZE - sizeof(TString))))
       luaM_toobig(L);
-    ts = createLongString(L, l);
-    std::copy_n(str, l, getLongStringContents(ts));
-    return ts;
+    tstring = createLongString(L, l);
+    std::copy_n(str, l, getLongStringContents(tstring));
+    return tstring;
   }
 }
 
@@ -302,14 +302,14 @@ struct NewExt {
   ls_byte kind;
   const char *s;
    size_t len;
-  TString *ts;  // output
+  TString *tstring;  // output
 };
 
 
 static void f_newext (lua_State *L, void *ud) {
   NewExt *ne = static_cast<NewExt*>(ud);
   size_t size = TString::calculateLongStringSize(0, ne->kind);
-  ne->ts = createstrobj(L, size, ctb(LuaT::LNGSTR), G(L)->getSeed());
+  ne->tstring = createstrobj(L, size, ctb(LuaT::LNGSTR), G(L)->getSeed());
 }
 
 
@@ -326,13 +326,13 @@ TString* TString::createExternal(lua_State* L, const char* s, size_t len,
       (*falloc)(ud, cast_voidp(s), len + 1, 0);  // free external string
       luaM_error(L);  // re-raise memory error
     }
-    ne.ts->setFalloc(falloc);
-    ne.ts->setUserData(ud);
+    ne.tstring->setFalloc(falloc);
+    ne.tstring->setUserData(ud);
   }
-  ne.ts->setShrlen(ne.kind);
-  ne.ts->setLnglen(len);
-  ne.ts->setContents(cast_charp(s));
-  return ne.ts;
+  ne.tstring->setShrlen(ne.kind);
+  ne.tstring->setLnglen(len);
+  ne.tstring->setContents(cast_charp(s));
+  return ne.tstring;
 }
 
 

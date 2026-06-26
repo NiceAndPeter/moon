@@ -77,7 +77,7 @@ inline constexpr int NUM_RESERVED = (cast_int(static_cast<int>(RESERVED::TK_WHIL
 typedef union {
   lua_Number r;
   lua_Integer i;
-  TString *ts;
+  TString *tstring;
 } SemInfo;  // semantics information
 
 
@@ -256,7 +256,7 @@ private:
   int readDecEsc();
   const char* txtToken(int token);
   size_t skipSep();
-  TString* anchorStr(TString *ts);
+  TString* anchorStr(TString *tstring);
 
   // Batch 3: Medium functions
   l_noret lexError(const char *msg, int token);

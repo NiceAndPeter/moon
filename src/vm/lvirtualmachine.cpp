@@ -1522,7 +1522,7 @@ void VirtualMachine::concat(int total) {
     else {
       // at least two non-empty string values; get as many as possible
       auto tl = getStringLength(tsvalue(s2v(top - 1)));
-      TString *ts;
+      TString *tstring;
       // collect total length and number of strings
       for (n = 1; n < total && tostring(L, s2v(top - n - 1)); n++) {
         top = L->getTop().p;  // recapture after tostring() which can trigger GC
@@ -1536,15 +1536,15 @@ void VirtualMachine::concat(int total) {
       if (tl <= LUAI_MAXSHORTLEN) {  // is result a short string?
         char buff[LUAI_MAXSHORTLEN];
         copy2buff(top, n, buff);  // copy strings to buffer
-        ts = TString::create(L, buff, tl);
+        tstring = TString::create(L, buff, tl);
         top = L->getTop().p;  // recapture after potential GC
       }
       else {  // long string; copy strings directly to final result
-        ts = TString::createLongString(L, tl);
+        tstring = TString::createLongString(L, tl);
         top = L->getTop().p;  // recapture after potential GC
-        copy2buff(top, n, getLongStringContents(ts));
+        copy2buff(top, n, getLongStringContents(tstring));
       }
-      setsvalue2s(L, top - n, ts);  // create result
+      setsvalue2s(L, top - n, tstring);  // create result
     }
     total -= n - 1;  // got 'n' strings to create one new
     L->getStackSubsystem().popN(n - 1);  // popped 'n' strings and pushed one

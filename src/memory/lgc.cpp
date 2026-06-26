@@ -414,20 +414,20 @@ void freeobj (lua_State& L, GCObject *o) {
       break;
     }
     case static_cast<int>(ctb(LuaT::SHRSTR)): {
-      TString *ts = gco2ts(o);
-      size_t sz = sizestrshr(cast_uint(ts->getShrlen()));
-      ts->remove(&L);  // use method instead of free function
+      TString *tstring = gco2ts(o);
+      size_t sz = sizestrshr(cast_uint(tstring->getShrlen()));
+      tstring->remove(&L);  // use method instead of free function
       // DON'T call destructor for TString - it's empty and might cause issues with variable-size objects
-      // ts->~TString();
-      luaM_freemem(&L, ts, sz);
+      // tstring->~TString();
+      luaM_freemem(&L, tstring, sz);
       break;
     }
     case static_cast<int>(ctb(LuaT::LNGSTR)): {
-      TString *ts = gco2ts(o);
-      if (ts->getShrlen() == LSTRMEM)  // must free external string?
-        (*ts->getFalloc())(ts->getUserData(), ts->getContentsField(), ts->getLnglen() + 1, 0);
-      ts->~TString();  // Call destructor
-      luaM_freemem(&L, ts, TString::calculateLongStringSize(ts->getLnglen(), ts->getShrlen()));
+      TString *tstring = gco2ts(o);
+      if (tstring->getShrlen() == LSTRMEM)  // must free external string?
+        (*tstring->getFalloc())(tstring->getUserData(), tstring->getContentsField(), tstring->getLnglen() + 1, 0);
+      tstring->~TString();  // Call destructor
+      luaM_freemem(&L, tstring, TString::calculateLongStringSize(tstring->getLnglen(), tstring->getShrlen()));
       break;
     }
     default: lua_assert(0);

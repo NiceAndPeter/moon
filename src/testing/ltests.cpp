@@ -1084,12 +1084,12 @@ static int tracegc (lua_State *L) {
 
 static int hash_query (lua_State *L) {
   if (lua_isnone(L, 2)) {
-    TString *ts;
+    TString *tstring;
     luaL_argcheck(L, lua_type(L, 1) == LUA_TSTRING, 1, "string expected");
-    ts = tsvalue(obj_at(L, 1));
-    if (ts->getType() == ctb(LuaT::LNGSTR))
-      (void)ts->hashLongStr();  // make sure long string has a hash - hash also stored in object
-    lua_pushinteger(L, cast_int(ts->getHash()));
+    tstring = tsvalue(obj_at(L, 1));
+    if (tstring->getType() == ctb(LuaT::LNGSTR))
+      (void)tstring->hashLongStr();  // make sure long string has a hash - hash also stored in object
+    lua_pushinteger(L, cast_int(tstring->getHash()));
   }
   else {
     TValue *o = obj_at(L, 1);
@@ -1193,10 +1193,10 @@ static int string_query (lua_State *L) {
     return 2;
   }
   else if (cast_uint(s) < tb->getSize()) {
-    TString *ts;
+    TString *tstring;
     int n = 0;
-    for (ts = tb->getHash()[s]; ts != nullptr; ts = ts->getNext()) {
-      setsvalue2s(L, L->getTop().p, ts);
+    for (tstring = tb->getHash()[s]; tstring != nullptr; tstring = tstring->getNext()) {
+      setsvalue2s(L, L->getTop().p, tstring);
       api_incr_top(L);
       n++;
     }
@@ -1974,10 +1974,10 @@ static struct X { int x; } x;
       int f = getindex;
       int t = getindex;
       lua_State *fs = (f == 0) ? L1 : lua_tothread(L1, f);
-      lua_State *ts = (t == 0) ? L1 : lua_tothread(L1, t);
+      lua_State *tstring = (t == 0) ? L1 : lua_tothread(L1, t);
       int n = getnum;
       if (n == 0) n = lua_gettop(fs);
-      lua_xmove(fs, ts, n);
+      lua_xmove(fs, tstring, n);
     }
     else if EQ("isyieldable") {
       lua_pushboolean(L1, lua_isyieldable(lua_tothread(L1, getindex)));

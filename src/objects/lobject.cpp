@@ -518,8 +518,8 @@ static void pushbuff (lua_State *L, void *ud) {
       }
       // FALLTHROUGH
     default: {  // no errors, but it can raise one creating the new string
-      TString *ts = TString::create(L, buff->b, buff->blen);
-      setsvalue2s(L, L->getTop().p, ts);
+      TString *tstring = TString::create(L, buff->b, buff->blen);
+      setsvalue2s(L, L->getTop().p, tstring);
       L->getStackSubsystem().push();
     }
   }

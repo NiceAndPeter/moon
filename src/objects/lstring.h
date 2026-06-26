@@ -198,7 +198,7 @@ public:
 
 
 // Check if string is short (wrapper for backward compatibility)
-inline bool strisshr(const TString* ts) noexcept { return ts->isShort(); }
+inline bool strisshr(const TString* tstring) noexcept { return tstring->isShort(); }
 
 // Check if string is external (fixed or with custom deallocator)
 inline bool isextstr(const TValue* v) noexcept {
@@ -213,11 +213,11 @@ inline bool TValue::isExtString() const noexcept {
 ** Get the actual string (array of bytes) from a 'TString'. (Generic
 ** version and specialized versions for long and short strings.)
 */
-inline char* rawGetShortStringContents(TString* ts) noexcept {
-	return ts->getContentsAddr();
+inline char* rawGetShortStringContents(TString* tstring) noexcept {
+	return tstring->getContentsAddr();
 }
-inline const char* rawGetShortStringContents(const TString* ts) noexcept {
-	return ts->getContentsAddr();
+inline const char* rawGetShortStringContents(const TString* tstring) noexcept {
+	return tstring->getContentsAddr();
 }
 
 /*
@@ -226,44 +226,44 @@ inline const char* rawGetShortStringContents(const TString* ts) noexcept {
 */
 
 // Get short string contents (asserts string is short)
-inline char* getShortStringContents(TString* ts) noexcept {
-	lua_assert(ts->isShort());
-	return ts->getContentsAddr();
+inline char* getShortStringContents(TString* tstring) noexcept {
+	lua_assert(tstring->isShort());
+	return tstring->getContentsAddr();
 }
-inline const char* getShortStringContents(const TString* ts) noexcept {
-	lua_assert(ts->isShort());
-	return ts->getContentsAddr();
+inline const char* getShortStringContents(const TString* tstring) noexcept {
+	lua_assert(tstring->isShort());
+	return tstring->getContentsAddr();
 }
 
 // Get long string contents (asserts string is long)
-inline char* getLongStringContents(TString* ts) noexcept {
-	lua_assert(ts->isLong());
-	return ts->getContentsField();
+inline char* getLongStringContents(TString* tstring) noexcept {
+	lua_assert(tstring->isLong());
+	return tstring->getContentsField();
 }
-inline const char* getLongStringContents(const TString* ts) noexcept {
-	lua_assert(ts->isLong());
-	return ts->getContentsField();
+inline const char* getLongStringContents(const TString* tstring) noexcept {
+	lua_assert(tstring->isLong());
+	return tstring->getContentsField();
 }
 
 // Get string contents (works for both short and long strings)
-inline char* getStringContents(TString* ts) noexcept {
-	return ts->getContentsPtr();
+inline char* getStringContents(TString* tstring) noexcept {
+	return tstring->getContentsPtr();
 }
-inline const char* getStringContents(const TString* ts) noexcept {
-	return ts->c_str();
+inline const char* getStringContents(const TString* tstring) noexcept {
+	return tstring->c_str();
 }
 
 
-// get string length from 'TString *ts'
-inline size_t getStringLength(const TString* ts) noexcept {
-	return ts->length();
+// get string length from 'TString *tstring'
+inline size_t getStringLength(const TString* tstring) noexcept {
+	return tstring->length();
 }
 
 /*
 ** Get string and length */
-inline const char* getStringWithLength(const TString* ts, size_t& len) noexcept {
-	len = ts->length();
-	return ts->c_str();
+inline const char* getStringWithLength(const TString* tstring, size_t& len) noexcept {
+	len = tstring->length();
+	return tstring->c_str();
 }
 
 // }==================================================================

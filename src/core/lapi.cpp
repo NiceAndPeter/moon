@@ -472,29 +472,29 @@ LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
 ** 'memcmp' and 'memcpy'.
 */
 LUA_API const char *lua_pushlstring (lua_State *L, const char *s, size_t len) {
-  TString *ts;
+  TString *tstring;
   lua_lock(L);
-  ts = (len == 0) ? TString::create(L, "") : TString::create(L, s, len);
-  setsvalue2s(L, L->getTop().p, ts);
+  tstring = (len == 0) ? TString::create(L, "") : TString::create(L, s, len);
+  setsvalue2s(L, L->getTop().p, tstring);
   api_incr_top(L);
   luaC_checkGC(L);
   lua_unlock(L);
-  return getStringContents(ts);
+  return getStringContents(tstring);
 }
 
 
 LUA_API const char *lua_pushexternalstring (lua_State *L,
 	        const char *s, size_t len, lua_Alloc falloc, void *ud) {
-  TString *ts;
+  TString *tstring;
   lua_lock(L);
   api_check(L, len <= MAX_SIZE, "string too large");
   api_check(L, s[len] == '\0', "string not ending with zero");
-  ts = TString::createExternal(L, s, len, falloc, ud);
-  setsvalue2s(L, L->getTop().p, ts);
+  tstring = TString::createExternal(L, s, len, falloc, ud);
+  setsvalue2s(L, L->getTop().p, tstring);
   api_incr_top(L);
   luaC_checkGC(L);
   lua_unlock(L);
-  return getStringContents(ts);
+  return getStringContents(tstring);
 }
 
 
@@ -503,10 +503,10 @@ LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
   if (s == nullptr)
     setnilvalue(s2v(L->getTop().p));
   else {
-    TString *ts;
-    ts = TString::create(L, s);
-    setsvalue2s(L, L->getTop().p, ts);
-    s = getStringContents(ts);  // internal copy's address
+    TString *tstring;
+    tstring = TString::create(L, s);
+    setsvalue2s(L, L->getTop().p, tstring);
+    s = getStringContents(tstring);  // internal copy's address
   }
   api_incr_top(L);
   luaC_checkGC(L);

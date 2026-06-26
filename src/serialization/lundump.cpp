@@ -157,7 +157,7 @@ static lua_Integer loadInteger (LoadState *S) {
 */
 static void loadString (LoadState *S, Proto& p, TString **sl) {
   lua_State *L = S->L;
-  TString *ts;
+  TString *tstring;
   TValue sv;
   size_t size = loadSize(S);
   if (size == 0) {  // no string?
@@ -169,31 +169,31 @@ static void loadString (LoadState *S, Proto& p, TString **sl) {
     TValue stv;
     if (novariant(S->h->getInt(l_castU2S(idx), &stv)) != LUA_TSTRING)
       error(S, "invalid string index");
-    *sl = ts = tsvalue(&stv);  /* get its value */
-    luaC_objbarrier(L, &p, ts);
+    *sl = tstring = tsvalue(&stv);  /* get its value */
+    luaC_objbarrier(L, &p, tstring);
     return;  // do not save it again
   }
   else if ((size -= 2) <= LUAI_MAXSHORTLEN) {  // short string?
     char buff[LUAI_MAXSHORTLEN + 1];  // extra space for '\0'
     loadVector(S, buff, size + 1);  // load string into buffer
-    *sl = ts = TString::create(L, buff, size);  /* create string */
-    luaC_objbarrier(L, &p, ts);
+    *sl = tstring = TString::create(L, buff, size);  /* create string */
+    luaC_objbarrier(L, &p, tstring);
   }
   else if (S->fixed) {  // for a fixed buffer, use a fixed string
     const char *s = getaddr<char>(S, size + 1);  // get content address
-    *sl = ts = TString::createExternal(L, s, size, nullptr, nullptr);
-    luaC_objbarrier(L, &p, ts);
+    *sl = tstring = TString::createExternal(L, s, size, nullptr, nullptr);
+    luaC_objbarrier(L, &p, tstring);
   }
   else {  // create internal copy
-    *sl = ts = TString::createLongString(L, size);  /* create string */
-    luaC_objbarrier(L, &p, ts);
-    loadVector(S, getLongStringContents(ts), size + 1);  // load directly in final place
+    *sl = tstring = TString::createLongString(L, size);  /* create string */
+    luaC_objbarrier(L, &p, tstring);
+    loadVector(S, getLongStringContents(tstring), size + 1);  // load directly in final place
   }
   // add string to list of saved strings
   S->nstr++;
-  setsvalue(L, &sv, ts);
+  setsvalue(L, &sv, tstring);
   S->h->setInt(L, l_castU2S(S->nstr), &sv);
-  luaC_objbarrierback(L, obj2gco(S->h), ts);
+  luaC_objbarrierback(L, obj2gco(S->h), tstring);
 }
 
 

@@ -143,12 +143,12 @@ static void dumpInteger (DumpState *D, lua_Integer x) {
 ** size==size-2 and means that string, which will be saved with
 ** the next available index.
 */
-static void dumpString (DumpState *D, TString *ts) {
-  if (ts == nullptr)
+static void dumpString (DumpState *D, TString *tstring) {
+  if (tstring == nullptr)
     dumpSize(D, 0);
   else {
     TValue idx;
-    LuaT tag = D->h->getStr(ts, &idx);
+    LuaT tag = D->h->getStr(tstring, &idx);
     if (!tagisempty(tag)) {  // string already saved?
       dumpVarint(D, 1);  // reuse a saved string
       dumpVarint(D, l_castS2U(ivalue(&idx)));  // index of saved string
@@ -156,13 +156,13 @@ static void dumpString (DumpState *D, TString *ts) {
     else {  // must write and save the string
       TValue key, value;  // to save the string in the hash
       size_t size;
-      const char *s = getStringWithLength(ts, size);
+      const char *s = getStringWithLength(tstring, size);
       dumpSize(D, size + 2);
       dumpVector(D, s, size + 1);  // include ending '\0'
       D->nstr++;  // one more saved string
-      setsvalue(D->L, &key, ts);  // the string is the key
+      setsvalue(D->L, &key, tstring);  // the string is the key
       value.setInt(l_castU2S(D->nstr));  // its index is the value
-      D->h->set(D->L, &key, &value);  // h[ts] = nstr
+      D->h->set(D->L, &key, &value);  // h[tstring] = nstr
       // integer value does not need barrier
     }
   }

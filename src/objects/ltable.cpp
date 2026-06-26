@@ -316,12 +316,12 @@ static Node *mainpositionTV (const Table& t, const TValue *key) {
       return hashmod(&t, l_hashfloat(n));
     }
     case LuaT::SHRSTR: {
-      TString *ts = tsvalue(key);
-      return hashstr(&t, ts);
+      TString *tstring = tsvalue(key);
+      return hashstr(&t, tstring);
     }
     case LuaT::LNGSTR: {
-      TString *ts = tsvalue(key);
-      return hashpow2(&t, ts->hashLongStr());
+      TString *tstring = tsvalue(key);
+      return hashpow2(&t, tstring->hashLongStr());
     }
     case LuaT::VFALSE:
       return hashboolean(&t, 0);
@@ -1353,8 +1353,8 @@ void Table::finishSet(lua_State* L, const TValue* key, TValue* value, int hres) 
     }
     else if (isextstr(key)) {  // external string?
       // If string is short, must internalize it to be used as table key
-      TString *ts = tsvalue(key)->normalize(L);
-      setsvalue2s(L, L->getTop().p, ts);  // anchor 'ts' (EXTRA_STACK)
+      TString *tstring = tsvalue(key)->normalize(L);
+      setsvalue2s(L, L->getTop().p, tstring);  // anchor 'tstring' (EXTRA_STACK)
       L->getStackSubsystem().push();
       luaH_newkey(L, *this, s2v(L->getTop().p - 1), value);
       L->getStackSubsystem().pop();

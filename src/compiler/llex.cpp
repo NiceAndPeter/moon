@@ -68,9 +68,9 @@ void luaX_init (lua_State *L)
   lu_byte tokenIndex = 0;
   for (auto const& token : std::span(luaX_tokens)) 
   {
-    auto ts = TString::create(L, token);
-    ts->fix(L);  
-    ts->setExtra(++tokenIndex);  
+    auto tstring = TString::create(L, token);
+    tstring->fix(L);  
+    tstring->setExtra(++tokenIndex);  
   }
 }
 
@@ -118,21 +118,21 @@ l_noret LexState::syntaxError(const char *msg) {
 ** somewhere. It also internalizes long strings, ensuring there is only
 ** one copy of each unique string.
 */
-TString* LexState::anchorStr(TString *ts) {
+TString* LexState::anchorStr(TString *tstring) {
   lua_State *luaState = getLuaState();
   TValue oldts;
-  LuaT tag = getTable()->getStr(ts, &oldts);
+  LuaT tag = getTable()->getStr(tstring, &oldts);
   if (!tagisempty(tag))  // string already present?
     return tsvalue(&oldts);  // use stored value
   else {  // create a new entry
     TValue *stv = s2v(luaState->getTop().p);  // reserve stack space for string
     luaState->getStackSubsystem().push();
-    setsvalue(luaState, stv, ts);  // push (anchor) the string on the stack
+    setsvalue(luaState, stv, tstring);  // push (anchor) the string on the stack
     getTable()->set(luaState, stv, stv);  // t[string] = string
     // table is not a metatable, so it does not need to invalidate cache
     luaC_checkGC(luaState);
     luaState->getStackSubsystem().pop();  // remove string from stack
-    return ts;
+    return tstring;
   }
 }
 
@@ -307,7 +307,7 @@ void LexState::readLongString(SemInfo *seminfo, size_t sep) {
     }
   } endloop:
   if (seminfo)
-    seminfo->ts = newString(luaZ_buffer(getBuffer()) + sep,
+    seminfo->tstring = newString(luaZ_buffer(getBuffer()) + sep,
                                 luaZ_bufflen(getBuffer()) - 2 * sep);
 }
 
@@ -438,7 +438,7 @@ void LexState::readString(int del, SemInfo *seminfo) {
     }
   }
   saveAndNext();  // skip delimiter
-  seminfo->ts = newString(luaZ_buffer(getBuffer()) + 1,
+  seminfo->tstring = newString(luaZ_buffer(getBuffer()) + 1,
                               luaZ_bufflen(getBuffer()) - 2);
 }
 
@@ -539,17 +539,17 @@ int LexState::lex(SemInfo *seminfo) {
       }
       default: {
         if (lislalpha(getCurrentChar())) {  // identifier or reserved word?
-          TString *ts;
+          TString *tstring;
           do {
             saveAndNext();
           } while (lislalnum(getCurrentChar()));
           // find or create string
-          ts = TString::create(getLuaState(), luaZ_buffer(getBuffer()),
+          tstring = TString::create(getLuaState(), luaZ_buffer(getBuffer()),
                                    luaZ_bufflen(getBuffer()));
-          if (isreserved(ts))  // reserved word?
-            return ts->getExtra() - 1 + FIRST_RESERVED;
+          if (isreserved(tstring))  // reserved word?
+            return tstring->getExtra() - 1 + FIRST_RESERVED;
           else {
-            seminfo->ts = anchorStr(ts);
+            seminfo->tstring = anchorStr(tstring);
             return static_cast<int>(RESERVED::TK_NAME);
           }
         }

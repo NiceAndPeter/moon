@@ -218,11 +218,11 @@ void Parser::check_match(int what, int who, int where) {
 
 
 TString *Parser::str_checkname() {
-  TString *ts;
+  TString *tstring;
   check(static_cast<int>(RESERVED::TK_NAME));
-  ts = lexState.getSemInfo().ts;
+  tstring = lexState.getSemInfo().tstring;
   lexState.nextToken();
-  return ts;
+  return tstring;
 }
 
 
@@ -710,7 +710,7 @@ void Parser::funcargs( ExpDesc& f) {
       break;
     }
     case static_cast<int>(RESERVED::TK_STRING): {  // funcargs -> STRING
-      args.initString(lexState.getSemInfo().ts);
+      args.initString(lexState.getSemInfo().tstring);
       lexState.nextToken();  // must use 'seminfo' before 'next'
       break;
     }
@@ -818,7 +818,7 @@ void Parser::simpleexp( ExpDesc& v) {
       break;
     }
     case static_cast<int>(RESERVED::TK_STRING): {
-      v.initString(lexState.getSemInfo().ts);
+      v.initString(lexState.getSemInfo().tstring);
       break;
     }
     case static_cast<int>(RESERVED::TK_NIL): {
@@ -1237,8 +1237,8 @@ void Parser::localfunc() {
 lu_byte Parser::getvarattribute( lu_byte df) {
   // attrib -> ['<' NAME '>']
   if (testnext( '<')) {
-    TString *ts = str_checkname();
-    const char *attr = getStringContents(ts);
+    TString *tstring = str_checkname();
+    const char *attr = getStringContents(tstring);
     checknext( '>');
     if (strcmp(attr, "const") == 0)
       return RDKCONST;  // read-only variable
@@ -1519,7 +1519,7 @@ void Parser::statement() {
     case static_cast<int>(RESERVED::TK_NAME): {
       /* compatibility code to parse global keyword when "global"
          is not reserved */
-      if (lexState.getSemInfo().ts == lexState.getGlobalName()) {  // current = "global"?
+      if (lexState.getSemInfo().tstring == lexState.getGlobalName()) {  // current = "global"?
         int lk = lexState.lookaheadToken();
         if (lk == '<' || lk == static_cast<int>(RESERVED::TK_NAME) || lk == '*' || lk == static_cast<int>(RESERVED::TK_FUNCTION)) {
           /* 'global <attrib>' or 'global name' or 'global *' or
