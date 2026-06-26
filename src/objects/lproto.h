@@ -168,7 +168,7 @@ public:
   /* Pointer accessors */
   TString** getSourcePtr() noexcept { return &source; }
 
-  /* Phase 112: std::span accessors for debug info arrays */
+  /* std::span accessors for debug info arrays */
   std::span<ls_byte> getLineInfoSpan() noexcept {
     return std::span(lineinfo, static_cast<size_t>(sizelineinfo));
   }
@@ -216,7 +216,7 @@ private:
   ProtoDebugInfo debugInfo;
 
 public:
-  // Phase 50: Constructor - initializes all fields to safe defaults
+  // Constructor - initializes all fields to safe defaults
   Proto() noexcept
     : numparams(0), flag(0), maxstacksize(0), sizeupvalues(0),
       sizek(0), sizecode(0), sizep(0), k(nullptr), code(nullptr),
@@ -233,10 +233,10 @@ public:
     debugInfo.setSource(nullptr);
   }
 
-  // Phase 50: Destructor - trivial (GC calls free() method explicitly)
+  // Destructor - trivial (GC calls free() method explicitly)
   ~Proto() noexcept = default;
 
-  // Phase 50: Placement new operator - integrates with Lua's GC (implemented in lgc.h)
+  // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
   static void* operator new(size_t size, lua_State* L, LuaT tt);
 
   // Disable regular new/delete (must use placement new with GC)
@@ -259,7 +259,7 @@ public:
   Instruction* getCode() const noexcept { return code; }
   TValue* getConstants() const noexcept { return k; }
 
-  /* Phase 112: std::span accessors for arrays */
+  /* std::span accessors for arrays */
   std::span<Instruction> getCodeSpan() noexcept {
     return std::span(code, static_cast<size_t>(sizecode));
   }
@@ -351,7 +351,7 @@ public:
   AbsLineInfo*& getAbsLineInfoRef() noexcept { return debugInfo.getAbsLineInfoRef(); }
   LocVar*& getLocVarsRef() noexcept { return debugInfo.getLocVarsRef(); }
 
-  // Phase 44.5: Additional Proto helper methods
+  // Additional Proto helper methods
 
   // Get relative PC for debug info
   int getPCRelative(const Instruction* pc) const noexcept {

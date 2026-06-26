@@ -372,22 +372,22 @@ private:
   UValue uv[1];  /* user values */
 
 public:
-  // Phase 50: Constructor - initializes all fields to safe defaults
+  // Constructor - initializes all fields to safe defaults
   Udata() noexcept
     : nuvalue(0), len(0), metatable(nullptr), gclist(nullptr) {
     // Note: uv array will be initialized by caller if needed
   }
 
-  // Phase 50: Destructor - trivial (GC handles deallocation)
+  // Destructor - trivial (GC handles deallocation)
   // MUST be empty (not = default) for variable-size objects
   ~Udata() noexcept {}
 
-  // Phase 50: Special placement new for variable-size objects
+  // Special placement new for variable-size objects
   static void* operator new(size_t /*size*/, void* ptr) noexcept {
     return ptr;  // Just return the pointer, no allocation
   }
 
-  // Phase 50: Placement new operator - integrates with Lua's GC (implemented in lgc.h)
+  // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
   static void* operator new(size_t size, lua_State* L, LuaT tt, size_t extra = 0);
 
   // Disable regular new/delete (must use placement new with GC)
@@ -436,7 +436,6 @@ typedef struct Udata0 : public GCBase<Udata0> {
 
 
 /* compute the offset of the memory area of a userdata */
-// Phase 49: Convert macro to constexpr function
 // offsetof for non-standard-layout types (classes with GCBase inheritance)
 // This triggers -Winvalid-offsetof but is safe because we control the memory layout
 constexpr inline size_t udatamemoffset(int nuv) noexcept {
@@ -445,7 +444,6 @@ constexpr inline size_t udatamemoffset(int nuv) noexcept {
 }
 
 /* get the address of the memory block inside 'Udata' */
-// Phase 49: Convert macro to inline function with const overload
 inline char* getudatamem(Udata* u) noexcept {
 	return cast_charp(u) + udatamemoffset(u->getNumUserValues());
 }
@@ -454,7 +452,6 @@ inline const char* getudatamem(const Udata* u) noexcept {
 }
 
 /* compute the size of a userdata */
-// Phase 49: Convert macro to constexpr function
 constexpr inline size_t sizeudata(int nuv, size_t nb) noexcept {
 	return udatamemoffset(nuv) + nb;
 }

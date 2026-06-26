@@ -59,7 +59,6 @@ LClosure* LClosure::create(lua_State* L, int nupvals) {
 
 /*
 ** fill a closure with new closed upvalues
-** Phase 50: Now uses placement new
 */
 void LClosure::initUpvals(lua_State* L) {
   int i;
@@ -78,7 +77,6 @@ void LClosure::initUpvals(lua_State* L) {
 /*
 ** Create a new upvalue at the given level, and link it to the list of
 ** open upvalues of 'L' after entry 'prev'.
-** Phase 50: Now uses placement new
 **/
 static UpVal *newupval (lua_State *L, StkId level, UpVal **prev) {
   // Use placement new - calls constructor
@@ -262,7 +260,6 @@ StkId luaF_close (lua_State *L, StkId level, TStatus status, int yy) {
 }
 
 
-// Phase 50: Use placement new to call constructor
 Proto *luaF_newproto (lua_State *L) {
   // Use placement new - calls constructor which initializes all fields to safe defaults
   Proto *f = new (L, ctb(LuaT::PROTO)) Proto();

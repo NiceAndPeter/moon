@@ -74,7 +74,7 @@ private:
   } u;
 
 public:
-  // Phase 50: Constructor - initializes all fields to safe defaults
+  // Constructor - initializes all fields to safe defaults
   UpVal() noexcept
     : v{nullptr}, u{} {
     // Initialize u union as closed upvalue with nil
@@ -82,10 +82,10 @@ public:
     u.value.setType(LUA_TNIL);
   }
 
-  // Phase 50: Destructor - trivial (GC handles deallocation)
+  // Destructor - trivial (GC handles deallocation)
   ~UpVal() noexcept = default;
 
-  // Phase 50: Placement new operator - integrates with Lua's GC (implemented in lgc.h)
+  // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
   static void* operator new(size_t size, lua_State* L, LuaT tt);
 
   // Disable regular new/delete (must use placement new with GC)
@@ -115,7 +115,7 @@ public:
   // Status check
   bool isOpen() const noexcept { return v.p != &u.value; }
 
-  // Level accessor for open upvalues (Phase 44.3)
+  // Level accessor for open upvalues
   StkId getLevel() const noexcept {
     lua_assert(isOpen());
     return reinterpret_cast<StkId>(v.p);
@@ -227,8 +227,7 @@ inline Proto* getproto(const TValue* o) noexcept {
 /* }================================================================== */
 
 
-// Phase 88: Convert sizeCclosure and sizeLclosure macros to inline constexpr functions
-// These are simple forwarding calls to static methods
+// Simple forwarding calls to the static size helpers.
 inline constexpr lu_mem sizeCclosure(int n) noexcept {
 	return CClosure::sizeForUpvalues(n);
 }
@@ -237,20 +236,11 @@ inline constexpr lu_mem sizeLclosure(int n) noexcept {
 	return LClosure::sizeForUpvalues(n);
 }
 
-/* Phase 44.4: isintwups macro replaced with lua_State method:
-** - isintwups(L) → L->isInTwups()
-*/
-
 /*
 ** maximum number of upvalues in a closure (both C and Lua). (Value
 ** must fit in a VM register.)
 */
 inline constexpr int MAXUPVAL = 255;
-
-/* Phase 44.3: UpVal macros replaced with methods:
-** - upisopen(up) → up->isOpen()
-** - uplevel(up) → up->getLevel()
-*/
 
 /*
 ** maximum number of misses before giving up the cache of closures
@@ -265,7 +255,6 @@ inline constexpr int CLOSEKTOP = (LUA_ERRERR + 1);
 
 
 [[nodiscard]] LUAI_FUNC Proto *luaF_newproto (lua_State *L);
-/* Phase 26: Removed luaF_initupvals - now LClosure::initUpvals() method */
 [[nodiscard]] LUAI_FUNC UpVal *luaF_findupval (lua_State *L, StkId level);
 LUAI_FUNC void luaF_newtbcupval (lua_State *L, StkId level);
 LUAI_FUNC void luaF_closeupval (lua_State *L, StkId level);

@@ -539,7 +539,6 @@ static const char *clearbuff (BuffFS *buff) {
 }
 
 
-// Phase 115.1: Updated to use std::span
 static void addstr2buff (BuffFS *buff, std::span<const char> str) {
   size_t slen = str.size();
   size_t left = buff->buffsize - buff->blen;  /* space left in the buffer */
@@ -670,13 +669,12 @@ const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
 #define PRE	"[string \""
 #define POS	"\"]"
 
-// Phase 115.1: Updated to use std::span
 inline void addstr(std::span<char>& dest, std::span<const char> src) noexcept {
 	std::copy(src.begin(), src.end(), dest.begin());
 	dest = dest.subspan(src.size());
 }
 
-// Phase 115.1: std::span-based chunk ID formatting
+// std::span-based chunk ID formatting
 void luaO_chunkid (std::span<char> out, std::span<const char> source) {
   size_t bufflen = out.size();  /* free space in buffer */
   size_t srclen = source.size();

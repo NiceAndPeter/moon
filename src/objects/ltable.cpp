@@ -1184,7 +1184,7 @@ static lua_Unsigned newhint (Table& t, unsigned hint) {
 
 /* export this function for the test library */
 
-// Phase 33: Wrapper for Table::mainPosition
+// Wrapper for Table::mainPosition
 Node *luaH_mainposition (const Table *t, const TValue *key) {
   return t->mainPosition(key);
 }
@@ -1353,7 +1353,7 @@ void Table::finishSet(lua_State* L, const TValue* key, TValue* value, int hres) 
     }
     else if (isextstr(key)) {  /* external string? */
       /* If string is short, must internalize it to be used as table key */
-      TString *ts = tsvalue(key)->normalize(L);  /* Phase 25a: use method */
+      TString *ts = tsvalue(key)->normalize(L);
       setsvalue2s(L, L->getTop().p, ts);  /* anchor 'ts' (EXTRA_STACK) */
       L->getStackSubsystem().push();
       luaH_newkey(L, *this, s2v(L->getTop().p - 1), value);
@@ -1479,7 +1479,7 @@ lua_Unsigned Table::getn(lua_State* L) {
     return hash_search(L, *this, arraysize);
 }
 
-// Phase 50: Factory pattern with placement new operator
+// Factory pattern with placement new operator
 Table* Table::create(lua_State* L) {
   // Use placement new operator - calls constructor from lobject.h
   Table *t = new (L, ctb(LuaT::TABLE)) Table();

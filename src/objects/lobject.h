@@ -242,8 +242,6 @@ inline unsigned int lmod(unsigned int s, unsigned int size) noexcept {
 }
 
 
-/* Phase 44.1: twoto now Table::powerOfTwo(x) static method */
-/* Phase 44.1: sizenode now Table::nodeSize() method */
 
 
 /* size of buffer for 'luaO_utf8esc' function */
@@ -275,7 +273,7 @@ LUAI_FUNC const char *luaO_pushvfstring (lua_State *L, const char *fmt,
                                                        va_list argp);
 LUAI_FUNC const char *luaO_pushfstring (lua_State *L, const char *fmt, ...);
 
-// Phase 115.1: std::span-based string utilities
+// std::span-based string utilities
 LUAI_FUNC void luaO_chunkid (std::span<char> out, std::span<const char> source);
 
 // C-style wrapper for compatibility
@@ -483,7 +481,7 @@ inline bool operator!=(const TString& l, const TString& r) noexcept {
 
 
 /*
-** Phase 122: Table fast-access inline methods
+** Table fast-access inline methods
 ** These are performance-critical and used throughout the VM
 ** Defined here (after ltm.h include) to access TMS enum
 */

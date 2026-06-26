@@ -22,7 +22,7 @@
 #include "../memory/lgc.h"
 
 
-// Phase 29: Get offset of falloc field in TString
+// Get offset of falloc field in TString
 inline constexpr size_t tstringFallocOffset() noexcept {
   return TString::fallocOffset();
 }
@@ -43,7 +43,7 @@ inline constexpr int MAXSTRTB = cast_int(luaM_limitN<TString*>(std::numeric_limi
 #endif
 
 
-// Phase 122: TString static method implementations
+// TString static method implementations
 
 unsigned TString::computeHash(const char* str, size_t l, unsigned seed) {
   unsigned int h = seed ^ cast_uint(l);
@@ -130,7 +130,7 @@ void TString::init(lua_State* L) {
   tb->setSize(MINSTRTABSIZE);
   /* pre-create memory-error message */
   g->setMemErrMsg(create(L, MEMERRMSG, sizeof(MEMERRMSG) - 1));
-  obj2gco(g->getMemErrMsg())->fix(L);  /* Phase 25c: it should never be collected */
+  obj2gco(g->getMemErrMsg())->fix(L);  /* it should never be collected */
   for (i = 0; i < STRCACHE_N; i++)  /* fill cache with valid strings */
     for (j = 0; j < STRCACHE_M; j++)
       g->setStrCache(i, j, g->getMemErrMsg());
@@ -268,7 +268,6 @@ TString* TString::create(lua_State* L, const char* str) {
 }
 
 
-// Phase 50: Use placement new to call constructor
 Udata *luaS_newudata (lua_State *L, size_t s, unsigned short nuvalue) {
   Udata *u;
   if (l_unlikely(s > MAX_SIZE - udatamemoffset(nuvalue)))
@@ -359,7 +358,6 @@ bool TString::equals(const TString* other) const {
           (memcmp(s1, s2, len1) == 0));  /* equal contents */
 }
 
-// Phase 25a: Convert luaS_remove to TString method
 void TString::remove(lua_State* L) {
   stringtable *tb = G(L)->getStringTable();
   TString **p = &tb->getHash()[lmod(getHash(), tb->getSize())];
@@ -369,7 +367,6 @@ void TString::remove(lua_State* L) {
   tb->decrementNumElements();
 }
 
-// Phase 25a: Convert luaS_normstr to TString method
 TString* TString::normalize(lua_State* L) {
   size_t len = u.longLength;
   if (len > LUAI_MAXSHORTLEN)
