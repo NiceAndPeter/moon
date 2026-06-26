@@ -150,13 +150,12 @@ static int msghandler (lua_State *L) {
 ** and C-signal handler. Used to run all chunks.
 */
 static int docall (lua_State *L, int narg, int nres) {
-  int status;
   int base = lua_gettop(L) - narg;  // function index
   lua_pushcfunction(L, msghandler);  // push message handler
   lua_insert(L, base);  // put it under function and args
   globalL = L;  // to be available to 'laction'
   setsignal(SIGINT, laction);  // set C-signal handler
-  status = lua_pcall(L, narg, nres, base);
+  const int status = lua_pcall(L, narg, nres, base);
   setsignal(SIGINT, SIG_DFL);  // reset C-signal handler
   lua_remove(L, base);  // remove message handler from the stack
   return status;
@@ -253,11 +252,10 @@ static int pushargs (lua_State *L) {
 
 
 static int handle_script (lua_State *L, char **argv) {
-  int status;
   const char *fname = argv[0];
   if (strcmp(fname, "-") == 0 && strcmp(argv[-1], "--") != 0)
     fname = nullptr;  // stdin
-  status = luaL_loadfile(L, fname);
+  int status = luaL_loadfile(L, fname);
   if (status == LUA_OK) {
     int n = pushargs(L);  // push arguments to script
     status = docall(L, n, LUA_MULTRET);
@@ -345,17 +343,15 @@ static int collectargs (char **argv, int *first) {
 ** Returns 0 if some code raises an error.
 */
 static int runargs (lua_State *L, char **argv, int n) {
-  int i;
-  for (i = 1; i < n; i++) {
+  for (int i = 1; i < n; i++) {
     int option = argv[i][1];
     lua_assert(argv[i][0] == '-');  // already checked
     switch (option) {
       case 'e':  case 'l': {
-        int status;
         char *extra = argv[i] + 2;  // both options need an argument
         if (*extra == '\0') extra = argv[++i];
         lua_assert(extra != nullptr);
-        status = (option == 'e')
+        const int status = (option == 'e')
                  ? dostring(L, extra, "=(command line)")
                  : dolibrary(L, extra);
         if (status != LUA_OK) return 0;

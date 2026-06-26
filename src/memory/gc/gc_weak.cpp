@@ -152,8 +152,7 @@ int GCWeak::getmode(GlobalState& g, Table* h) {
 static int traversearray(GlobalState& g, Table* h) {
     unsigned asize = h->arraySize();
     int marked = 0;  // true if some object is marked in this traversal
-    unsigned i;
-    for (i = 0; i < asize; i++) {
+    for (unsigned i = 0; i < asize; i++) {
         GCObject* o = gcvalarr(h, i);
         if (o != nullptr && iswhite(o)) {
             marked = 1;

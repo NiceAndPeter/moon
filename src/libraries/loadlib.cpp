@@ -257,9 +257,8 @@ static lua_CFunction lsys_sym (lua_State *L, void *lib, const char *sym) {
 ** return registry.LUA_NOENV as a boolean
 */
 static int noenv (lua_State *L) {
-  int b;
   lua_getfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
-  b = lua_toboolean(L, -1);
+  const int b = lua_toboolean(L, -1);
   lua_pop(L, 1);  // remove value
   return b;
 }
@@ -557,10 +556,9 @@ static int loadfunc (lua_State *L, const char *filename, const char *modname) {
   modname = luaL_gsub(L, modname, ".", LUA_OFSEP);
   mark = strchr(modname, *LUA_IGMARK);
   if (mark) {
-    int stat;
     openfunc = lua_pushlstring(L, modname, ct_diff2sz(mark - modname));
     openfunc = lua_pushfstring(L, LUA_POF"%s", openfunc);
-    stat = lookforfunc(L, filename, openfunc);
+    const int stat = lookforfunc(L, filename, openfunc);
     if (stat != ERRFUNC) return stat;
     modname = mark + 1;  // else go ahead and try old-style name
   }
@@ -581,12 +579,11 @@ static int searcher_Croot (lua_State *L) {
   const char *filename;
   const char *name = luaL_checkstring(L, 1);
   const char *p = strchr(name, '.');
-  int stat;
   if (p == nullptr) return 0;  // is root
   lua_pushlstring(L, name, ct_diff2sz(p - name));
   filename = findfile(L, lua_tostring(L, -1), "cpath", LUA_CSUBSEP);
   if (filename == nullptr) return 1;  // root not found
-  if ((stat = loadfunc(L, filename, name)) != 0) {
+  if (int stat = loadfunc(L, filename, name); stat != 0) {
     if (stat != ERRFUNC)
       return checkload(L, 0, filename);  // real error
     else {  // open function not found
@@ -614,7 +611,6 @@ static int searcher_preload (lua_State *L) {
 
 
 static void findloader (lua_State *L, const char *name) {
-  int i;
   luaL_Buffer msg;  // to build error message
   // push 'package.searchers' to index 3 in the stack
   if (l_unlikely(lua_getfield(L, lua_upvalueindex(1), "searchers")
@@ -623,7 +619,7 @@ static void findloader (lua_State *L, const char *name) {
   luaL_buffinit(L, &msg);
   luaL_addstring(&msg, "\n\t");  // error-message prefix for first message
   // iterate over available searchers to find a loader
-  for (i = 1; ; i++) {
+  for (int i = 1; ; i++) {
     if (l_unlikely(lua_rawgeti(L, 3, i) == LUA_TNIL)) {  // no more searchers?
       lua_pop(L, 1);  // remove nil
       luaL_buffsub(&msg, 2);  // remove last prefix
@@ -706,11 +702,10 @@ static void createsearcherstable (lua_State *L) {
     searcher_Croot,
     nullptr
   };
-  int i;
   // create 'searchers' table
   lua_createtable(L, sizeof(searchers)/sizeof(searchers[0]) - 1, 0);
   // fill it with predefined searchers
-  for (i=0; searchers[i] != nullptr; i++) {
+  for (int i=0; searchers[i] != nullptr; i++) {
     lua_pushvalue(L, -2);  // set 'package' as upvalue for all searchers
     lua_pushcclosure(L, searchers[i], 1);
     lua_rawseti(L, -2, i+1);

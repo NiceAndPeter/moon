@@ -140,9 +140,8 @@
 
 static int os_execute (lua_State *L) {
   const char *cmd = luaL_optstring(L, 1, nullptr);
-  int stat;
   errno = 0;
-  stat = l_system(cmd);
+  const int stat = l_system(cmd);
   if (cmd != nullptr)
     return luaL_execresult(L, stat);
   else {
@@ -242,8 +241,7 @@ static void setallfields (lua_State *L, struct tm *stm) {
 
 
 static int getboolfield (lua_State *L, const char *key) {
-  int res;
-  res = (lua_getfield(L, -1, key) == LUA_TNIL) ? -1 : lua_toboolean(L, -1);
+  const int res = (lua_getfield(L, -1, key) == LUA_TNIL) ? -1 : lua_toboolean(L, -1);
   lua_pop(L, 1);
   return res;
 }
@@ -328,12 +326,11 @@ static int os_date (lua_State *L) {
       if (*s != '%')  // not a conversion specifier?
         luaL_addchar(&b, *s++);
       else {
-        size_t reslen;
         char *buff = luaL_prepbuffsize(&b, SIZETIMEFMT);
         s++;  // skip '%'
         // copy specifier to 'cc'
         s = checkoption(L, s, ct_diff2sz(se - s), cc + 1);
-        reslen = strftime(buff, SIZETIMEFMT, cc, stm);
+        const size_t reslen = strftime(buff, SIZETIMEFMT, cc, stm);
         luaL_addsize(&b, reslen);
       }
     }

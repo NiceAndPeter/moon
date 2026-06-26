@@ -45,9 +45,8 @@ const char lua_ident[] =
 
 LUA_API int lua_checkstack (lua_State *L, int n) {
   int res;
-  CallInfo *callInfo;
   lua_lock(L);
-  callInfo = L->getCI();
+  CallInfo *callInfo = L->getCI();
   api_check(L, n >= 0, "negative 'n'");
   if (L->getStackLast().p - L->getTop().p > n)  // stack large enough?
     res = 1;  // yes; check is OK
@@ -372,9 +371,8 @@ LUA_API lua_Unsigned lua_rawlen (lua_State *L, int idx) {
     case LuaT::LNGSTR: return static_cast<lua_Unsigned>(tsvalue(o)->length());
     case LuaT::USERDATA: return static_cast<lua_Unsigned>(uvalue(o)->getLen());
     case LuaT::TABLE: {
-      lua_Unsigned res;
       lua_lock(L);
-      res = hvalue(o)->getn(L);
+      const lua_Unsigned res = hvalue(o)->getn(L);
       lua_unlock(L);
       return res;
     }
@@ -751,10 +749,9 @@ LUA_API int lua_getmetatable (lua_State *L, int objindex) {
 
 
 LUA_API int lua_getiuservalue (lua_State *L, int idx, int n) {
-  TValue *o;
   int t;
   lua_lock(L);
-  o = L->getStackSubsystem().indexToValue(L,idx);
+  TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   api_check(L, ttisfulluserdata(o), "full userdata expected");
   if (n <= 0 || n > uvalue(o)->getNumUserValues()) {
     setnilvalue(s2v(L->getTop().p));
@@ -778,10 +775,9 @@ LUA_API int lua_getiuservalue (lua_State *L, int idx, int n) {
 ** t[k] = value at the top of the stack (where 'k' is a string)
 */
 static void auxsetstr (lua_State *L, const TValue *t, const char *k) {
-  int hres;
   TString *str = TString::create(L, k);
   api_checkpop(L, 1);
-  hres = L->getVM().fastset(t, str, s2v(L->getTop().p - 1), [](Table* tbl, TString* strkey, TValue* val) { return tbl->psetStr(strkey, val); });
+  int hres = L->getVM().fastset(t, str, s2v(L->getTop().p - 1), [](Table* tbl, TString* strkey, TValue* val) { return tbl->psetStr(strkey, val); });
   if (hres == HOK) {
     L->getVM().finishfastset(t, s2v(L->getTop().p - 1));
     L->getStackSubsystem().pop();  // pop value
@@ -915,11 +911,10 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
 
 
 LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
-  TValue *o;
   int res;
   lua_lock(L);
   api_checkpop(L, 1);
-  o = L->getStackSubsystem().indexToValue(L,idx);
+  TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   api_check(L, ttisfulluserdata(o), "full userdata expected");
   if (!(cast_uint(n) - 1u < cast_uint(uvalue(o)->getNumUserValues())))
     res = 0;  // 'n' not in [1, uvalue(o)->getNumUserValues()]
@@ -1059,13 +1054,12 @@ LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
 ** the stack returns with its original size.
 */
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
-  int status;
   ptrdiff_t otop = L->saveStack(L->getTop().p);  // original top
   TValue *f = s2v(L->getTop().p - 1);  // function to be dumped
   lua_lock(L);
   api_checkpop(L, 1);
   api_check(L, isLfunction(f), "Lua function expected");
-  status = luaU_dump(L, clLvalue(f)->getProto(), writer, data, strip);
+  const int status = luaU_dump(L, clLvalue(f)->getProto(), writer, data, strip);
   L->getStackSubsystem().setTopPtr(L->restoreStack(otop));  // restore top
   lua_unlock(L);
   return status;

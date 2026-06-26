@@ -633,13 +633,12 @@ static int f_read (lua_State *L) {
 */
 static int io_readline (lua_State *L) {
   LStream *p = static_cast<LStream *>(lua_touserdata(L, lua_upvalueindex(1)));
-  int i;
   int n = (int)lua_tointeger(L, lua_upvalueindex(2));
   if (isclosed(p))  // file is already closed?
     return luaL_error(L, "file is already closed");
   lua_settop(L , 1);
   luaL_checkstack(L, n, "too many arguments");
-  for (i = 1; i <= n; i++)  // push arguments to 'g_read'
+  for (int i = 1; i <= n; i++)  // push arguments to 'g_read'
     lua_pushvalue(L, lua_upvalueindex(3 + i));
   n = g_read(L, p->f, 2);  // 'n' is number of results
   lua_assert(n > 0);  // should return at least a nil

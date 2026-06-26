@@ -262,12 +262,11 @@ static void loadConstants (LoadState *S, Proto& f) {
 
 
 static void loadProtos (LoadState *S, Proto& f) {
-  int i;
   int n = loadInt(S);
   f.setProtos(luaM_newvectorchecked<Proto*>(S->L, n));
   f.setProtosSize(n);
   std::fill_n(f.getProtos(), n, nullptr);
-  for (i = 0; i < n; i++) {
+  for (int i = 0; i < n; i++) {
     f.getProtos()[i] = luaF_newproto(S->L);
     luaC_objbarrier(S->L, &f, f.getProtos()[i]);
     loadFunction(S, *f.getProtos()[i]);

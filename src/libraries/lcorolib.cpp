@@ -54,8 +54,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
 
 static int luaB_coresume (lua_State *L) {
   lua_State *co = getco(L);
-  int r;
-  r = auxresume(L, co, lua_gettop(L) - 1);
+  const int r = auxresume(L, co, lua_gettop(L) - 1);
   if (l_unlikely(r < 0)) {
     lua_pushboolean(L, 0);
     lua_insert(L, -2);

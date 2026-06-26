@@ -44,8 +44,7 @@ void luaT_init (lua_State *L) {
     "__unm", "__bnot", "__lt", "__le",
     "__concat", "__call", "__close"
   };
-  int i;
-  for (i=0; i<static_cast<int>(TMS::TM_N); i++) {
+  for (int i=0; i<static_cast<int>(TMS::TM_N); i++) {
     G(L)->setTMName(i, TString::create(L, luaT_eventname[static_cast<size_t>(i)]));
     obj2gco(G(L)->getTMName(i))->fix(L);  // never collect these names
   }

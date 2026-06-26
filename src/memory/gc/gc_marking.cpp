@@ -123,9 +123,8 @@ l_mem GCMarking::traversetable(GlobalState& g, Table* h) {
 ** Traverse a userdata object
 */
 l_mem GCMarking::traverseudata(GlobalState& g, Udata* u) {
-    int i;
     markobjectN(g, u->getMetatable());
-    for (i = 0; i < u->getNumUserValues(); i++)
+    for (int i = 0; i < u->getNumUserValues(); i++)
         markvalue(g, &u->getUserValue(i)->value);
     genlink(g, obj2gco(u));
     return 1 + u->getNumUserValues();
@@ -153,8 +152,7 @@ l_mem GCMarking::traverseproto(GlobalState& g, Proto* f) {
 ** Traverse a C closure
 */
 l_mem GCMarking::traverseCclosure(GlobalState& g, CClosure* cl) {
-    int i;
-    for (i = 0; i < cl->getNumUpvalues(); i++)
+    for (int i = 0; i < cl->getNumUpvalues(); i++)
         markvalue(g, cl->getUpvalue(i));
     return 1 + cl->getNumUpvalues();
 }
@@ -163,9 +161,8 @@ l_mem GCMarking::traverseCclosure(GlobalState& g, CClosure* cl) {
 ** Traverse a Lua closure
 */
 l_mem GCMarking::traverseLclosure(GlobalState& g, LClosure* cl) {
-    int i;
     markobjectN(g, cl->getProto());
-    for (i = 0; i < cl->getNumUpvalues(); i++) {
+    for (int i = 0; i < cl->getNumUpvalues(); i++) {
         UpVal* upvalue = cl->getUpval(i);
         markobjectN(g, upvalue);
     }
@@ -298,8 +295,7 @@ void GCMarking::propagateall(GlobalState& g) {
 ** Mark metamethods for basic types
 */
 void GCMarking::markmt(GlobalState& g) {
-    int i;
-    for (i = 0; i < LUA_NUMTYPES; i++)
+    for (int i = 0; i < LUA_NUMTYPES; i++)
         markobjectN(g, g.getMetatable(i));
 }
 
@@ -387,8 +383,7 @@ void GCMarking::genlink(GlobalState& g, GCObject* o) {
 int GCMarking::traversearray(GlobalState& g, Table* h) {
     unsigned asize = h->arraySize();
     int marked = 0;  // true if some object is marked in this traversal
-    unsigned i;
-    for (i = 0; i < asize; i++) {
+    for (unsigned i = 0; i < asize; i++) {
         GCObject* o = gcvalarr(h, i);
         if (o != nullptr && iswhite(o)) {
             marked = 1;

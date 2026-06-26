@@ -225,9 +225,8 @@ static void dumpUpvalues (DumpState *D, const Proto& f) {
 
 
 static void dumpDebug (DumpState *D, const Proto& f) {
-  int n;
   auto lineinfo = f.getDebugInfo().getLineInfoSpan();
-  n = (D->strip) ? 0 : static_cast<int>(lineinfo.size());
+  int n = (D->strip) ? 0 : static_cast<int>(lineinfo.size());
   dumpInt(D, n);
   if (lineinfo.data() != nullptr)
     dumpVector(D, lineinfo.data(), cast_uint(n));

@@ -61,8 +61,7 @@ LClosure* LClosure::create(lua_State* L, int nupvals) {
 ** fill a closure with new closed upvalues
 */
 void LClosure::initUpvals(lua_State* L) {
-  int i;
-  for (i = 0; i < numberOfUpvalues; i++) {
+  for (int i = 0; i < numberOfUpvalues; i++) {
     // Use placement new - calls constructor (initializes to closed nil upvalue)
     UpVal *upvalue = new (L, ctb(LuaT::UPVAL)) UpVal();
     upvalue->setVP(upvalue->getValueSlot());  // make it closed
