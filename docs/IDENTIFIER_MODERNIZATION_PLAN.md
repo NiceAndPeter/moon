@@ -1,8 +1,21 @@
 # Massive & Aggressive Identifier Modernization Plan
 **Lua C++23 Conversion Project**
 **Plan Date**: 2025-12-03
-**Last Updated**: 2025-12-04
-**Status**: Phases 131, 133, 134 COMPLETE ✅ - Identifier modernization in progress!
+**Last Updated**: 2026-06-26
+
+> **STATUS (2026-06-26): LARGELY SUPERSEDED.** Phases 131/133/134 (StringInterner
+> members, expdesc fields, compiler expression vars, VM dispatch lambdas) are
+> COMPLETE. The remaining identifier work in this doc (Phases 132, 135-143) was
+> re-scoped into the codebase-wide **cleanup pass** on branch
+> `fix/gc-tail-padding-and-cleanup` (see `~/.claude/plans/analyse-the-codebase-an-vivid-badger.md`).
+> That pass concluded — after a focused increment — that the **bulk single-letter
+> rename work here is diminishing-returns**: most such locals are idiomatic and
+> readable in their small scopes, cannot be batch-replaced safely, and the
+> hot-path renames (Phases 138/142/143) carry real perf risk for marginal gain.
+> **Recommendation: do NOT pursue Part 2 (Phases 137-143) wholesale.** Treat any
+> future identifier work as a *specific, bounded target* (e.g. one file's cryptic
+> locals), not a sweep. Part 1 quick wins are done; the rest is deferred by choice,
+> not by oversight.
 
 ---
 

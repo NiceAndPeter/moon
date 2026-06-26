@@ -8,9 +8,23 @@ Converting Lua 5.5 from C to modern C++23:
 - **CRTP** for static polymorphism
 - **Full encapsulation** with private fields
 
-**Performance**: ~2.11s avg ✅ (50% faster than 4.20s baseline, target ≤4.33s)
-**Status**: Phase 134 COMPLETE - Identifier modernization (131-134) finished!
-**Completed**: Phases 1-127, 129-1, 130-ALL, 131, 133, 134 | **Quality**: 96.1% coverage, zero warnings
+**Performance**: ~2.33s avg ✅ (well under target ≤4.33s; GCC 15.2 toolchain)
+**Status**: GC correctness fix + codebase-wide cleanup pass (Waves 0/3/4 complete)
+**Completed**: Phases 1-127, 129-1, 130-ALL, 131, 133, 134 + GC fix + cleanup Waves 0/3/4 | **Quality**: 96.1% coverage, zero warnings
+
+> **Current branch `fix/gc-tail-padding-and-cleanup` (2026-06-26):** Fixed a real
+> GC corruption bug (base-class tail-padding reuse — derived GC types were
+> clobbering `tt`/`marked`; fix = `gcHeaderReserved_` padding in
+> `src/objects/lobject_core.h`, do NOT remove it). Established the first green
+> baseline on GCC 15.2 (two `-Wno-error=` relaxations in CMakeLists.txt for GCC-15
+> false positives). Then ran a cleanup pass: **Wave 0** (stripped all `$Id`
+> headers, `#define lfoo_c` unit markers, ~204 `Phase NNN:` markers across 84
+> internal files), **Wave 3** (C-style pointer casts → `static_cast`; unsafe
+> `strcpy` → `std::copy_n`), **Wave 4** (internal type renames to PascalCase:
+> `stringtable`→`StringTable`, `expdesc`→`ExpDesc`, `global_State`→`GlobalState`,
+> `lua_longjmp`→`LuaLongJmp`; `lua_State` kept — public typedef). Remaining cosmetic
+> waves (comment style, bulk identifier renames, Doxygen) deferred as
+> diminishing-returns. The GC fix is independently valuable and worth a PR on its own.
 
 ---
 
@@ -96,12 +110,28 @@ Converting Lua 5.5 from C to modern C++23:
 - **Files Changed**: src/vm/lvirtualmachine.cpp (1 file, 20 lambdas + ~105 uses)
 - **Result**: ~2.11s avg ✅ (zero performance regression in VM hot path!)
 
+**GC Fix + Cleanup Pass** (branch `fix/gc-tail-padding-and-cleanup`, 2026-06-26) ✅
+- **GC correctness fix**: base-class tail-padding reuse corrupted `tt`/`marked` on
+  derived GC types; fixed with `gcHeaderReserved_` in `lobject_core.h`. First green
+  baseline on GCC 15.2 (added `-Wno-error=maybe-uninitialized`/`format-truncation`
+  for GCC-15 false positives). See `docs/GC_PITFALLS_ANALYSIS.md`.
+- **Wave 0**: stripped `$Id` headers, `#define lfoo_c` unit markers, ~204
+  `Phase NNN:` provenance markers (84 internal files; public `lauxlib.h` untouched).
+- **Wave 3**: genuine C-style pointer casts → `static_cast`; unsafe `strcpy` in
+  `lstrlib addlenmod()` → `std::copy_n`. Scalar casts left (sanctioned `cast_*`).
+- **Wave 4**: internal type renames to PascalCase (`StringTable`, `ExpDesc`,
+  `GlobalState`, `LuaLongJmp`). `lua_State` kept (public opaque typedef).
+- **Deferred** (diminishing-returns): Wave 1 (comment style), rest of Wave 2 (bulk
+  identifier renames — see `docs/IDENTIFIER_MODERNIZATION_PLAN.md` status banner),
+  Wave 5 (refactors), Wave 6 (Doxygen).
+- **Result**: ~2.33s avg (build + `testes/all.lua` green), zero perf regression.
+
 ---
 
 ## Performance
 
 **Baseline**: 4.20s (Nov 2025) | **Target**: ≤4.33s (3% tolerance)
-**Current**: ~2.11s avg ✅ **50% faster than baseline!**
+**Current**: ~2.33s avg ✅ (GCC 15.2; well under target. Earlier ~2.11s figures were on the prior toolchain.)
 
 ```bash
 # Benchmark (5 runs)
@@ -279,5 +309,5 @@ git add <files> && git commit -m "Phase N: Description" && git push -u origin <b
 
 ---
 
-**Updated**: 2025-12-04 | **Phases**: 1-127, 129-1, 130-ALL, 131, 133, 134 ✅ | **Performance**: ~2.11s ✅ (50% faster!)
-**Status**: Modern C++23, VirtualMachine complete, const-correct, [[nodiscard]] safety, **Phase 134 COMPLETE!** (Identifier modernization: 131-Quick Wins, 133-Compiler Vars, 134-VM Lambdas done!)
+**Updated**: 2026-06-26 | **Phases**: 1-127, 129-1, 130-ALL, 131, 133, 134 + GC fix + cleanup Waves 0/3/4 ✅ | **Performance**: ~2.33s ✅ (GCC 15.2, well under target)
+**Status**: Modern C++23, VirtualMachine complete, const-correct, [[nodiscard]] safety. On branch `fix/gc-tail-padding-and-cleanup`: **GC tail-padding corruption fixed** + cleanup pass (Wave 0 markers, Wave 3 casts, Wave 4 type renames). Remaining cosmetic waves deferred as diminishing-returns.

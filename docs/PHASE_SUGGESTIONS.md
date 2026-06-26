@@ -4,6 +4,16 @@
 **Context**: Post-Phase 123 (Macro Modernization Complete)
 **Current Performance**: ~2.17s avg (48% faster than 4.20s baseline!)
 
+> **STATUS (2026-06-26):** Most suggestions below are DONE (Phases 124-127, 129,
+> 130). The codebase then went through a **GC correctness fix** (base-class
+> tail-padding reuse — see `docs/GC_PITFALLS_ANALYSIS.md` and CLAUDE.md) and a
+> codebase-wide **cleanup pass** (Waves 0/3/4 complete: stripped `$Id`/unit/Phase
+> markers, C-style pointer casts → `static_cast`, internal type renames to
+> PascalCase) on branch `fix/gc-tail-padding-and-cleanup`. Current perf ~2.33s on
+> the GCC 15.2 toolchain (well within the ≤4.33s target). Remaining cosmetic
+> cleanup (comment style, bulk identifier renames, Doxygen) is deferred as
+> diminishing-returns. This doc is retained for historical context.
+
 ---
 
 ## Executive Summary

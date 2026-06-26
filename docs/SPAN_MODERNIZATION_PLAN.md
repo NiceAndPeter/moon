@@ -1,8 +1,14 @@
 # std::span Modernization Plan
 
-**Date**: 2025-11-20 (Updated: 2025-11-21)
-**Status**: ⚠️ **Partially Implemented** - Phases 115-116 completed, performance concerns identified
+**Date**: 2025-11-20 (Updated: 2026-06-26)
+**Status**: ⚠️ **Partially Implemented & PAUSED** - Phases 115-116 done; further span work deferred
 **Target**: Zero-cost type safety improvements using C++20 std::span
+
+> **STATUS (2026-06-26):** Phases 115-116 integrated `std::span` for Proto/Dyndata
+> accessors. Further span adoption is **deferred** — `std::span` showed subtle perf
+> costs in hot paths (Phase 115 saw an 11.9% regression before mitigation), so the
+> remaining proposals here are not worth the risk while perf is already ~2.33s
+> (well under the ≤4.33s target). Retained for historical context; no active work.
 
 > **Update (2025-11-21)**: Phases 115-116 completed std::span integration for Proto and Dyndata accessors.
 > Performance regression identified (4.70s avg in Phase 115 Part 3), requiring optimization work.
