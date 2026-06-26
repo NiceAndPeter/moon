@@ -75,23 +75,23 @@ void ExpDesc::initString(TString *s) {
 
 
 // External API wrapper
-void luaY_checklimit (FuncState *fs, int v, int l, const char *what) {
-  fs->checklimit(v, l, what);
+void luaY_checklimit (FuncState *funcState, int v, int l, const char *what) {
+  funcState->checklimit(v, l, what);
 }
 
 
 // External API wrapper
-lu_byte luaY_nvarstack (FuncState *fs) {
-  return fs->nvarstack();
+lu_byte luaY_nvarstack (FuncState *funcState) {
+  return funcState->nvarstack();
 }
 
 
-inline void enterlevel(LexState* ls) {
-	luaE_incCstack(ls->getLuaState());
+inline void enterlevel(LexState* lexState) {
+	luaE_incCstack(lexState->getLuaState());
 }
 
-inline void leavelevel(LexState* ls) noexcept {
-	ls->getLuaState()->getNumberOfCCallsRef()--;
+inline void leavelevel(LexState* lexState) noexcept {
+	lexState->getLuaState()->getNumberOfCCallsRef()--;
 }
 
 

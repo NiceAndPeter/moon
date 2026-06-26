@@ -320,7 +320,6 @@ void FuncState::singlevaraux(TString& n, ExpDesc& var, int base) {
 ** as the variables of the inner block are now out of scope.
 */
 void FuncState::solvegotos(BlockCnt& blockCnt) {
-  LexState& lexState = getLexState();
   Labellist *gl = &lexState.getDyndata()->gt;
   int outlevel = reglevel(blockCnt.numberOfActiveVariables);  // level outside the block
   int igt = blockCnt.firstgoto;  // first goto in the finishing block

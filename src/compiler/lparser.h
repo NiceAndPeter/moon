@@ -440,7 +440,7 @@ private:
   // Core context (references for non-null, non-reassigned members)
   Proto& f;  // current function header
   class FuncState *prev;  // enclosing function (can be null)
-  class LexState& ls;  // lexical state
+  class LexState& lexState;  // lexical state
   struct BlockCnt *bl;  // chain of current blocks (can be null, reassigned)
   int numberOfNestedPrototypes;  // number of elements in 'p' (nested functions)
 
@@ -453,14 +453,14 @@ private:
 
 public:
   // Constructor (required for reference members)
-  explicit FuncState(Proto& proto, class LexState& lexState) noexcept
-    : f(proto), prev(nullptr), ls(lexState), bl(nullptr), numberOfNestedPrototypes(0),
+  explicit FuncState(Proto& proto, class LexState& lexStateRef) noexcept
+    : f(proto), prev(nullptr), lexState(lexStateRef), bl(nullptr), numberOfNestedPrototypes(0),
       codeBuffer(), constantPool(), variableScope(), registerAlloc(), upvalueTrack() {}
 
   // Core context accessors (return references where appropriate)
   inline Proto& getProto() const noexcept { return f; }
   inline FuncState* getPrev() const noexcept { return prev; }
-  inline class LexState& getLexState() const noexcept { return ls; }
+  inline class LexState& getLexState() const noexcept { return lexState; }
   inline struct BlockCnt* getBlock() const noexcept { return bl; }
   inline int getNumberOfNestedPrototypes() const noexcept { return numberOfNestedPrototypes; }
 
@@ -695,21 +695,21 @@ private:
 */
 class Parser {
 private:
-  class LexState& ls;  // lexical state (for tokens and shared data)
-  class FuncState *fs;  // current function state (reassigned for nested functions)
+  class LexState& lexState;  // lexical state (for tokens and shared data)
+  class FuncState *funcState;  // current function state (reassigned for nested functions)
 
 public:
   // Constructor (LexState& required)
-  explicit Parser(class LexState& lexState, class FuncState* funcState)
-    : ls(lexState), fs(funcState) {}
+  explicit Parser(class LexState& lexStateRef, class FuncState* funcStatePtr)
+    : lexState(lexStateRef), funcState(funcStatePtr) {}
 
   // Accessors
-  inline class LexState& getLexState() const noexcept { return ls; }
-  inline class FuncState* getFuncState() const noexcept { return fs; }
-  inline class Dyndata* getDyndata() const noexcept { return ls.getDyndata(); }
+  inline class LexState& getLexState() const noexcept { return lexState; }
+  inline class FuncState* getFuncState() const noexcept { return funcState; }
+  inline class Dyndata* getDyndata() const noexcept { return lexState.getDyndata(); }
 
   // Setters (LexState& is set via constructor, FuncState* can be reassigned)
-  inline void setFuncState(class FuncState* funcState) noexcept { fs = funcState; }
+  inline void setFuncState(class FuncState* newFuncState) noexcept { funcState = newFuncState; }
 
   // Parser utility methods (extracted from LexState public API)
   l_noret error_expected(int token);
@@ -726,7 +726,7 @@ public:
 
   template<size_t N>
   inline int new_localvarliteral(const char (&v)[N]) {
-    return new_localvar(*ls.newString(v, N - 1));
+    return new_localvar(*lexState.newString(v, N - 1));
   }
 
   void check_readonly(ExpDesc& e);
@@ -800,8 +800,8 @@ private:
 };
 
 
-LUAI_FUNC lu_byte luaY_nvarstack (FuncState *fs);
-LUAI_FUNC void luaY_checklimit (FuncState *fs, int v, int l,
+LUAI_FUNC lu_byte luaY_nvarstack (FuncState *funcState);
+LUAI_FUNC void luaY_checklimit (FuncState *funcState, int v, int l,
                                 const char *what);
 LUAI_FUNC LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
                                  Dyndata *dyd, const char *name, int firstchar);
@@ -821,8 +821,8 @@ inline constexpr bool foldbinop(BinOpr op) noexcept {
 
 
 // get (pointer to) instruction of given 'ExpDesc'
-inline Instruction& getinstruction(FuncState* fs, ExpDesc& e) noexcept {
-	return fs->getProto().getCode()[e.getInfo()];
+inline Instruction& getinstruction(FuncState* funcState, ExpDesc& e) noexcept {
+	return funcState->getProto().getCode()[e.getInfo()];
 }
 
 
