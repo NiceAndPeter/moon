@@ -66,7 +66,7 @@ inline bool global_State::keepInvariant() const noexcept {
 	return getGCState() <= GCState::Atomic;
 }
 
-// Phase 47: Check if GC is in sweep phase
+// Check if GC is in sweep phase
 inline bool global_State::isSweepPhase() const noexcept {
 	return GCState::SweepAllGC <= getGCState() && getGCState() <= GCState::SweepEnd;
 }
@@ -94,7 +94,6 @@ constexpr bool testbit(lu_byte x, int b) noexcept {
     return (testbits(x, cast_byte(bitmask(b))) != 0);
 }
 
-// Phase 47: Removed unused bit manipulation macros (setbits, resetbits, l_setbit, resetbit)
 // Bit manipulation is now handled through GCObject methods like setMarked()
 
 
@@ -329,7 +328,7 @@ inline constexpr int LUAI_GCMUL = 200;
 inline constexpr size_t LUAI_GCSTEPSIZE = (200 * sizeof(Table));
 
 
-// Phase 47: These macros must remain as macros due to token pasting (##)
+// These macros must remain as macros due to token pasting (##)
 // They expand parameter names like STEPMUL to LUA_GCPSTEPMUL at compile time
 #define setgcparam(g,p,v)  ((g)->setGCParam(LUA_GCP##p, luaO_codeparam(v)))
 #define applygcparam(g,p,x)  luaO_applyparam((g)->getGCParam(LUA_GCP##p), x)
@@ -352,7 +351,6 @@ inline constexpr lu_byte GCSTPCLS = 4;  /* bit true when closing Lua state */
 ** GC cycle on every opportunity)
 */
 
-/* Phase 123 Part 3: Convert GC check macros to template functions */
 
 /* Forward declarations needed by template functions */
 LUAI_FUNC void luaC_step (lua_State& L);
@@ -445,12 +443,12 @@ LUAI_FUNC void propagateall (global_State& g);  /* used by GCCollector */
 /* Use GCObject::checkFinalizer() method instead of luaC_checkfinalizer */
 LUAI_FUNC void luaC_changemode (lua_State& L, GCKind newmode);
 
-/* Weak table functions (will be moved to gc_weak module in Phase 4) */
+/* Weak table functions */
 [[nodiscard]] LUAI_FUNC int getmode (global_State *g, Table *h);
 LUAI_FUNC void traverseweakvalue (global_State& g, Table *h);
 [[nodiscard]] LUAI_FUNC int traverseephemeron (global_State *g, Table *h, int inv);
 
-/* Sweeping helper (will be moved to gc_sweeping module in Phase 2) */
+/* Sweeping helper */
 LUAI_FUNC void freeobj (lua_State& L, GCObject *o);
 
 

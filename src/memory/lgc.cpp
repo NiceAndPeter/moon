@@ -75,8 +75,7 @@
 ** are now in lgc.h for use by all GC modules. */
 
 
-/* Phase 127: Convert gcvalarr macro to inline function
-** Access to collectable objects in array part of tables
+/* Access to collectable objects in array part of tables
 ** Note: markvalue, markkey, markobject, markobjectN are already defined in gc_marking.h
 */
 inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
@@ -122,9 +121,7 @@ static void linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
   GCCore::linkgclist_(o, pnext, list);
 }
 
-/* Phase 128: Convert linkgclist and linkobjgclist macros to template functions
-** Link a collectable object 'o' with a known type into the list 'p'.
-*/
+/* Link a collectable object 'o' with a known type into the list 'p'. */
 template<typename T>
 inline void linkgclist(T* o, GCObject*& p) {
 	linkgclist_(obj2gco(o), &(o)->gclist, &p);
@@ -373,14 +370,14 @@ static void freeupval(lua_State* L, UpVal* uv) {
 }
 
 
-// Phase 50: Call destructors before freeing memory (proper RAII)
-// Made non-static for use by gc_sweeping module (Phase 2)
+// Call destructors before freeing memory (proper RAII)
+// Made non-static for use by gc_sweeping module
 void freeobj (lua_State& L, GCObject *o) {
   assert_code(l_mem newmem = G(L)->getTotalBytes() - objsize(o));
   switch (static_cast<int>(o->getType())) {
     case static_cast<int>(ctb(LuaT::PROTO)): {
       Proto *p = gco2p(o);
-      p->free(&L);  /* Phase 25b - frees internal arrays */
+      p->free(&L);  /* frees internal arrays */
       // Proto destructor is trivial, but call it for completeness
       p->~Proto();
       break;

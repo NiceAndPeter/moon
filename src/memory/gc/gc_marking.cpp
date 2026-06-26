@@ -63,7 +63,6 @@ static inline void linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
     GCCore::linkgclist_(o, pnext, list);
 }
 
-/* Phase 128: Convert linkobjgclist macro to template function */
 template<typename T>
 inline void linkobjgclist(T* o, GCObject*& p) {
 	linkgclist_(obj2gco(o), getgclist(o), &p);
@@ -80,9 +79,7 @@ static inline void linkgclistThread(lua_State* th, GCObject*& p) {
 
 /* Note: gcvalueN is now in lgc.h */
 
-/* Phase 127: Convert gcvalarr macro to inline function
-** Access to collectable objects in table array part
-*/
+/* Access to collectable objects in table array part */
 inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 	return iscollectable(*(t)->getArrayTag(i)) ? (t)->getArrayVal(i)->gc : nullptr;
 }
@@ -94,8 +91,7 @@ inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 ** =======================================================
 */
 
-/* Functions getmode, traverseweakvalue, traverseephemeron are in lgc.cpp
-   and will be moved to gc_weak module in Phase 4 */
+/* Functions getmode, traverseweakvalue, traverseephemeron are in lgc.cpp */
 
 /*
 ** Traverse a table (delegates to weak or strong traversal)
@@ -140,7 +136,7 @@ l_mem GCMarking::traverseudata(global_State& g, Udata* u) {
 */
 l_mem GCMarking::traverseproto(global_State& g, Proto* f) {
     markobjectN(g, f->getSource());
-    // Phase 112: Use std::span and range-based for loops
+    // Use std::span and range-based for loops
     for (auto& constant : f->getConstantsSpan())
         markvalue(g, &constant);
     for (const auto& upval : f->getUpvaluesSpan())

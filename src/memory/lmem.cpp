@@ -39,14 +39,12 @@
 */
 
 
-/* Phase 126.2: Convert callfrealloc macro to inline function */
 inline void* callfrealloc(global_State* g, void* block, size_t os, size_t ns) noexcept {
 	return (*g->getFrealloc())(g->getUd(), block, os, ns);
 }
 
 
-/* Phase 126.2: Convert cantryagain macro to inline function
-** When an allocation fails, it will try again after an emergency
+/* When an allocation fails, it will try again after an emergency
 ** collection, except when it cannot run a collection.  The GC should
 ** not be called while the state is not fully built, as the collector
 ** is not yet fully initialized. Also, it should not be called when

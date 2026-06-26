@@ -34,9 +34,7 @@
 /* Mask with all color bits */
 #define maskcolors (bitmask(BLACKBIT) | WHITEBITS)
 
-/* Phase 127: Convert gcvalarr macro to inline function
-** Access to collectable objects in array part of tables
-*/
+/* Access to collectable objects in array part of tables */
 inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 	return iscollectable(*(t)->getArrayTag(i)) ? (t)->getArrayVal(i)->gc : nullptr;
 }
@@ -87,7 +85,6 @@ static void linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
     o->clearMarkedBits(maskcolors);  /* set2gray */
 }
 
-/* Phase 128: Convert linkobjgclist macro to template function */
 template<typename T>
 inline void linkobjgclist(T* o, GCObject*& p) {
 	linkgclist_(obj2gco(o), getgclist(o), &p);

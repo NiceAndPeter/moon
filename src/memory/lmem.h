@@ -73,7 +73,6 @@ inline constexpr int luaM_limitN(int n) noexcept {
 	return cast_charp(luaM_saferealloc_(L, b, on * sizeof(char), n * sizeof(char)));
 }
 
-/* Phase 128: Convert luaM_freemem and luaM_newobject macros to inline functions */
 inline void luaM_freemem(lua_State* L, void* b, size_t s) {
 	luaM_free_(L, b, s);
 }

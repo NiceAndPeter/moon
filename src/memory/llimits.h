@@ -227,29 +227,24 @@ constexpr inline lua_Integer cast_Integer(auto i) noexcept {
 #define cast_voidp(i)	cast(void*, (i))
 #define cast_charp(i)	cast(char*, (i))
 
-/* Phase 95: Converted point2uint from macro to inline constexpr function */
 template<typename T>
 inline constexpr unsigned int point2uint(T* p) noexcept {
 	return cast_uint((L_P2I)(p) & std::numeric_limits<unsigned int>::max());
 }
 
-/* Phase 126.1: Converted l_numbits from macro to template constexpr function */
 template<typename T>
 inline constexpr int l_numbits() noexcept {
 	return cast_int(sizeof(T) * CHAR_BIT);
 }
 
-/* Phase 126.1: Converted log2maxs from macro to template constexpr function */
 template<typename T>
 inline constexpr int log2maxs() noexcept {
 	return l_numbits<T>() - 2;
 }
 
-/* Phase 126.1: Converted MAX_SIZE from macro to inline constexpr (moved here after dependencies) */
 inline constexpr size_t MAX_SIZE = (sizeof(size_t) < sizeof(lua_Integer) ? MAX_SIZET
 			  : cast_sizet(LUA_MAXINTEGER));
 
-/* Phase 126.1: Converted MAX_LMEM from macro to inline constexpr (moved here after dependencies) */
 inline constexpr l_mem MAX_LMEM = cast(l_mem, (cast(lu_mem, 1) << (l_numbits<l_mem>() - 1)) - 1);
 
 
@@ -282,7 +277,6 @@ inline constexpr lua_Integer cast_st2S(size_t sz) noexcept {
 /* Cast a ptrdiff_t to size_t, when it is known that the minuend
 ** comes from the subtrahend (the base)
 */
-/* Phase 128: Convert ct_diff2sz macro to inline constexpr function */
 inline constexpr size_t ct_diff2sz(ptrdiff_t df) noexcept {
 	return static_cast<size_t>(df);
 }
