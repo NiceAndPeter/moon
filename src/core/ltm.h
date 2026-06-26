@@ -70,10 +70,10 @@ inline bool checknoTM(const Table* mt, TMS e) noexcept {
 }
 
 // Forward declarations - definitions provided after full types are available
-class global_State;
+class GlobalState;
 struct lua_State;
 
-inline const TValue* gfasttm(global_State* g, const Table* mt, TMS e) noexcept;
+inline const TValue* gfasttm(GlobalState* g, const Table* mt, TMS e) noexcept;
 inline const TValue* fasttm(lua_State* l, const Table* mt, TMS e) noexcept;
 
 using TypeNamesArray = std::array<const char*, LUA_TOTALTYPES>;

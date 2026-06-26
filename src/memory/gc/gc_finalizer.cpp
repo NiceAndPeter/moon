@@ -41,7 +41,7 @@
 ** If possible, shrink string table.
 ** Called during finalization to optimize memory usage.
 */
-void GCFinalizer::checkSizes(lua_State* L, global_State& g) {
+void GCFinalizer::checkSizes(lua_State* L, GlobalState& g) {
     if (!g.getGCEmergency()) {
         if (g.getStringTable()->getNumElements() < g.getStringTable()->getSize() / 4)
             TString::resize(L, g.getStringTable()->getSize() / 2);
@@ -72,7 +72,7 @@ void GCFinalizer::checkpointer(GCObject** p, GCObject* o) {
 ** Correct pointers to objects inside 'allgc' list when
 ** object 'o' is being removed from the list.
 */
-void GCFinalizer::correctpointers(global_State& g, GCObject* o) {
+void GCFinalizer::correctpointers(GlobalState& g, GCObject* o) {
     checkpointer(g.getSurvivalPtr(), o);
     checkpointer(g.getOld1Ptr(), o);
     checkpointer(g.getReallyOldPtr(), o);
@@ -90,7 +90,7 @@ void GCFinalizer::correctpointers(global_State& g, GCObject* o) {
 ** Get the next udata to be finalized from the 'tobefnz' list, and
 ** link it back into the 'allgc' list.
 */
-GCObject* GCFinalizer::udata2finalize(global_State& g) {
+GCObject* GCFinalizer::udata2finalize(GlobalState& g) {
     GCObject* o = g.getToBeFnz();  /* get first element */
     lua_assert(tofinalize(o));
     g.setToBeFnz(o->getNext());  /* remove it from 'tobefnz' list */
@@ -145,7 +145,7 @@ void GCFinalizer::dothecall(lua_State* L, void* ud) {
 ** again in the next GC cycle if it becomes unreachable again.
 */
 void GCFinalizer::GCTM(lua_State* L) {
-    global_State* g = G(L);
+    GlobalState* g = G(L);
     const TValue* metamethod;
     TValue v;
     lua_assert(!g->getGCEmergency());
@@ -189,7 +189,7 @@ void GCFinalizer::GCTM(lua_State* L) {
 ** don't need to be traversed. In incremental mode, 'finobjold1' is nullptr,
 ** so the whole list is traversed.)
 */
-void GCFinalizer::separatetobefnz(global_State& g, int all) {
+void GCFinalizer::separatetobefnz(GlobalState& g, int all) {
     GCObject* curr;
     GCObject** p = g.getFinObjPtr();
     GCObject** lastnext = findlast(g.getToBeFnzPtr());
@@ -215,7 +215,7 @@ void GCFinalizer::separatetobefnz(global_State& g, int all) {
 ** Processes entire tobefnz list until empty.
 */
 void GCFinalizer::callallpendingfinalizers(lua_State* L) {
-    global_State* g = G(L);
+    GlobalState* g = G(L);
     while (g->getToBeFnz())
         GCTM(L);
 }

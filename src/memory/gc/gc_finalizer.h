@@ -40,13 +40,13 @@ public:
     ** Shrink string table if it's too sparse.
     ** Called during finalization phase to optimize memory.
     */
-    static void checkSizes(lua_State* L, global_State& g);
+    static void checkSizes(lua_State* L, GlobalState& g);
 
     /*
     ** Move all unreachable finalizable objects to the tobefnz list.
     ** If 'all' is true, moves all finalizable objects regardless of color.
     */
-    static void separatetobefnz(global_State& g, int all);
+    static void separatetobefnz(GlobalState& g, int all);
 
     /*
     ** Execute a single finalizer (__gc metamethod).
@@ -64,14 +64,14 @@ public:
     ** Correct pointers when removing object 'o' from allgc list.
     ** Updates survival, old1, reallyold, firstold1 pointers if needed.
     */
-    static void correctpointers(global_State& g, GCObject* o);
+    static void correctpointers(GlobalState& g, GCObject* o);
 
 private:
     /*
     ** Get next object to finalize from tobefnz list.
     ** Removes from tobefnz, adds back to allgc, clears FINALIZEDBIT.
     */
-    static GCObject* udata2finalize(global_State& g);
+    static GCObject* udata2finalize(GlobalState& g);
 
     /*
     ** Helper: find last 'next' field in list (to add elements at end).

@@ -12,7 +12,7 @@
 
 /* Forward declarations */
 class lua_State;
-class global_State;
+class GlobalState;
 
 /*
 ** Memory-allocation error message must be preallocated (it cannot
@@ -187,7 +187,7 @@ public:
   // Global string table management
   static void init(lua_State* L);
   static void resize(lua_State* L, unsigned int newsize);
-  static void clearCache(global_State* g);
+  static void clearCache(GlobalState* g);
 
   // Comparison operator overloads (defined after l_strcmp declaration)
   friend bool operator<(const TString& l, const TString& r) noexcept;

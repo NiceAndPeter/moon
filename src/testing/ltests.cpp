@@ -302,7 +302,7 @@ void *debug_realloc (void *ud, void *b, size_t oldsize, size_t size) {
 ** continue to be visited in all collections, and therefore can point to
 ** new objects. They, and only they, are old but gray.)
 */
-static bool testobjref1 (global_State *g, GCObject *f, GCObject *t) {
+static bool testobjref1 (GlobalState *g, GCObject *f, GCObject *t) {
   if (isdead(g,t)) return false;
   if (g->isSweepPhase())
     return true;  /* no invariants */
@@ -319,7 +319,7 @@ static bool testobjref1 (global_State *g, GCObject *f, GCObject *t) {
 }
 
 
-static void printobj (global_State *g, GCObject *o) {
+static void printobj (GlobalState *g, GCObject *o) {
   printf("||%s(%p)-%c%c(%02X)||",
            ttypename(novariant(o->getType())), (void *)o,
            isdead(g,o) ? 'd' : isblack(o) ? 'b' : iswhite(o) ? 'w' : 'g',
@@ -373,7 +373,7 @@ void lua_printvalue (TValue *v) {
 }
 
 
-static bool testobjref (global_State *g, GCObject *f, GCObject *t) {
+static bool testobjref (GlobalState *g, GCObject *f, GCObject *t) {
   bool r1 = testobjref1(g, f, t);
   if (!r1) {
     printf("%d(%02X) - ", static_cast<int>(g->getGCState()), g->getCurrentWhite());
@@ -386,7 +386,7 @@ static bool testobjref (global_State *g, GCObject *f, GCObject *t) {
 }
 
 
-static void checkobjref (global_State *g, GCObject *f, GCObject *t) {
+static void checkobjref (GlobalState *g, GCObject *f, GCObject *t) {
 #ifdef LUAI_ASSERT
     assert(testobjref(g, f, t));
 #else
@@ -404,12 +404,12 @@ static void checkobjref (global_State *g, GCObject *f, GCObject *t) {
 #define checkobjrefN(g,f,t)	{ if (t) checkobjref(g,f,obj2gco(t)); }
 
 
-static void checkvalref (global_State *g, GCObject *f, const TValue *t) {
+static void checkvalref (GlobalState *g, GCObject *f, const TValue *t) {
   assert(!iscollectable(t) || (righttt(t) && testobjref(g, f, gcvalue(t))));
 }
 
 
-static void checktable (global_State *g, Table *h) {
+static void checktable (GlobalState *g, Table *h) {
   unsigned int i;
   unsigned int asize = h->arraySize();
   Node *n, *limit = gnode(h, h->nodeSize());
@@ -432,7 +432,7 @@ static void checktable (global_State *g, Table *h) {
 }
 
 
-static void checkudata (global_State *g, Udata *u) {
+static void checkudata (GlobalState *g, Udata *u) {
   int i;
   GCObject *hgc = obj2gco(u);
   checkobjrefN(g, hgc, u->getMetatable());
@@ -441,7 +441,7 @@ static void checkudata (global_State *g, Udata *u) {
 }
 
 
-static void checkproto (global_State *g, Proto *f) {
+static void checkproto (GlobalState *g, Proto *f) {
   GCObject *fgc = obj2gco(f);
   checkobjrefN(g, fgc, f->getSource());
   for (const auto& constant : f->getConstantsSpan()) {
@@ -457,7 +457,7 @@ static void checkproto (global_State *g, Proto *f) {
 }
 
 
-static void checkCclosure (global_State *g, CClosure *cl) {
+static void checkCclosure (GlobalState *g, CClosure *cl) {
   GCObject *clgc = obj2gco(cl);
   int i;
   for (i = 0; i < cl->getNumUpvalues(); i++)
@@ -465,7 +465,7 @@ static void checkCclosure (global_State *g, CClosure *cl) {
 }
 
 
-static void checkLclosure (global_State *g, LClosure *cl) {
+static void checkLclosure (GlobalState *g, LClosure *cl) {
   GCObject *clgc = obj2gco(cl);
   int i;
   checkobjrefN(g, clgc, cl->getProto());
@@ -493,7 +493,7 @@ static int lua_checkpc (CallInfo *ci) {
 }
 
 
-static void check_stack (global_State *g, lua_State *L1) {
+static void check_stack (GlobalState *g, lua_State *L1) {
   StkId o;
   CallInfo *ci;
   UpVal *uv;
@@ -515,7 +515,7 @@ static void check_stack (global_State *g, lua_State *L1) {
 }
 
 
-static void checkrefs (global_State *g, GCObject *o) {
+static void checkrefs (GlobalState *g, GCObject *o) {
   switch (static_cast<int>(o->getType())) {
     case static_cast<int>(ctb(LuaT::USERDATA)): {
       checkudata(g, gco2u(o));
@@ -567,7 +567,7 @@ static void checkrefs (global_State *g, GCObject *o) {
 **     threads, and open upvalues.
 **   * 'touched1' objects must be gray.
 */
-static void checkobject (global_State *g, GCObject *o, int maybedead,
+static void checkobject (GlobalState *g, GCObject *o, int maybedead,
                          GCAge listage) {
   if (isdead(g, o))
     assert(maybedead);
@@ -590,7 +590,7 @@ static void checkobject (global_State *g, GCObject *o, int maybedead,
 }
 
 
-static l_mem checkgraylist (global_State *g, GCObject *o) {
+static l_mem checkgraylist (GlobalState *g, GCObject *o) {
   int total = 0;  /* count number of elements in the list */
   cast_void(g);  /* better to keep it if we need to print an object */
   while (o) {
@@ -619,7 +619,7 @@ static l_mem checkgraylist (global_State *g, GCObject *o) {
 /*
 ** Check objects in gray lists.
 */
-static l_mem checkgrays (global_State *g) {
+static l_mem checkgrays (GlobalState *g) {
   l_mem total = 0;  /* count number of elements in all lists */
   if (!g->keepInvariant()) return total;
   total += checkgraylist(g, g->getGray());
@@ -636,7 +636,7 @@ static l_mem checkgrays (global_State *g) {
 ** 'count' and check its TESTBIT. (It must have been previously set by
 ** 'checkgraylist'.)
 */
-static void incifingray (global_State *g, GCObject *o, l_mem *count) {
+static void incifingray (GlobalState *g, GCObject *o, l_mem *count) {
   if (!g->keepInvariant())
     return;  /* gray lists not being kept in these phases */
   if (o->getType() == ctb(LuaT::UPVAL)) {
@@ -653,7 +653,7 @@ static void incifingray (global_State *g, GCObject *o, l_mem *count) {
 }
 
 
-static l_mem checklist (global_State *g, int maybedead, int tof,
+static l_mem checklist (GlobalState *g, int maybedead, int tof,
   GCObject *newl, GCObject *survival, GCObject *old, GCObject *reallyold) {
   GCObject *o;
   l_mem total = 0;  /* number of object that should be in  gray lists */
@@ -682,7 +682,7 @@ static l_mem checklist (global_State *g, int maybedead, int tof,
 
 
 int lua_checkmemory (lua_State *L) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   GCObject *o;
   int maybedead;
   l_mem totalin;  /* total of objects that are in gray lists */
@@ -918,7 +918,7 @@ static int get_limits (lua_State *L) {
 static int get_sizes (lua_State *L) {
   lua_newtable(L);
   setnameval(L, "Lua state", sizeof(lua_State));
-  setnameval(L, "global state", sizeof(global_State));
+  setnameval(L, "global state", sizeof(GlobalState));
   setnameval(L, "TValue", sizeof(TValue));
   setnameval(L, "Node", sizeof(Node));
   setnameval(L, "stack Value", sizeof(StackValue));
@@ -1034,7 +1034,7 @@ static int gc_state (lua_State *L) {
     static_cast<int>(GCState::Propagate), static_cast<int>(GCState::EnterAtomic), static_cast<int>(GCState::Atomic), static_cast<int>(GCState::SweepAllGC), static_cast<int>(GCState::SweepFinObj),
     static_cast<int>(GCState::SweepToBeFnz), static_cast<int>(GCState::SweepEnd), static_cast<int>(GCState::CallFin), static_cast<int>(GCState::Pause), -1};
   int option = states[luaL_checkoption(L, 1, "", statenames)];
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   if (option == -1) {
     lua_pushstring(L, statenames[static_cast<int>(g->getGCState())]);
     return 1;
@@ -1058,7 +1058,7 @@ static int tracinggc = 0;
 void luai_tracegctest (lua_State *L, int first) {
   if (!tracinggc) return;
   else {
-    global_State *g = G(L);
+    GlobalState *g = G(L);
     lua_unlock(L);
     g->setGCStp(GCSTPGC);
     lua_checkstack(L, 10);
@@ -1156,7 +1156,7 @@ static int table_query (lua_State *L) {
 
 
 static int gc_query (lua_State *L) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   lua_pushstring(L, g->getGCKind() == GCKind::Incremental ? "inc"
                   : g->getGCKind() == GCKind::GenerationalMajor ? "genmajor"
                   : "genminor");
@@ -2160,7 +2160,7 @@ static int testvector (lua_State *L) {
   int n = cast_int(luaL_checkinteger(L, 1));
   luaL_argcheck(L, n >= 0 && n <= 1000000, 1, "value out of range");
 
-  global_State *g = G(L);
+  GlobalState *g = G(L);
 
   /* Get memory before allocation */
   lua_Integer membefore = static_cast<lua_Integer>(g->getTotalBytes());

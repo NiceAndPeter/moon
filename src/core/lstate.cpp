@@ -67,7 +67,7 @@ inline LX* fromstate(lua_State* L) noexcept {
 ** objects (GCtotalobjs - GCdebt) invariant and avoiding overflows in
 ** 'GCtotalobjs'.
 */
-void luaE_setdebt (global_State *g, l_mem debt) {
+void luaE_setdebt (GlobalState *g, l_mem debt) {
   l_mem tb = g->getTotalBytes();
   lua_assert(tb > 0);
   if (debt > MAX_LMEM - tb)
@@ -187,7 +187,7 @@ static void freestack (lua_State *L) {
 /*
 ** Create registry table and its predefined values
 */
-static void init_registry (lua_State *L, global_State *g) {
+static void init_registry (lua_State *L, GlobalState *g) {
   /* create registry */
   TValue aux;
   Table *registry = Table::create(L);
@@ -209,7 +209,7 @@ static void init_registry (lua_State *L, global_State *g) {
 ** open parts of the state that may cause memory-allocation errors.
 */
 static void f_luaopen (lua_State *L, void *ud) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   UNUSED(ud);
   stack_init(L, L);  /* init stack */
   // Allocate VirtualMachine (after stack, as VM may use stack operations)
@@ -231,7 +231,7 @@ static void f_luaopen (lua_State *L, void *ud) {
 ** IMPORTANT: GC fields (next, tt, marked) must be set by caller BEFORE
 ** calling this function. The init() method preserves them.
 */
-static void preinit_thread (lua_State *L, global_State *g) {
+static void preinit_thread (lua_State *L, GlobalState *g) {
   L->init(g);  // Initialize lua_State fields (preserves GC fields)
   L->resetHookCount();   // Initialize hookcount = basehookcount
   L->getBaseCI()->setPrevious(nullptr);
@@ -267,7 +267,7 @@ lu_mem luaE_threadsize (lua_State *L) {
 
 
 static void close_state (lua_State *L) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   if (!g->isComplete())  /* closing a partially built state? */
     luaC_freeallobjects(*L);  /* just collect its objects */
   else {  /* closing a fully built state */
@@ -280,13 +280,13 @@ static void close_state (lua_State *L) {
   luaM_freearray(L, G(L)->getStringTable()->getHash(), cast_sizet(G(L)->getStringTable()->getSize()));
   L->closeVM();  // Free VirtualMachine before freeing stack
   freestack(L);
-  lua_assert(g->getTotalBytes() == sizeof(global_State));
-  (*g->getFrealloc())(g->getUd(), g, sizeof(global_State), 0);  /* free main block */
+  lua_assert(g->getTotalBytes() == sizeof(GlobalState));
+  (*g->getFrealloc())(g->getUd(), g, sizeof(GlobalState), 0);  /* free main block */
 }
 
 
 LUA_API lua_State *lua_newthread (lua_State *L) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   GCObject *o;
   lua_State *L1;
   lua_lock(L);
@@ -354,8 +354,8 @@ LUA_API int lua_closethread (lua_State *L, lua_State *from) {
 LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
   int i;
   lua_State *L;
-  global_State *g = static_cast<global_State*>(
-                       (*f)(ud, nullptr, LUA_TTHREAD, sizeof(global_State)));
+  GlobalState *g = static_cast<GlobalState*>(
+                       (*f)(ud, nullptr, LUA_TTHREAD, sizeof(GlobalState)));
   if (g == nullptr) return nullptr;
   L = &g->getMainThread()->l;
   L->setType(ctb(LuaT::THREAD));
@@ -387,7 +387,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud, unsigned seed) {
   g->setGray(nullptr); g->setGrayAgain(nullptr);
   g->setWeak(nullptr); g->setEphemeron(nullptr); g->setAllWeak(nullptr);
   g->setTwups(nullptr);
-  g->setGCTotalBytes(sizeof(global_State));
+  g->setGCTotalBytes(sizeof(GlobalState));
   g->setGCMarked(0);
   g->setGCDebt(0);
   g->getNilValue()->setInt(0);  /* to signal that state is not yet built */

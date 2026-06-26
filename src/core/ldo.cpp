@@ -146,7 +146,7 @@ l_noret lua_State::doThrow(TStatus errcode) {
     throw LuaException(errcode, getErrorJmp());  /* throw C++ exception */
   }
   else {  /* thread has no error handler */
-    global_State *g = G(this);
+    GlobalState *g = G(this);
     lua_State *mainth = mainthread(g);
     errcode = luaE_resetthread(this, errcode);  /* close all upvalues */
     setStatus(errcode);

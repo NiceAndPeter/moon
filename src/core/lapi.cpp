@@ -1083,7 +1083,7 @@ LUA_API int lua_status (lua_State *L) {
 LUA_API int lua_gc (lua_State *L, int what, ...) {
   va_list argp;
   int res = 0;
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   if (g->getGCStp() & (GCSTPGC | GCSTPCLS))  /* internal stop? */
     return -1;  /* all options are invalid when stopped */
   lua_lock(L);

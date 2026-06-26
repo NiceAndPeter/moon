@@ -111,7 +111,7 @@ void TString::resize(lua_State* L, unsigned int nsize) {
 }
 
 
-void TString::clearCache(global_State* g) {
+void TString::clearCache(GlobalState* g) {
   unsigned int i, j;
   for (i = 0; i < STRCACHE_N; i++)
     for (j = 0; j < STRCACHE_M; j++) {
@@ -122,7 +122,7 @@ void TString::clearCache(global_State* g) {
 
 
 void TString::init(lua_State* L) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   unsigned int i, j;
   StringTable *tb = G(L)->getStringTable();
   tb->setHash(luaM_newvector<TString*>(L, MINSTRTABSIZE));
@@ -201,7 +201,7 @@ static void growstrtab (lua_State *L, StringTable *tb) {
 */
 static TString *internshrstr (lua_State *L, const char *str, size_t l) {
   TString *ts;
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   StringTable *tb = g->getStringTable();
   unsigned int h = TString::computeHash(str, l, g->getSeed());
   TString **list = &tb->getHash()[lmod(h, tb->getSize())];
@@ -253,7 +253,7 @@ TString* TString::create(lua_State* L, std::span<const char> str) {
 TString* TString::create(lua_State* L, const char* str) {
   unsigned int i = point2uint(str) % STRCACHE_N;  /* hash */
   unsigned int j;
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   for (j = 0; j < STRCACHE_M; j++) {
     if (strcmp(str, getStringContents(g->getStrCache(i, j))) == 0)  /* hit? */
       return g->getStrCache(i, j);  /* that is it */

@@ -74,7 +74,7 @@ static inline void linkgclistThread(lua_State* th, GCObject*& p) {
 ** Returns: pointer to where sweeping stopped (nullptr if list exhausted)
 */
 GCObject** GCSweeping::sweeplist(lua_State* L, GCObject** p, l_mem countin) {
-    global_State* g = G(L);
+    GlobalState* g = G(L);
     lu_byte ow = otherwhite(g);
     lu_byte white = g->getWhite();  /* current white */
 
@@ -124,7 +124,7 @@ GCObject** GCSweeping::sweeptolive(lua_State* L, GCObject** p) {
 */
 void GCSweeping::sweep2old(lua_State* L, GCObject** p) {
     GCObject* curr;
-    global_State* g = G(L);
+    GlobalState* g = G(L);
 
     while ((curr = *p) != nullptr) {
         if (iswhite(curr)) {  /* is 'curr' dead? */
@@ -162,7 +162,7 @@ void GCSweeping::sweep2old(lua_State* L, GCObject** p) {
 ** They will all be advanced in 'correctgraylist'. That function will also
 ** remove objects turned white here from any gray list.
 */
-GCObject** GCSweeping::sweepgen(lua_State* L, global_State& g, GCObject** p,
+GCObject** GCSweeping::sweepgen(lua_State* L, GlobalState& g, GCObject** p,
                                  GCObject* limit, GCObject** pfirstold1,
                                  l_mem* paddedold) {
     static const GCAge nextage[] = {
@@ -220,7 +220,7 @@ GCObject** GCSweeping::sweepgen(lua_State* L, global_State& g, GCObject** p,
 ** Sets up sweep state and finds first live object to start sweeping from.
 */
 void GCSweeping::entersweep(lua_State* L) {
-    global_State* g = G(L);
+    GlobalState* g = G(L);
     g->setGCState(GCState::SweepAllGC);
     lua_assert(g->getSweepGC() == nullptr);
     g->setSweepGC(sweeptolive(L, g->getAllGCPtr()));
@@ -232,7 +232,7 @@ void GCSweeping::entersweep(lua_State* L) {
 ** Sweeps up to GCSWEEPMAX objects (or all remaining if 'fast' is true).
 ** When current sweep completes, advances to 'nextstate' and sets up 'nextlist'.
 */
-void GCSweeping::sweepstep(lua_State* L, global_State& g,
+void GCSweeping::sweepstep(lua_State* L, GlobalState& g,
                            GCState nextstate, GCObject** nextlist, int fast) {
     if (g.getSweepGC())
         g.setSweepGC(sweeplist(L, g.getSweepGC(), fast ? MAX_LMEM : GCSWEEPMAX));

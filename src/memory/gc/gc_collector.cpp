@@ -37,7 +37,7 @@
 ** separates finalizable objects, and flips white color.
 */
 void GCCollector::atomic(lua_State* L) {
-  global_State* g = G(L);
+  GlobalState* g = G(L);
   GCObject *origweak, *origall;
   GCObject *grayagain = g->getGrayAgain();  /* save original list */
   g->setGrayAgain(nullptr);
@@ -81,7 +81,7 @@ void GCCollector::atomic(lua_State* L) {
 ** FINISH YOUNG COLLECTION
 ** Completes a young-generation collection.
 */
-void GCCollector::finishgencycle(lua_State* L, global_State* g) {
+void GCCollector::finishgencycle(lua_State* L, GlobalState* g) {
   g->correctGrayLists();
   GCFinalizer::checkSizes(L, *g);
   g->setGCState(GCState::Propagate);  /* skip restart */
@@ -95,7 +95,7 @@ void GCCollector::finishgencycle(lua_State* L, global_State* g) {
 ** Shifts from minor collection to major collections.
 ** Starts in sweep-all state to clear all objects (mostly black in gen mode).
 */
-void GCCollector::minor2inc(lua_State* L, global_State* g, GCKind kind) {
+void GCCollector::minor2inc(lua_State* L, GlobalState* g, GCKind kind) {
   g->setGCMajorMinor(g->getGCMarked());  /* number of live bytes */
   g->setGCKind(kind);
   g->setReallyOld(nullptr); g->setOld1(nullptr); g->setSurvival(nullptr);
@@ -110,7 +110,7 @@ void GCCollector::minor2inc(lua_State* L, global_State* g, GCKind kind) {
 ** CHECK MINOR-TO-MAJOR TRANSITION
 ** Decide whether to shift from minor to major mode based on accumulated old bytes.
 */
-int GCCollector::checkmajorminor(lua_State* L, global_State* g) {
+int GCCollector::checkmajorminor(lua_State* L, GlobalState* g) {
   if (g->getGCKind() == GCKind::GenerationalMajor) {  /* generational mode? */
     l_mem numbytes = g->getTotalBytes();
     l_mem addedbytes = numbytes - g->getGCMajorMinor();
@@ -131,7 +131,7 @@ int GCCollector::checkmajorminor(lua_State* L, global_State* g) {
 ** YOUNG COLLECTION
 ** Performs a minor collection in generational mode.
 */
-void GCCollector::youngcollection(lua_State* L, global_State* g) {
+void GCCollector::youngcollection(lua_State* L, GlobalState* g) {
   l_mem addedold1 = 0;
   l_mem marked = g->getGCMarked();  /* preserve 'g->getGCMarked()' */
   GCObject **psurvival;  /* to point to first non-dead survival object */
@@ -183,7 +183,7 @@ void GCCollector::youngcollection(lua_State* L, global_State* g) {
 ** TRANSITION: ATOMIC TO GENERATIONAL
 ** Clears gray lists, sweeps all to old, sets up generational sublists.
 */
-void GCCollector::atomic2gen(lua_State* L, global_State* g) {
+void GCCollector::atomic2gen(lua_State* L, GlobalState* g) {
   g->clearGrayLists();
   /* sweep all elements making them old */
   g->setGCState(GCState::SweepAllGC);
@@ -211,7 +211,7 @@ void GCCollector::atomic2gen(lua_State* L, global_State* g) {
 ** ENTER GENERATIONAL MODE
 ** Runs to end of atomic cycle, converts all objects to old.
 */
-void GCCollector::entergen(lua_State* L, global_State* g) {
+void GCCollector::entergen(lua_State* L, GlobalState* g) {
   luaC_runtilstate(*L, GCState::Pause, 1);  /* prepare to start a new cycle */
   luaC_runtilstate(*L, GCState::Propagate, 1);  /* start new cycle */
   atomic(L);  /* propagates all and then do the atomic stuff */
@@ -224,7 +224,7 @@ void GCCollector::entergen(lua_State* L, global_State* g) {
 ** FULL GENERATIONAL COLLECTION
 ** Temporarily switches to incremental for full sweep, then returns to gen mode.
 */
-void GCCollector::fullgen(lua_State* L, global_State* g) {
+void GCCollector::fullgen(lua_State* L, GlobalState* g) {
   minor2inc(L, g, GCKind::Incremental);
   entergen(L, g);
 }
@@ -234,7 +234,7 @@ void GCCollector::fullgen(lua_State* L, global_State* g) {
 ** FULL INCREMENTAL COLLECTION
 ** Performs a complete GC cycle in incremental mode.
 */
-void GCCollector::fullinc(lua_State* L, global_State* g) {
+void GCCollector::fullinc(lua_State* L, GlobalState* g) {
   if (g->keepInvariant())  /* black objects? */
     GCSweeping::entersweep(L); /* sweep everything to turn them back to white */
   /* finish any pending sweep phase to start a new cycle */
@@ -251,7 +251,7 @@ void GCCollector::fullinc(lua_State* L, global_State* g) {
 ** Returns work done or special value indicating state change.
 */
 l_mem GCCollector::singlestep(lua_State* L, int fast) {
-  global_State* g = G(L);
+  GlobalState* g = G(L);
   l_mem stepresult;
   lua_assert(!g->getGCStopEm());  /* collector is not reentrant */
   g->setGCStopEm(1);  /* no emergency collections while collecting */
@@ -325,7 +325,7 @@ l_mem GCCollector::singlestep(lua_State* L, int fast) {
 ** INCREMENTAL STEP
 ** Performs a basic incremental step with work calculation.
 */
-void GCCollector::incstep(lua_State* L, global_State* g) {
+void GCCollector::incstep(lua_State* L, GlobalState* g) {
   l_mem stepsize = applygcparam(g, STEPSIZE, 100);
   l_mem work2do = applygcparam(g, STEPMUL, stepsize / cast_int(sizeof(void*)));
   l_mem stres;

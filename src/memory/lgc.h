@@ -62,12 +62,12 @@
 ** are white again.
 */
 
-inline bool global_State::keepInvariant() const noexcept {
+inline bool GlobalState::keepInvariant() const noexcept {
 	return getGCState() <= GCState::Atomic;
 }
 
 // Check if GC is in sweep phase
-inline bool global_State::isSweepPhase() const noexcept {
+inline bool GlobalState::isSweepPhase() const noexcept {
 	return GCState::SweepAllGC <= getGCState() && getGCState() <= GCState::SweepEnd;
 }
 
@@ -201,7 +201,7 @@ inline bool tofinalize(const GCObject* x) noexcept {
 }
 
 /* Get the "other" white color (for dead object detection) */
-inline lu_byte otherwhite(const global_State* g) noexcept {
+inline lu_byte otherwhite(const GlobalState* g) noexcept {
 	return g->getCurrentWhite() ^ WHITEBITS;
 }
 
@@ -211,13 +211,13 @@ constexpr bool isdeadm(lu_byte ow, lu_byte m) noexcept {
 }
 
 /* Check if a GC object is dead */
-inline bool isdead(const global_State* g, const GCObject* v) noexcept {
+inline bool isdead(const GlobalState* g, const GCObject* v) noexcept {
 	return isdeadm(otherwhite(g), v->getMarked());
 }
 
 /* Template version for any GC-able type (Table, TString, UpVal, etc.) */
 template<typename T>
-inline bool isdead(const global_State* g, const T* v) noexcept {
+inline bool isdead(const GlobalState* g, const T* v) noexcept {
 	return isdeadm(otherwhite(g), reinterpret_cast<const GCObject*>(v)->getMarked());
 }
 
@@ -241,7 +241,7 @@ inline void nw2black(GCObject* x) noexcept {
 	x->setMarkedBit(BLACKBIT);
 }
 
-inline lu_byte global_State::getWhite() const noexcept {
+inline lu_byte GlobalState::getWhite() const noexcept {
 	return cast_byte(getCurrentWhite() & WHITEBITS);
 }
 
@@ -435,7 +435,7 @@ inline void luaC_barrierback(lua_State* L, GCObject* p, const TValue* v) noexcep
 LUAI_FUNC void luaC_freeallobjects (lua_State& L);
 /* luaC_step and luaC_fullgc declared earlier for template functions */
 LUAI_FUNC void luaC_runtilstate (lua_State& L, GCState state, int fast);
-LUAI_FUNC void propagateall (global_State& g);  /* used by GCCollector */
+LUAI_FUNC void propagateall (GlobalState& g);  /* used by GCCollector */
 [[nodiscard]] LUAI_FUNC GCObject *luaC_newobj (lua_State& L, LuaT tt, size_t sz);
 [[nodiscard]] LUAI_FUNC GCObject *luaC_newobjdt (lua_State& L, LuaT tt, size_t sz,
                                                  size_t offset);
@@ -444,9 +444,9 @@ LUAI_FUNC void propagateall (global_State& g);  /* used by GCCollector */
 LUAI_FUNC void luaC_changemode (lua_State& L, GCKind newmode);
 
 /* Weak table functions */
-[[nodiscard]] LUAI_FUNC int getmode (global_State *g, Table *h);
-LUAI_FUNC void traverseweakvalue (global_State& g, Table *h);
-[[nodiscard]] LUAI_FUNC int traverseephemeron (global_State *g, Table *h, int inv);
+[[nodiscard]] LUAI_FUNC int getmode (GlobalState *g, Table *h);
+LUAI_FUNC void traverseweakvalue (GlobalState& g, Table *h);
+[[nodiscard]] LUAI_FUNC int traverseephemeron (GlobalState *g, Table *h, int inv);
 
 /* Sweeping helper */
 LUAI_FUNC void freeobj (lua_State& L, GCObject *o);
@@ -534,7 +534,7 @@ constexpr int maskgcbits = (maskcolors | AGEBITS);
 ** Make an object white (candidate for collection).
 ** Erases color bits and sets the current white bit (which alternates each cycle).
 */
-inline void makewhite(global_State* g, GCObject* x) noexcept {
+inline void makewhite(GlobalState* g, GCObject* x) noexcept {
     x->setMarked(cast_byte((x->getMarked() & ~maskcolors) | g->getWhite()));
 }
 

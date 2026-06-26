@@ -12,7 +12,7 @@
 
 /* Some header files included here need this definition */
 typedef struct CallInfo CallInfo;
-class global_State;  /* forward declaration */
+class GlobalState;  /* forward declaration */
 class VirtualMachine;  /* forward declaration */
 
 /* Type of protected functions, to be run by 'runprotected' */
@@ -405,7 +405,7 @@ private:
   CallInfo base_ci;  /* CallInfo for first level (C host) */
 
   // Step 3: GC and state management fields (encapsulated)
-  mutable global_State *l_G;  /* mutable: GC can happen during any operation */
+  mutable GlobalState *l_G;  /* mutable: GC can happen during any operation */
   UpVal *openupval;  /* list of open upvalues in this stack */
   GCObject *gclist;
   lua_State *twups;  /* list of threads with open upvalues */
@@ -435,7 +435,7 @@ public:
   // Initialize lua_State fields (GC base fields must already be set by caller)
   // This is called instead of a constructor to avoid C++ object initialization
   // that might interfere with GC fields (next, tt, marked)
-  void init(global_State* g) noexcept {
+  void init(GlobalState* g) noexcept {
     // Link to global state
     l_G = g;
 
@@ -519,10 +519,10 @@ public:
   const CallInfo* getBaseCI() const noexcept { return &base_ci; }
 
   // Step 3: GC and state management field accessors
-  global_State* getGlobalState() noexcept { return l_G; }
-  global_State* getGlobalState() const noexcept { return l_G; }  // mutable field
-  void setGlobalState(global_State* g) noexcept { l_G = g; }
-  global_State*& getGlobalStateRef() noexcept { return l_G; }  // For G() macro
+  GlobalState* getGlobalState() noexcept { return l_G; }
+  GlobalState* getGlobalState() const noexcept { return l_G; }  // mutable field
+  void setGlobalState(GlobalState* g) noexcept { l_G = g; }
+  GlobalState*& getGlobalStateRef() noexcept { return l_G; }  // For G() macro
 
   UpVal* getOpenUpval() noexcept { return openupval; }
   const UpVal* getOpenUpval() const noexcept { return openupval; }
@@ -746,8 +746,8 @@ typedef struct LX {
 
 
 /*
-** global_State Subsystems - Single Responsibility Principle refactoring
-** These classes separate global_State's 46+ fields into focused components
+** GlobalState Subsystems - Single Responsibility Principle refactoring
+** These classes separate GlobalState's 46+ fields into focused components
 */
 
 /* 1. Memory Allocator - Memory allocation management */
@@ -1008,7 +1008,7 @@ public:
 /*
 ** 'global state', shared by all threads of this state
 */
-class global_State {
+class GlobalState {
 private:
   /* Subsystems (SRP refactoring) */
   MemoryAllocator memory;        /* Memory allocation management */
@@ -1215,19 +1215,19 @@ public:
 
 
 /* Get global state from lua_State (returns reference to allow assignment) */
-inline global_State*& G(lua_State* L) noexcept { return L->getGlobalStateRef(); }
-inline global_State* G(const lua_State* L) noexcept { return L->getGlobalState(); }
+inline GlobalState*& G(lua_State* L) noexcept { return L->getGlobalStateRef(); }
+inline GlobalState* G(const lua_State* L) noexcept { return L->getGlobalState(); }
 /* Reference overloads for pointer-to-reference conversion */
-inline global_State*& G(lua_State& L) noexcept { return L.getGlobalStateRef(); }
-inline global_State* G(const lua_State& L) noexcept { return L.getGlobalState(); }
+inline GlobalState*& G(lua_State& L) noexcept { return L.getGlobalStateRef(); }
+inline GlobalState* G(const lua_State& L) noexcept { return L.getGlobalState(); }
 
-/* Get main thread from global_State */
-inline lua_State* mainthread(global_State* g) noexcept { return &g->getMainThread()->l; }
-inline const lua_State* mainthread(const global_State* g) noexcept { return &g->getMainThread()->l; }
+/* Get main thread from GlobalState */
+inline lua_State* mainthread(GlobalState* g) noexcept { return &g->getMainThread()->l; }
+inline const lua_State* mainthread(const GlobalState* g) noexcept { return &g->getMainThread()->l; }
 
 // Define gfasttm() and fasttm() inline functions (declared in ltm.h)
-// Must be defined here after global_State is fully defined
-inline const TValue* gfasttm(global_State* g, const Table* mt, TMS e) noexcept {
+// Must be defined here after GlobalState is fully defined
+inline const TValue* gfasttm(GlobalState* g, const Table* mt, TMS e) noexcept {
 	return checknoTM(mt, e) ? nullptr : luaT_gettm(mt, e, g->getTMName(static_cast<int>(e)));
 }
 
@@ -1304,7 +1304,7 @@ inline GCObject* obj2gco(const void* v) noexcept {
 }
 
 
-LUAI_FUNC void luaE_setdebt (global_State *g, l_mem debt);
+LUAI_FUNC void luaE_setdebt (GlobalState *g, l_mem debt);
 LUAI_FUNC void luaE_freethread (lua_State *L, lua_State *L1);
 LUAI_FUNC lu_mem luaE_threadsize (lua_State *L);
 LUAI_FUNC CallInfo *luaE_extendCI (lua_State *L);

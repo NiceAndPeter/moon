@@ -61,7 +61,7 @@ public:
     ** Performs a basic incremental step with automatic work sizing.
     ** Loops until sufficient work is done or cycle completes.
     */
-    static void incstep(lua_State* L, global_State* g);
+    static void incstep(lua_State* L, GlobalState* g);
 
     /*
     ** GENERATIONAL YOUNG COLLECTION
@@ -71,14 +71,14 @@ public:
     ** - Sweep young generation
     ** - Decide whether to shift to major mode
     */
-    static void youngcollection(lua_State* L, global_State* g);
+    static void youngcollection(lua_State* L, GlobalState* g);
 
     /*
     ** TRANSITION: ATOMIC TO GENERATIONAL
     ** Converts from incremental mode after atomic phase.
     ** Sweeps all objects to old, sets up generational sublists.
     */
-    static void atomic2gen(lua_State* L, global_State* g);
+    static void atomic2gen(lua_State* L, GlobalState* g);
 
     /*
     ** ENTER GENERATIONAL MODE
@@ -87,28 +87,28 @@ public:
     ** - Converts all objects to old
     ** - Sets up generational parameters
     */
-    static void entergen(lua_State* L, global_State* g);
+    static void entergen(lua_State* L, GlobalState* g);
 
     /*
     ** TRANSITION: MINOR TO INCREMENTAL
     ** Shifts from minor (generational) to major (incremental) collection.
     ** Sets up for sweep-all phase to handle black objects.
     */
-    static void minor2inc(lua_State* L, global_State* g, GCKind kind);
+    static void minor2inc(lua_State* L, GlobalState* g, GCKind kind);
 
     /*
     ** FULL INCREMENTAL COLLECTION
     ** Performs a complete GC cycle in incremental mode.
     ** Used for explicit collection requests.
     */
-    static void fullinc(lua_State* L, global_State* g);
+    static void fullinc(lua_State* L, GlobalState* g);
 
     /*
     ** FULL GENERATIONAL COLLECTION
     ** Performs a complete collection in generational mode.
     ** Temporarily switches to incremental for full sweep.
     */
-    static void fullgen(lua_State* L, global_State* g);
+    static void fullgen(lua_State* L, GlobalState* g);
 
     /*
     ** FINISH YOUNG COLLECTION
@@ -117,14 +117,14 @@ public:
     ** - Checks sizes
     ** - Runs pending finalizers
     */
-    static void finishgencycle(lua_State* L, global_State* g);
+    static void finishgencycle(lua_State* L, GlobalState* g);
 
     /*
     ** CHECK MAJOR-TO-MINOR TRANSITION
     ** After atomic phase in major mode, check if can return to minor mode.
     ** Returns 1 if transitioned back to minor, 0 if staying in major.
     */
-    static int checkmajorminor(lua_State* L, global_State* g);
+    static int checkmajorminor(lua_State* L, GlobalState* g);
 
     /* Special return values for singlestep() */
     static constexpr l_mem STEP_2_PAUSE = -3;  /* finished collection; entered pause state */

@@ -39,7 +39,7 @@
 */
 
 
-inline void* callfrealloc(global_State* g, void* block, size_t os, size_t ns) noexcept {
+inline void* callfrealloc(GlobalState* g, void* block, size_t os, size_t ns) noexcept {
 	return (*g->getFrealloc())(g->getUd(), block, os, ns);
 }
 
@@ -51,7 +51,7 @@ inline void* callfrealloc(global_State* g, void* block, size_t os, size_t ns) no
 ** 'gcstopem' is true, because then the interpreter is in the middle of
 ** a collection step.
 */
-inline bool cantryagain(global_State* g) noexcept {
+inline bool cantryagain(GlobalState* g) noexcept {
 	return g->isComplete() && !g->getGCStopEm();
 }
 
@@ -64,7 +64,7 @@ inline bool cantryagain(global_State* g) noexcept {
 ** fail) and when it cannot try again; this fail will trigger 'tryagain'
 ** and a full GC cycle at every allocation.
 */
-static void *firsttry (global_State *g, void *block, size_t os, size_t ns) {
+static void *firsttry (GlobalState *g, void *block, size_t os, size_t ns) {
   if (ns > 0 && cantryagain(g))
     return nullptr;  /* fail */
   else  /* normal allocation */
@@ -146,7 +146,7 @@ l_noret luaM_toobig (lua_State *L) {
 ** Free memory
 */
 void luaM_free_ (lua_State *L, void *block, size_t osize) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   lua_assert((osize == 0) == (block == nullptr));
   callfrealloc(g, block, osize, 0);
   g->getGCDebtRef() += static_cast<l_mem>(osize);
@@ -159,7 +159,7 @@ void luaM_free_ (lua_State *L, void *block, size_t osize) {
 */
 static void *tryagain (lua_State *L, void *block,
                        size_t osize, size_t nsize) {
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   if (cantryagain(g)) {
     luaC_fullgc(*L, 1);  /* try to free some memory... */
     return callfrealloc(g, block, osize, nsize);  /* try again */
@@ -173,7 +173,7 @@ static void *tryagain (lua_State *L, void *block,
 */
 void *luaM_realloc_ (lua_State *L, void *block, size_t osize, size_t nsize) {
   void *newblock;
-  global_State *g = G(L);
+  GlobalState *g = G(L);
   lua_assert((osize == 0) == (block == nullptr));
   newblock = firsttry(g, block, osize, nsize);
   if (l_unlikely(newblock == nullptr && nsize > 0)) {
@@ -200,7 +200,7 @@ void *luaM_malloc_ (lua_State *L, size_t size, int tag) {
   if (size == 0)
     return nullptr;  /* that's all */
   else {
-    global_State *g = G(L);
+    GlobalState *g = G(L);
     void *newblock = firsttry(g, nullptr, cast_sizet(tag), size);
     if (l_unlikely(newblock == nullptr)) {
       newblock = tryagain(L, nullptr, cast_sizet(tag), size);

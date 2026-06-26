@@ -97,7 +97,7 @@ inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 ** Traverse a table (delegates to weak or strong traversal)
 ** Returns approximate cost in work units
 */
-l_mem GCMarking::traversetable(global_State& g, Table* h) {
+l_mem GCMarking::traversetable(GlobalState& g, Table* h) {
     markobjectN(g, h->getMetatable());
     switch (GCWeak::getmode(g, h)) {
         case 0:  /* not weak */
@@ -122,7 +122,7 @@ l_mem GCMarking::traversetable(global_State& g, Table* h) {
 /*
 ** Traverse a userdata object
 */
-l_mem GCMarking::traverseudata(global_State& g, Udata* u) {
+l_mem GCMarking::traverseudata(GlobalState& g, Udata* u) {
     int i;
     markobjectN(g, u->getMetatable());
     for (i = 0; i < u->getNumUserValues(); i++)
@@ -134,7 +134,7 @@ l_mem GCMarking::traverseudata(global_State& g, Udata* u) {
 /*
 ** Traverse a prototype (function template)
 */
-l_mem GCMarking::traverseproto(global_State& g, Proto* f) {
+l_mem GCMarking::traverseproto(GlobalState& g, Proto* f) {
     markobjectN(g, f->getSource());
     // Use std::span and range-based for loops
     for (auto& constant : f->getConstantsSpan())
@@ -152,7 +152,7 @@ l_mem GCMarking::traverseproto(global_State& g, Proto* f) {
 /*
 ** Traverse a C closure
 */
-l_mem GCMarking::traverseCclosure(global_State& g, CClosure* cl) {
+l_mem GCMarking::traverseCclosure(GlobalState& g, CClosure* cl) {
     int i;
     for (i = 0; i < cl->getNumUpvalues(); i++)
         markvalue(g, cl->getUpvalue(i));
@@ -162,7 +162,7 @@ l_mem GCMarking::traverseCclosure(global_State& g, CClosure* cl) {
 /*
 ** Traverse a Lua closure
 */
-l_mem GCMarking::traverseLclosure(global_State& g, LClosure* cl) {
+l_mem GCMarking::traverseLclosure(GlobalState& g, LClosure* cl) {
     int i;
     markobjectN(g, cl->getProto());
     for (i = 0; i < cl->getNumUpvalues(); i++) {
@@ -175,7 +175,7 @@ l_mem GCMarking::traverseLclosure(global_State& g, LClosure* cl) {
 /*
 ** Traverse a thread
 */
-l_mem GCMarking::traversethread(global_State& g, lua_State* th) {
+l_mem GCMarking::traversethread(GlobalState& g, lua_State* th) {
     UpVal* uv;
     StkId o = th->getStack().p;
     if (isold(th) || g.getGCState() == GCState::Propagate)
@@ -212,7 +212,7 @@ l_mem GCMarking::traversethread(global_State& g, lua_State* th) {
 ** Mark an object as reachable
 ** This is the entry point for marking - called when we discover a white object
 */
-void GCMarking::reallymarkobject(global_State& g, GCObject* o) {
+void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
     g.setGCMarked(g.getGCMarked() + objsize(o));
     switch (static_cast<int>(o->getType())) {
         case static_cast<int>(ctb(LuaT::SHRSTR)):
@@ -256,7 +256,7 @@ void GCMarking::reallymarkobject(global_State& g, GCObject* o) {
 ** Process one gray object - traverse its children and mark it black
 ** Returns the traversal cost (work units)
 */
-l_mem GCMarking::propagatemark(global_State& g) {
+l_mem GCMarking::propagatemark(GlobalState& g) {
     GCObject* o = g.getGray();
     nw2black(o);
     g.setGray(*getgclist(o));  /* remove from 'gray' list */
@@ -282,7 +282,7 @@ l_mem GCMarking::propagatemark(global_State& g) {
 /*
 ** Process all gray objects (used in atomic phase)
 */
-void GCMarking::propagateall(global_State& g) {
+void GCMarking::propagateall(GlobalState& g) {
     while (g.getGray())
         propagatemark(g);
 }
@@ -297,7 +297,7 @@ void GCMarking::propagateall(global_State& g) {
 /*
 ** Mark metamethods for basic types
 */
-void GCMarking::markmt(global_State& g) {
+void GCMarking::markmt(GlobalState& g) {
     int i;
     for (i = 0; i < LUA_NUMTYPES; i++)
         markobjectN(g, g.getMetatable(i));
@@ -306,7 +306,7 @@ void GCMarking::markmt(global_State& g) {
 /*
 ** Mark all objects in tobefnz list (being finalized)
 */
-void GCMarking::markbeingfnz(global_State& g) {
+void GCMarking::markbeingfnz(GlobalState& g) {
     GCObject* o;
     for (o = g.getToBeFnz(); o != nullptr; o = o->getNext())
         markobject(g, o);
@@ -316,7 +316,7 @@ void GCMarking::markbeingfnz(global_State& g) {
 ** Remark upvalues for unmarked threads
 ** Simulates a barrier between each open upvalue and its value
 */
-void GCMarking::remarkupvals(global_State& g) {
+void GCMarking::remarkupvals(GlobalState& g) {
     lua_State* thread;
     lua_State** p = g.getTwupsPtr();
     while ((thread = *p) != nullptr) {
@@ -342,7 +342,7 @@ void GCMarking::remarkupvals(global_State& g) {
 ** Mark root set and reset all gray lists to start a new collection.
 ** Initializes GCmarked to count total live bytes during cycle.
 */
-void GCMarking::restartcollection(global_State& g) {
+void GCMarking::restartcollection(GlobalState& g) {
     g.clearGrayLists();  /* Use the new method */
     g.setGCMarked(0);
     markobject(g, mainthread(&g));
@@ -355,7 +355,7 @@ void GCMarking::restartcollection(global_State& g) {
 ** Mark black 'OLD1' objects when starting a new young collection.
 ** Gray objects are already in gray lists for atomic phase.
 */
-void GCMarking::markold(global_State& g, GCObject* from, GCObject* to) {
+void GCMarking::markold(GlobalState& g, GCObject* from, GCObject* to) {
     GCObject* p;
     for (p = from; p != to; p = p->getNext()) {
         if (getage(p) == GCAge::Old1) {
@@ -371,7 +371,7 @@ void GCMarking::markold(global_State& g, GCObject* from, GCObject* to) {
 ** Link object for generational mode post-processing.
 ** TOUCHED1 objects go to grayagain, TOUCHED2 advance to OLD.
 */
-void GCMarking::genlink(global_State& g, GCObject* o) {
+void GCMarking::genlink(GlobalState& g, GCObject* o) {
     lua_assert(isblack(o));
     if (getage(o) == GCAge::Touched1) {  /* touched in this cycle? */
         linkobjgclist(o, *g.getGrayAgainPtr());  /* link it back in 'grayagain' */
@@ -384,7 +384,7 @@ void GCMarking::genlink(global_State& g, GCObject* o) {
 ** Traverse array part of a table, marking collectable values.
 ** Returns 1 if any white objects were marked, 0 otherwise.
 */
-int GCMarking::traversearray(global_State& g, Table* h) {
+int GCMarking::traversearray(GlobalState& g, Table* h) {
     unsigned asize = h->arraySize();
     int marked = 0;  /* true if some object is marked in this traversal */
     unsigned i;
@@ -402,7 +402,7 @@ int GCMarking::traversearray(global_State& g, Table* h) {
 ** Traverse a strong (non-weak) table.
 ** Marks all keys and values, then calls genlink for generational mode.
 */
-void GCMarking::traversestrongtable(global_State& g, Table* h) {
+void GCMarking::traversestrongtable(GlobalState& g, Table* h) {
     Node* n;
     Node* limit = gnodelast(h);
     traversearray(g, h);
@@ -421,7 +421,7 @@ void GCMarking::traversestrongtable(global_State& g, Table* h) {
 /*
 ** Clear all gray lists (called when entering sweep phase)
 */
-void GCMarking::cleargraylists(global_State& g) {
+void GCMarking::cleargraylists(GlobalState& g) {
     *g.getGrayPtr() = *g.getGrayAgainPtr() = nullptr;
     *g.getWeakPtr() = *g.getAllWeakPtr() = *g.getEphemeronPtr() = nullptr;
 }
