@@ -182,10 +182,9 @@ static int str_byte (lua_State *L) {
 
 static int str_char (lua_State *L) {
   int n = lua_gettop(L);  // number of arguments
-  int i;
   luaL_Buffer b;
   char *p = luaL_buffinitsize(L, &b, cast_uint(n));
-  for (i=1; i<=n; i++) {
+  for (int i=1; i<=n; i++) {
     lua_Unsigned c = (lua_Unsigned)luaL_checkinteger(L, i);
     luaL_argcheck(L, c <= (lua_Unsigned)UCHAR_MAX, i, "value out of range");
     p[i - 1] = cast_char(cast_uchar(c));
@@ -1060,8 +1059,7 @@ static int lua_number2strx (lua_State *L, char *buff, unsigned sz,
                             const char *fmt, lua_Number x) {
   int n = num2straux(buff, sz, x);
   if (fmt[SIZELENMOD] == 'A') {
-    int i;
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
       buff[i] = cast_char(toupper(cast_uchar(buff[i])));
   }
   else if (l_unlikely(fmt[SIZELENMOD] != 'a'))
@@ -1575,14 +1573,13 @@ static KOption getdetails (Header *h, size_t totalsize, const char **fmt,
 static void packint (luaL_Buffer *b, lua_Unsigned n,
                      int islittle, unsigned size, int neg) {
   char *buff = luaL_prepbuffsize(b, size);
-  unsigned i;
   buff[islittle ? 0 : size - 1] = (char)(n & MC);  // first byte
-  for (i = 1; i < size; i++) {
+  for (unsigned i = 1; i < size; i++) {
     n >>= NB;
     buff[islittle ? i : size - 1 - i] = (char)(n & MC);
   }
   if (neg && size > SZINT) {  // negative number need sign extension?
-    for (i = SZINT; i < size; i++)  // correct extra bytes
+    for (unsigned i = SZINT; i < size; i++)  // correct extra bytes
       buff[islittle ? i : size - 1 - i] = (char)MC;
   }
   luaL_addsize(b, size);  // add result to buffer
@@ -1744,9 +1741,8 @@ static int str_packsize (lua_State *L) {
 static lua_Integer unpackint (lua_State *L, const char *str,
                               int islittle, int size, int issigned) {
   lua_Unsigned res = 0;
-  int i;
   int limit = (size  <= SZINT) ? size : SZINT;
-  for (i = limit - 1; i >= 0; i--) {
+  for (int i = limit - 1; i >= 0; i--) {
     res <<= NB;
     res |= (lua_Unsigned)(unsigned char)str[islittle ? i : size - 1 - i];
   }
