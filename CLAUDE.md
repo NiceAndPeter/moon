@@ -9,22 +9,30 @@ Converting Lua 5.5 from C to modern C++23:
 - **Full encapsulation** with private fields
 
 **Performance**: ~2.33s avg ✅ (well under target ≤4.33s; GCC 15.2 toolchain)
-**Status**: GC correctness fix + codebase-wide cleanup pass (Waves 0/3/4 complete)
-**Completed**: Phases 1-127, 129-1, 130-ALL, 131, 133, 134 + GC fix + cleanup Waves 0/3/4 | **Quality**: 96.1% coverage, zero warnings
+**Status**: All in-flight work landed on `main`; GC correctness fix + cleanup waves + LTO workaround + layout guards merged.
+**Completed**: Phases 1-127, 129-1, 130-ALL, 131, 133, 134 + GC fix + cleanup Waves 0-5 + declare-on-first-use + LTO fix + layout guards | **Quality**: 96.1% coverage, zero warnings
 
-> **Current branch `fix/gc-tail-padding-and-cleanup` (2026-06-26):** Fixed a real
-> GC corruption bug (base-class tail-padding reuse — derived GC types were
-> clobbering `tt`/`marked`; fix = `gcHeaderReserved_` padding in
-> `src/objects/lobject_core.h`, do NOT remove it). Established the first green
-> baseline on GCC 15.2 (two `-Wno-error=` relaxations in CMakeLists.txt for GCC-15
-> false positives). Then ran a cleanup pass: **Wave 0** (stripped all `$Id`
-> headers, `#define lfoo_c` unit markers, ~204 `Phase NNN:` markers across 84
-> internal files), **Wave 3** (C-style pointer casts → `static_cast`; unsafe
-> `strcpy` → `std::copy_n`), **Wave 4** (internal type renames to PascalCase:
-> `stringtable`→`StringTable`, `expdesc`→`ExpDesc`, `global_State`→`GlobalState`,
-> `lua_longjmp`→`LuaLongJmp`; `lua_State` kept — public typedef). Remaining cosmetic
-> waves (comment style, bulk identifier renames, Doxygen) deferred as
-> diminishing-returns. The GC fix is independently valuable and worth a PR on its own.
+> **Authoritative status (2026-06-27, on `main`):** This file is the single
+> status of record. Recent landed work, in merge order:
+> - **GC tail-padding fix** (`gcHeaderReserved_` in `src/objects/lobject_core.h`,
+>   **do NOT remove it**): derived GC types were reusing `GCObject`'s tail padding
+>   and clobbering `tt`/`marked`. Now also **enforced by `static_assert`** that
+>   `sizeof(GCObject) == 2*sizeof(void*)` (PR #81).
+> - **Cleanup waves 0–5** (markers stripped, comment style normalized, identifier
+>   abbreviations expanded, internal types → PascalCase: `StringTable`, `ExpDesc`,
+>   `GlobalState`, `LuaLongJmp`; `lua_State` kept as the public typedef).
+> - **declare-on-first-use** applied across libraries/core/objects/serialization/
+>   auxiliary/interpreter (PR #79).
+> - **GCC-15 LTO miscompile worked around** (PR #78): GC translation units built
+>   without IPO on GCC; clang+LTO is clean. Guarded by the **`LTO Smoke` CI job**
+>   on both gcc-13 and clang-15 (PR #80).
+> - **Compile-time layout guards** for the type-punned GC structures (PR #81):
+>   GCObject, UValue, `Limbox`/Node, and the TString short-string overlay.
+>
+> Two `-Wno-error=` relaxations remain in `CMakeLists.txt` for GCC-15 false
+> positives (`maybe-uninitialized`, `format-truncation`), plus
+> `-Wno-error=sign-conversion` for clang parity. The earlier ~2.11s figures were
+> on the prior toolchain; ~2.33s is the GCC-15.2 baseline.
 
 ---
 
@@ -84,7 +92,7 @@ Converting Lua 5.5 from C to modern C++23:
 - **Benefits**: Type safety (no null), modern C++23 idiom, clearer semantics, explicit lifetimes
 - **Total**: 210+ functions + 3 member variables converted
 - **Result**: ~2.12s avg (50% faster than baseline!)
-- See `docs/PHASE_130_POINTER_TO_REFERENCE.md`
+- See `docs/archive/PHASE_130_POINTER_TO_REFERENCE.md`
 
 **Phase 131**: Identifier Modernization - Quick Wins Batch 1 ✅
 - **Part 1A**: StringInterner members (3 variables: `envn` → `environmentName`, `brkn` → `breakLabelName`, `glbn` → `globalKeywordName`)
@@ -278,7 +286,7 @@ Phases 1-127, 129-1, 130-1/2/3/4/5/6 complete (Phase 130: 100% done!)
 
 ## Future Opportunities
 
-**Potential Next Steps** (see `docs/PHASE_SUGGESTIONS.md` for details):
+**Potential Next Steps** (see `docs/archive/PHASE_SUGGESTIONS.md` for details):
 - Phase 129 Part 2: Range-based for loops in ldebug.cpp (medium risk)
 - Phase 128: std::span performance optimization (if needed)
 - Additional pointer-to-reference conversions (Phase 130 continuation)
@@ -291,7 +299,7 @@ Phases 1-127, 129-1, 130-1/2/3/4/5/6 complete (Phase 130: 100% done!)
 - Register index strong types (very invasive)
 - lua_State SRP refactoring (VM hot path risk)
 
-See `docs/TYPE_MODERNIZATION_ANALYSIS.md` and `docs/PHASE_SUGGESTIONS.md`
+See `docs/TYPE_MODERNIZATION_ANALYSIS.md` and `docs/archive/PHASE_SUGGESTIONS.md`
 
 ---
 
@@ -301,7 +309,9 @@ See `docs/TYPE_MODERNIZATION_ANALYSIS.md` and `docs/PHASE_SUGGESTIONS.md`
 
 **Architecture**: [SRP_ANALYSIS.md](docs/SRP_ANALYSIS.md) | [CPP_MODERNIZATION_ANALYSIS.md](docs/CPP_MODERNIZATION_ANALYSIS.md) | [TYPE_MODERNIZATION_ANALYSIS.md](docs/TYPE_MODERNIZATION_ANALYSIS.md)
 
-**Specialized**: [NECESSARY_MACROS.md](docs/NECESSARY_MACROS.md) | [PHASE_125_LUAV_WRAPPER_ELIMINATION.md](docs/PHASE_125_LUAV_WRAPPER_ELIMINATION.md) | [PHASE_130_POINTER_TO_REFERENCE.md](docs/PHASE_130_POINTER_TO_REFERENCE.md) | [GC_SIMPLIFICATION_ANALYSIS.md](docs/GC_SIMPLIFICATION_ANALYSIS.md) | [SPAN_MODERNIZATION_PLAN.md](docs/SPAN_MODERNIZATION_PLAN.md) | [COVERAGE_ANALYSIS.md](docs/COVERAGE_ANALYSIS.md) | [UNDEFINED_BEHAVIOR_ANALYSIS.md](docs/UNDEFINED_BEHAVIOR_ANALYSIS.md)
+**Specialized**: [NECESSARY_MACROS.md](docs/NECESSARY_MACROS.md) | [GC_SIMPLIFICATION_ANALYSIS.md](docs/GC_SIMPLIFICATION_ANALYSIS.md) | [GC_PITFALLS_ANALYSIS.md](docs/GC_PITFALLS_ANALYSIS.md) | [SPAN_MODERNIZATION_PLAN.md](docs/SPAN_MODERNIZATION_PLAN.md) | [COVERAGE_ANALYSIS.md](docs/COVERAGE_ANALYSIS.md) | [UNDEFINED_BEHAVIOR_ANALYSIS.md](docs/UNDEFINED_BEHAVIOR_ANALYSIS.md)
+
+**Historical**: completed phase write-ups are archived under [docs/archive/](docs/archive/) (see its README).
 
 **CI/CD**: [.github/workflows/ci.yml](.github/workflows/ci.yml) | [coverage.yml](.github/workflows/coverage.yml) | [static-analysis.yml](.github/workflows/static-analysis.yml)
 
@@ -325,5 +335,5 @@ git add <files> && git commit -m "Phase N: Description" && git push -u origin <b
 
 ---
 
-**Updated**: 2026-06-26 | **Phases**: 1-127, 129-1, 130-ALL, 131, 133, 134 + GC fix + cleanup Waves 0/3/4 ✅ | **Performance**: ~2.33s ✅ (GCC 15.2, well under target)
-**Status**: Modern C++23, VirtualMachine complete, const-correct, [[nodiscard]] safety. On branch `fix/gc-tail-padding-and-cleanup`: **GC tail-padding corruption fixed** + cleanup pass (Wave 0 markers, Wave 3 casts, Wave 4 type renames). Remaining cosmetic waves deferred as diminishing-returns.
+**Updated**: 2026-06-27 | **Phases**: 1-127, 129-1, 130-ALL, 131, 133, 134 + GC fix + cleanup Waves 0-5 + declare-on-first-use + LTO fix + layout guards ✅ | **Performance**: ~2.33s ✅ (GCC 15.2, well under target)
+**Status**: Modern C++23, VirtualMachine complete, const-correct, [[nodiscard]] safety. All work merged to `main`: **GC tail-padding corruption fixed** (+ `static_assert` guard), cleanup waves, declare-on-first-use, **GCC-15 LTO miscompile worked around + `LTO Smoke` CI guard**, compile-time layout guards for type-punned GC structures. CI green on gcc-13 + clang-15 + ASan/UBSan.

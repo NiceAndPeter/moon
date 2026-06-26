@@ -7,6 +7,36 @@
 
 ---
 
+> ## ⚠️ STATUS UPDATE (2026-06-27) — read this first
+>
+> This document is a **historical analysis snapshot** from 2025-11-21. Its
+> "CRITICAL / IMMEDIATE ACTION" framing has **not** been borne out: the full
+> `testes/all.lua` suite, the ASan+UBSan build, and CI on both gcc-13 and
+> clang-15 have been **green** throughout. Treat the severity labels below as the
+> original author's worst-case estimates, not confirmed live defects. Current
+> reality:
+>
+> - **Integer-overflow "CRITICAL" items (§4):** these are inherited
+>   upstream-Lua patterns bounded by existing limits (`MAXABITS`, `MAXASIZE`,
+>   array-size checks). No failures observed under sanitizers; **monitored, not
+>   urgent.**
+> - **§5.1 stack pointer round-trip:** **fixed** — `LuaStack` uses direct
+>   pointer arithmetic, no `char*` round-trip.
+> - **§5.2 / §5.4 / §5.5 layout assumptions:** now backed by **compile-time
+>   `static_assert` layout guards** (GCObject, UValue, `Limbox`/Node, TString
+>   overlay) — merged in PR #81. A field-offset regression is now a compile
+>   error.
+> - **The only LTO crash actually observed** was a **GCC 15.2 IPA
+>   miscompilation** of the GC marking path — clang+LTO and UBSan are clean on
+>   the same source, so it is a **compiler bug, not portable UB**. Worked around
+>   (GC TUs built without IPO on GCC) and **guarded by the `LTO Smoke` CI job**.
+>
+> The genuinely useful content below is the *catalogue of fragile patterns*
+> worth keeping guarded — not the priority/severity column. See `CLAUDE.md` for
+> the authoritative current status.
+
+---
+
 ## Executive Summary
 
 This comprehensive analysis identified **undefined behavior patterns** across 6 major categories. The codebase demonstrates **strong architectural design** with excellent memory safety practices, but contains **several high-severity issues** requiring immediate attention.
@@ -666,6 +696,13 @@ struct NodeAllocation {
 ```
 **Estimated Fix Time**: 30 minutes + testing
 
+> **UPDATE (2026):** Kept the existing layout (the flexible-array rewrite is not
+> worth the churn), but the assumptions are now **enforced at compile time**:
+> `static_assert`s in `ltable.cpp` pin `sizeof(Limbox) % alignof(Node) == 0` and
+> `sizeof(Limbox) >= sizeof(Node*)` (PR #81). The LTO crash once attributed here
+> was a **GCC 15.2 IPA miscompile of the GC marking path**, not this allocation
+> trick — clang+LTO and UBSan are clean. Worked around and CI-guarded.
+
 ### Medium Priority Issues
 
 #### 5.3 TValue Union Type Punning - MEDIUM 🔶
@@ -677,17 +714,21 @@ struct NodeAllocation {
 - **Status**: Safe with tag discrimination
 - **Action**: Add runtime assertions in debug builds to verify tag before access
 
-#### 5.4 GCBase Reinterpret Casts - MEDIUM 🔶
+#### 5.4 GCBase Reinterpret Casts - MEDIUM 🔶 (GUARDED)
 
 - **Pattern**: Converting between GC object types (Table ↔ TString ↔ Proto, etc.)
 - **Status**: Safe due to static memory layout guarantees (common GCBase header)
-- **Action**: Add static_assert verifications of memory layout
+- **Action**: ✅ **Done** — `static_assert`s in `src/objects/lobject_core.h` pin
+  `sizeof(GCObject) == 2*sizeof(void*)` and its alignment (PR #81), so the common
+  header can never silently drift or reuse tail padding.
 
-#### 5.5 TString Short String Overlay - MEDIUM 🔶
+#### 5.5 TString Short String Overlay - MEDIUM 🔶 (GUARDED)
 
 - **Pattern**: Variable-size object with flexible array member
 - **Status**: Safe with careful allocation
-- **Action**: Add compile-time layout verification with static_assert
+- **Action**: ✅ **Done** — `TStringLayoutCheck` in `src/objects/lstring.h`
+  `static_assert`s `contentsOffset() == offsetof(TString, contents)` (PR #81), so
+  the short-string overlay offset can never diverge from the real field.
 
 #### 5.6 Table Array Type Punning - MEDIUM 🔶
 
