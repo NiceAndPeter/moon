@@ -13,7 +13,7 @@
 #include "lzio.h"
 
 
-/* data to catch conversion errors */
+// data to catch conversion errors
 #define LUAC_DATA	"\x19\x93\r\n\x1a\n"
 
 #define LUAC_INT	-0x5678
@@ -25,14 +25,14 @@
 */
 #define LUAC_VERSION	(LUA_VERSION_MAJOR_N*16+LUA_VERSION_MINOR_N)
 
-#define LUAC_FORMAT	0	/* this is the official format */
+#define LUAC_FORMAT	0  // this is the official format
 
 
-/* load one chunk; from lundump.c */
+// load one chunk; from lundump.c
 LUAI_FUNC LClosure* luaU_undump (lua_State* L, ZIO* Z, const char* name,
                                                int fixed);
 
-/* dump one chunk; from ldump.c */
+// dump one chunk; from ldump.c
 LUAI_FUNC int luaU_dump (lua_State* L, const Proto* f, lua_Writer w,
                          void* data, int strip);
 

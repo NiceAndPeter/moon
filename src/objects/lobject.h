@@ -14,19 +14,19 @@
 
 #include "llimits.h"
 #include "lua.h"
-#include "ltvalue.h"  /* TValue class */
+#include "ltvalue.h"  // TValue class
 
-/* Include focused headers */
-#include "lobject_core.h"  /* GCObject, GCBase<T>, Udata */
-#include "lstring.h"       /* TString */
-#include "lproto.h"        /* Proto */
-#include "lfunc.h"         /* UpVal, CClosure, LClosure */
-#include "ltable.h"        /* Table, Node - after lstring/lproto/lfunc for dependencies */
+// Include focused headers
+#include "lobject_core.h"  // GCObject, GCBase<T>, Udata
+#include "lstring.h"  // TString
+#include "lproto.h"  // Proto
+#include "lfunc.h"  // UpVal, CClosure, LClosure
+#include "ltable.h"  // Table, Node - after lstring/lproto/lfunc for dependencies
 
-/* Include ltm.h for tag method support needed by ltable.h inline functions */
-#include "../core/ltm.h"   /* TMS enum, checknoTM function */
+// Include ltm.h for tag method support needed by ltable.h inline functions
+#include "../core/ltm.h"  // TMS enum, checknoTM function
 
-/* Forward declarations */
+// Forward declarations
 enum class GCAge : lu_byte;
 
 
@@ -61,7 +61,7 @@ clase StackValue: public TValue
   unsigned short delta;
 } StackValue;
 */
-/* index to stack elements */
+// index to stack elements
 typedef StackValue *StkId;
 
 
@@ -70,12 +70,12 @@ typedef StackValue *StkId;
 ** proper offsets.
 */
 typedef union {
-  StkId p;  /* actual pointer */
-  ptrdiff_t offset;  /* used while the stack is being reallocated */
+  StkId p;  // actual pointer
+  ptrdiff_t offset;  // used while the stack is being reallocated
 } StkIdRel;
 
 
-/* convert a 'StackValue' to a 'TValue' */
+// convert a 'StackValue' to a 'TValue'
 constexpr TValue* s2v(StackValue* o) noexcept { return &(o)->val; }
 constexpr const TValue* s2v(const StackValue* o) noexcept { return &(o)->val; }
 
@@ -210,7 +210,7 @@ inline void setclLvalue2s(lua_State* L, StackValue* o, LClosure* cl) noexcept {
 	setclLvalue(L, s2v(o), cl);
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*
@@ -237,18 +237,18 @@ inline void setclLvalue2s(lua_State* L, StackValue* o, LClosure* cl) noexcept {
 ** 'module' operation for hashing (size is always a power of 2)
 */
 inline unsigned int lmod(unsigned int s, unsigned int size) noexcept {
-	lua_assert((size & (size - 1)) == 0);  /* size must be power of 2 */
+	lua_assert((size & (size - 1)) == 0);  // size must be power of 2
 	return s & (size - 1);
 }
 
 
 
 
-/* size of buffer for 'luaO_utf8esc' function */
+// size of buffer for 'luaO_utf8esc' function
 inline constexpr int UTF8BUFFSZ = 8;
 
 
-/* macro to call 'luaO_pushvfstring' correctly */
+// macro to call 'luaO_pushvfstring' correctly
 #define pushvfstring(L, argp, fmt, msg)	\
   { va_start(argp, fmt); \
   msg = luaO_pushvfstring(L, fmt, argp); \
@@ -288,28 +288,28 @@ inline void luaO_chunkid (char *out, const char *source, size_t srclen) {
 ** ===================================================================
 */
 
-/* Forward declarations for lvm.h types/functions */
+// Forward declarations for lvm.h types/functions
 #ifndef F2Imod_defined
 #define F2Imod_defined
 enum class F2Imod {
-  F2Ieq,     /* no rounding; accepts only integral values */
-  F2Ifloor,  /* takes the floor of the number */
-  F2Iceil    /* takes the ceiling of the number */
+  F2Ieq,  // no rounding; accepts only integral values
+  F2Ifloor,  // takes the floor of the number
+  F2Iceil  // takes the ceiling of the number
 };
 #endif
 
-/* Forward declaration and extern declaration for VirtualMachine::flttointeger */
+// Forward declaration and extern declaration for VirtualMachine::flttointeger
 class VirtualMachine;
 extern int VirtualMachine_flttointeger(lua_Number n, lua_Integer *p, F2Imod mode);
 
-/* Forward declarations for comparison helpers (defined in lvm.cpp and lstring.h) */
-/* These handle mixed int/float comparisons correctly */
+// Forward declarations for comparison helpers (defined in lvm.cpp and lstring.h)
+// These handle mixed int/float comparisons correctly
 [[nodiscard]] LUAI_FUNC int LTintfloat (lua_Integer i, lua_Number f);
 [[nodiscard]] LUAI_FUNC int LEintfloat (lua_Integer i, lua_Number f);
 [[nodiscard]] LUAI_FUNC int LTfloatint (lua_Number f, lua_Integer i);
 [[nodiscard]] LUAI_FUNC int LEfloatint (lua_Number f, lua_Integer i);
 [[nodiscard]] LUAI_FUNC int l_strcmp (const TString* ts1, const TString* ts2);
-/* luaS_eqstr and shortStringsEqual declared in lstring.h */
+// luaS_eqstr and shortStringsEqual declared in lstring.h
 
 /*
 ** Operator< for TValue (numeric and string comparison only, no metamethods)
@@ -321,21 +321,21 @@ inline bool operator<(const TValue& l, const TValue& r) noexcept {
 		if (ttisinteger(&l)) {
 			lua_Integer li = ivalue(&l);
 			if (ttisinteger(&r))
-				return li < ivalue(&r);  /* both integers */
+				return li < ivalue(&r);  // both integers
 			else
-				return LTintfloat(li, fltvalue(&r));  /* int < float */
+				return LTintfloat(li, fltvalue(&r));  // int < float
 		}
 		else {
-			lua_Number lf = fltvalue(&l);  /* l is float */
+			lua_Number lf = fltvalue(&l);  // l is float
 			if (ttisfloat(&r))
-				return lf < fltvalue(&r);  /* both floats */
+				return lf < fltvalue(&r);  // both floats
 			else
-				return LTfloatint(lf, ivalue(&r));  /* float < int */
+				return LTfloatint(lf, ivalue(&r));  // float < int
 		}
 	}
 	// Both strings? (no metamethods - raw comparison)
 	else if (ttisstring(&l) && ttisstring(&r)) {
-		return *tsvalue(&l) < *tsvalue(&r);  /* Use TString operator< */
+		return *tsvalue(&l) < *tsvalue(&r);  // Use TString operator<
 	}
 	// Different types or non-comparable types
 	return false;
@@ -351,21 +351,21 @@ inline bool operator<=(const TValue& l, const TValue& r) noexcept {
 		if (ttisinteger(&l)) {
 			lua_Integer li = ivalue(&l);
 			if (ttisinteger(&r))
-				return li <= ivalue(&r);  /* both integers */
+				return li <= ivalue(&r);  // both integers
 			else
-				return LEintfloat(li, fltvalue(&r));  /* int <= float */
+				return LEintfloat(li, fltvalue(&r));  // int <= float
 		}
 		else {
-			lua_Number lf = fltvalue(&l);  /* l is float */
+			lua_Number lf = fltvalue(&l);  // l is float
 			if (ttisfloat(&r))
-				return lf <= fltvalue(&r);  /* both floats */
+				return lf <= fltvalue(&r);  // both floats
 			else
-				return LEfloatint(lf, ivalue(&r));  /* float <= int */
+				return LEfloatint(lf, ivalue(&r));  // float <= int
 		}
 	}
 	// Both strings? (no metamethods - raw comparison)
 	else if (ttisstring(&l) && ttisstring(&r)) {
-		return *tsvalue(&l) <= *tsvalue(&r);  /* Use TString operator<= */
+		return *tsvalue(&l) <= *tsvalue(&r);  // Use TString operator<=
 	}
 	// Different types or non-comparable types
 	return false;
@@ -377,30 +377,30 @@ inline bool operator<=(const TValue& l, const TValue& r) noexcept {
 ** This is similar to luaV_rawequalobj() but as an operator
 */
 inline bool operator==(const TValue& l, const TValue& r) noexcept {
-	if (ttype(&l) != ttype(&r))  /* different base types? */
+	if (ttype(&l) != ttype(&r))  // different base types?
 		return false;
 	else if (ttypetag(&l) != ttypetag(&r)) {
-		/* Different variants - only numbers and strings can be equal across variants */
+		// Different variants - only numbers and strings can be equal across variants
 		switch (ttypetag(&l)) {
-			case LuaT::NUMINT: {  /* int == float? */
+			case LuaT::NUMINT: {  // int == float?
 				lua_Integer i2;
 				return (VirtualMachine_flttointeger(fltvalue(&r), &i2, F2Imod::F2Ieq) &&
 				        ivalue(&l) == i2);
 			}
-			case LuaT::NUMFLT: {  /* float == int? */
+			case LuaT::NUMFLT: {  // float == int?
 				lua_Integer i1;
 				return (VirtualMachine_flttointeger(fltvalue(&l), &i1, F2Imod::F2Ieq) &&
 				        i1 == ivalue(&r));
 			}
 			case LuaT::SHRSTR: case LuaT::LNGSTR: {
-				/* Compare strings with different variants */
+				// Compare strings with different variants
 				return tsvalue(&l)->equals(tsvalue(&r));
 			}
 			default:
 				return false;
 		}
 	}
-	else {  /* same variant */
+	else {  // same variant
 		switch (ttypetag(&l)) {
 			case LuaT::NIL: case LuaT::VFALSE: case LuaT::VTRUE:
 				return true;
@@ -418,7 +418,7 @@ inline bool operator==(const TValue& l, const TValue& r) noexcept {
 				return uvalue(&l) == uvalue(&r);
 			case LuaT::LCF:
 				return fvalue(&l) == fvalue(&r);
-			default:  /* other collectable types (tables, closures, threads) */
+			default:  // other collectable types (tables, closures, threads)
 				return gcvalue(&l) == gcvalue(&r);
 		}
 	}
@@ -437,28 +437,28 @@ inline bool operator!=(const TValue& l, const TValue& r) noexcept {
 ** Provide idiomatic C++ comparison syntax for TString objects
 */
 
-/* operator< for TString - lexicographic ordering */
+// operator< for TString - lexicographic ordering
 inline bool operator<(const TString& l, const TString& r) noexcept {
 	return l_strcmp(&l, &r) < 0;
 }
 
-/* operator<= for TString - lexicographic ordering */
+// operator<= for TString - lexicographic ordering
 inline bool operator<=(const TString& l, const TString& r) noexcept {
 	return l_strcmp(&l, &r) <= 0;
 }
 
-/* operator== for TString - equality check using existing equals() method */
+// operator== for TString - equality check using existing equals() method
 inline bool operator==(const TString& l, const TString& r) noexcept {
 	// Use equals() method which handles short vs long string optimization
 	return l.equals(&r);
 }
 
-/* operator!= for TString - inequality check */
+// operator!= for TString - inequality check
 inline bool operator!=(const TString& l, const TString& r) noexcept {
 	return !(l == r);
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*

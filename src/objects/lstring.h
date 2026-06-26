@@ -8,9 +8,9 @@
 
 #include <span>
 
-#include "lobject_core.h"  /* GCBase, TValue */
+#include "lobject_core.h"  // GCBase, TValue
 
-/* Forward declarations */
+// Forward declarations
 class lua_State;
 class GlobalState;
 
@@ -50,10 +50,10 @@ constexpr bool TValue::isLongString() const noexcept { return checktag(this, ctb
 inline TString* tsvalue(const TValue* o) noexcept { return o->stringValue(); }
 
 
-/* Kinds of long strings (stored in 'shrlen') */
-inline constexpr int LSTRREG = -1;  /* regular long string */
-inline constexpr int LSTRFIX = -2;  /* fixed external long string */
-inline constexpr int LSTRMEM = -3;  /* external long string with deallocation */
+// Kinds of long strings (stored in 'shrlen')
+inline constexpr int LSTRREG = -1;  // regular long string
+inline constexpr int LSTRFIX = -2;  // fixed external long string
+inline constexpr int LSTRMEM = -3;  // external long string with deallocation
 
 
 /*
@@ -62,16 +62,16 @@ inline constexpr int LSTRMEM = -3;  /* external long string with deallocation */
 // TString inherits from GCBase (CRTP)
 class TString : public GCBase<TString> {
 private:
-  lu_byte extra;  /* reserved words for short strings; "has hash" for longs */
-  ls_byte shortLength;  /* length for short strings, negative for long strings */
+  lu_byte extra;  // reserved words for short strings; "has hash" for longs
+  ls_byte shortLength;  // length for short strings, negative for long strings
   unsigned int hash;
   union {
-    size_t longLength;  /* length for long strings */
-    TString *hashNext;  /* linked list for hash table */
+    size_t longLength;  // length for long strings
+    TString *hashNext;  // linked list for hash table
   } u;
-  char *contents;  /* pointer to content in long strings */
-  lua_Alloc falloc;  /* deallocation function for external strings */
-  void *ud;  /* user data for external strings */
+  char *contents;  // pointer to content in long strings
+  lua_Alloc falloc;  // deallocation function for external strings
+  void *ud;  // user data for external strings
 
 public:
   // Constructor - initializes only fields common to both short and long strings
@@ -197,10 +197,10 @@ public:
 };
 
 
-/* Check if string is short (wrapper for backward compatibility) */
+// Check if string is short (wrapper for backward compatibility)
 inline bool strisshr(const TString* ts) noexcept { return ts->isShort(); }
 
-/* Check if string is external (fixed or with custom deallocator) */
+// Check if string is external (fixed or with custom deallocator)
 inline bool isextstr(const TValue* v) noexcept {
 	return ttislngstring(v) && tsvalue(v)->isExternal();
 }
@@ -225,7 +225,7 @@ inline const char* rawGetShortStringContents(const TString* ts) noexcept {
 ** These provide type-safe access to string contents with assertions.
 */
 
-/* Get short string contents (asserts string is short) */
+// Get short string contents (asserts string is short)
 inline char* getShortStringContents(TString* ts) noexcept {
 	lua_assert(ts->isShort());
 	return ts->getContentsAddr();
@@ -235,7 +235,7 @@ inline const char* getShortStringContents(const TString* ts) noexcept {
 	return ts->getContentsAddr();
 }
 
-/* Get long string contents (asserts string is long) */
+// Get long string contents (asserts string is long)
 inline char* getLongStringContents(TString* ts) noexcept {
 	lua_assert(ts->isLong());
 	return ts->getContentsField();
@@ -245,7 +245,7 @@ inline const char* getLongStringContents(const TString* ts) noexcept {
 	return ts->getContentsField();
 }
 
-/* Get string contents (works for both short and long strings) */
+// Get string contents (works for both short and long strings)
 inline char* getStringContents(TString* ts) noexcept {
 	return ts->getContentsPtr();
 }
@@ -254,7 +254,7 @@ inline const char* getStringContents(const TString* ts) noexcept {
 }
 
 
-/* get string length from 'TString *ts' */
+// get string length from 'TString *ts'
 inline size_t getStringLength(const TString* ts) noexcept {
 	return ts->length();
 }
@@ -266,7 +266,7 @@ inline const char* getStringWithLength(const TString* ts, size_t& len) noexcept 
 	return ts->c_str();
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*
@@ -279,7 +279,7 @@ inline constexpr size_t sizestrshr(size_t l) noexcept {
 }
 
 
-/* Create a new string from a string literal, computing length at compile time */
+// Create a new string from a string literal, computing length at compile time
 template<size_t N>
 inline TString* luaS_newliteral(lua_State *L, const char (&s)[N]) {
     return TString::create(L, s, N - 1);

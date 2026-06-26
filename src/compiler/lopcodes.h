@@ -32,7 +32,7 @@ isJ                           sJ (signed)(25)            |   Op(7)     |
 ===========================================================================*/
 
 
-/* basic instruction formats */
+// basic instruction formats
 enum class OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};
 
 
@@ -53,7 +53,7 @@ enum class OpMode {iABC, ivABC, iABx, iAsBx, iAx, isJ};
 
 #define POS_OP		0
 
-/* Position constants can be constexpr */
+// Position constants can be constexpr
 inline constexpr int POS_A = (POS_OP + SIZE_OP);
 inline constexpr int POS_k = (POS_A + SIZE_A);
 inline constexpr int POS_B = (POS_k + 1);
@@ -87,10 +87,10 @@ inline constexpr int MAXARG_Bx = ((1<<SIZE_Bx)-1);
 inline constexpr int MAXARG_Bx = std::numeric_limits<int>::max();
 #endif
 
-inline constexpr int OFFSET_sBx = (MAXARG_Bx>>1);         /* 'sBx' is signed */
+inline constexpr int OFFSET_sBx = (MAXARG_Bx>>1);  // 'sBx' is signed
 
 
-/* MAXARG_Ax must remain macro (used in preprocessor conditionals) */
+// MAXARG_Ax must remain macro (used in preprocessor conditionals)
 #if L_INTHASBITS(SIZE_Ax)
 #define MAXARG_Ax	((1<<SIZE_Ax)-1)
 #else
@@ -110,7 +110,7 @@ inline constexpr int MAXARG_A = ((1<<SIZE_A)-1);
 inline constexpr int MAXARG_B = ((1<<SIZE_B)-1);
 inline constexpr int MAXARG_vB = ((1<<SIZE_vB)-1);
 inline constexpr int MAXARG_C = ((1<<SIZE_C)-1);
-/* MAXARG_vC must remain macro (used in preprocessor conditionals) */
+// MAXARG_vC must remain macro (used in preprocessor conditionals)
 #define MAXARG_vC	((1<<SIZE_vC)-1)
 inline constexpr int OFFSET_sC = (MAXARG_C >> 1);
 
@@ -123,12 +123,12 @@ inline constexpr int sC2int(int i) noexcept {
 }
 
 
-/* creates a mask with 'n' 1 bits at position 'p' */
+// creates a mask with 'n' 1 bits at position 'p'
 inline constexpr Instruction MASK1(int n, int p) noexcept {
 	return (~((~(Instruction)0) << n)) << p;
 }
 
-/* creates a mask with 'n' 0 bits at position 'p' */
+// creates a mask with 'n' 0 bits at position 'p'
 inline constexpr Instruction MASK0(int n, int p) noexcept {
 	return ~MASK1(n, p);
 }
@@ -144,7 +144,7 @@ inline void SET_OPCODE(Instruction& i, int o) noexcept {
 	i = ((i & MASK0(SIZE_OP, POS_OP)) | ((cast_Inst(o) << POS_OP) & MASK1(SIZE_OP, POS_OP)));
 }
 
-/* Forward declaration for getOpMode (defined later after OpCode enum) */
+// Forward declaration for getOpMode (defined later after OpCode enum)
 inline OpMode getOpMode(int m) noexcept;
 
 inline constexpr bool checkopm(Instruction i, OpMode m) noexcept {
@@ -152,7 +152,7 @@ inline constexpr bool checkopm(Instruction i, OpMode m) noexcept {
 }
 
 
-/* Core helper functions for instruction field manipulation */
+// Core helper functions for instruction field manipulation
 inline constexpr int getarg(Instruction i, int pos, int size) noexcept {
 	return cast_int((i >> pos) & MASK1(size, 0));
 }
@@ -161,7 +161,7 @@ inline void setarg(Instruction& i, unsigned int v, int pos, int size) noexcept {
 	i = ((i & MASK0(size, pos)) | ((cast_Inst(v) << pos) & MASK1(size, pos)));
 }
 
-/* SETARG functions for instruction creation/modification */
+// SETARG functions for instruction creation/modification
 inline void SETARG_A(Instruction& i, unsigned int v) noexcept {
 	setarg(i, v, POS_A, SIZE_A);
 }
@@ -213,84 +213,84 @@ private:
 	Instruction inst_;
 
 public:
-	/* Constructor from raw instruction */
+	// Constructor from raw instruction
 	constexpr InstructionView(Instruction i) noexcept : inst_(i) {}
 
-	/* Get raw instruction value */
+	// Get raw instruction value
 	constexpr Instruction raw() const noexcept { return inst_; }
 
-	/* Opcode accessor */
+	// Opcode accessor
 	constexpr int opcode() const noexcept {
 		return cast_int((inst_ >> POS_OP) & MASK1(SIZE_OP, 0));
 	}
 
-	/* Field A accessor (8 bits) */
+	// Field A accessor (8 bits)
 	constexpr int a() const noexcept {
 		return getarg(inst_, POS_A, SIZE_A);
 	}
 
-	/* Field B accessor (8 bits, iABC mode) */
+	// Field B accessor (8 bits, iABC mode)
 	constexpr int b() const noexcept {
 		return getarg(inst_, POS_B, SIZE_B);
 	}
 
-	/* Field vB accessor (6 bits, ivABC mode) */
+	// Field vB accessor (6 bits, ivABC mode)
 	constexpr int vb() const noexcept {
 		return getarg(inst_, POS_vB, SIZE_vB);
 	}
 
-	/* Signed field B accessor */
+	// Signed field B accessor
 	constexpr int sb() const noexcept {
 		return sC2int(b());
 	}
 
-	/* Field C accessor (8 bits, iABC mode) */
+	// Field C accessor (8 bits, iABC mode)
 	constexpr int c() const noexcept {
 		return getarg(inst_, POS_C, SIZE_C);
 	}
 
-	/* Field vC accessor (10 bits, ivABC mode) */
+	// Field vC accessor (10 bits, ivABC mode)
 	constexpr int vc() const noexcept {
 		return getarg(inst_, POS_vC, SIZE_vC);
 	}
 
-	/* Signed field C accessor */
+	// Signed field C accessor
 	constexpr int sc() const noexcept {
 		return sC2int(c());
 	}
 
-	/* Field k accessor (1 bit) */
+	// Field k accessor (1 bit)
 	constexpr int k() const noexcept {
 		return getarg(inst_, POS_k, 1);
 	}
 
-	/* Test field k (non-zero if set) */
+	// Test field k (non-zero if set)
 	constexpr int testk() const noexcept {
 		return cast_int(inst_ & (1u << POS_k));
 	}
 
-	/* Field Bx accessor (17 bits) */
+	// Field Bx accessor (17 bits)
 	constexpr int bx() const noexcept {
 		return getarg(inst_, POS_Bx, SIZE_Bx);
 	}
 
-	/* Signed field Bx accessor */
+	// Signed field Bx accessor
 	constexpr int sbx() const noexcept {
 		return getarg(inst_, POS_Bx, SIZE_Bx) - OFFSET_sBx;
 	}
 
-	/* Field Ax accessor (25 bits) */
+	// Field Ax accessor (25 bits)
 	constexpr int ax() const noexcept {
 		return getarg(inst_, POS_Ax, SIZE_Ax);
 	}
 
-	/* Signed field sJ accessor (25 bits) */
+	// Signed field sJ accessor (25 bits)
 	constexpr int sj() const noexcept {
 		return getarg(inst_, POS_sJ, SIZE_sJ) - OFFSET_sJ;
 	}
 
-	/* Instruction property accessors - encapsulate luaP_opmodes array access */
-	/* Defined below after luaP_opmodes declaration */
+	// Instruction property accessors - encapsulate luaP_opmodes array access
+	// Defined below after luaP_opmodes declaration
 	inline OpMode getOpMode() const noexcept;
 	inline bool testAMode() const noexcept;
 	inline bool testTMode() const noexcept;
@@ -334,7 +334,7 @@ inline constexpr Instruction CREATE_sJ(int o, int j, int k) noexcept {
 }
 
 
-#if !defined(MAXINDEXRK)  /* (for debugging only) */
+#if !defined(MAXINDEXRK)  // (for debugging only)
 inline constexpr int MAXINDEXRK = MAXARG_B;
 #endif
 
@@ -368,115 +368,115 @@ typedef enum {
 /*----------------------------------------------------------------------
   name		args	description
 ------------------------------------------------------------------------*/
-OP_MOVE,/*	A B	R[A] := R[B]					*/
-OP_LOADI,/*	A sBx	R[A] := sBx					*/
-OP_LOADF,/*	A sBx	R[A] := (lua_Number)sBx				*/
-OP_LOADK,/*	A Bx	R[A] := K[Bx]					*/
-OP_LOADKX,/*	A	R[A] := K[extra arg]				*/
-OP_LOADFALSE,/*	A	R[A] := false					*/
-OP_LFALSESKIP,/*A	R[A] := false; pc++	(*)			*/
-OP_LOADTRUE,/*	A	R[A] := true					*/
-OP_LOADNIL,/*	A B	R[A], R[A+1], ..., R[A+B] := nil		*/
-OP_GETUPVAL,/*	A B	R[A] := UpValue[B]				*/
-OP_SETUPVAL,/*	A B	UpValue[B] := R[A]				*/
+OP_MOVE,  // A B	R[A] := R[B]
+OP_LOADI,  // A sBx	R[A] := sBx
+OP_LOADF,  // A sBx	R[A] := (lua_Number)sBx
+OP_LOADK,  // A Bx	R[A] := K[Bx]
+OP_LOADKX,  // A	R[A] := K[extra arg]
+OP_LOADFALSE,  // A	R[A] := false
+OP_LFALSESKIP,  // A	R[A] := false; pc++	(*)
+OP_LOADTRUE,  // A	R[A] := true
+OP_LOADNIL,  // A B	R[A], R[A+1], ..., R[A+B] := nil
+OP_GETUPVAL,  // A B	R[A] := UpValue[B]
+OP_SETUPVAL,  // A B	UpValue[B] := R[A]
 
-OP_GETTABUP,/*	A B C	R[A] := UpValue[B][K[C]:shortstring]		*/
-OP_GETTABLE,/*	A B C	R[A] := R[B][R[C]]				*/
-OP_GETI,/*	A B C	R[A] := R[B][C]					*/
-OP_GETFIELD,/*	A B C	R[A] := R[B][K[C]:shortstring]			*/
+OP_GETTABUP,  // A B C	R[A] := UpValue[B][K[C]:shortstring]
+OP_GETTABLE,  // A B C	R[A] := R[B][R[C]]
+OP_GETI,  // A B C	R[A] := R[B][C]
+OP_GETFIELD,  // A B C	R[A] := R[B][K[C]:shortstring]
 
-OP_SETTABUP,/*	A B C	UpValue[A][K[B]:shortstring] := RK(C)		*/
-OP_SETTABLE,/*	A B C	R[A][R[B]] := RK(C)				*/
-OP_SETI,/*	A B C	R[A][B] := RK(C)				*/
-OP_SETFIELD,/*	A B C	R[A][K[B]:shortstring] := RK(C)			*/
+OP_SETTABUP,  // A B C	UpValue[A][K[B]:shortstring] := RK(C)
+OP_SETTABLE,  // A B C	R[A][R[B]] := RK(C)
+OP_SETI,  // A B C	R[A][B] := RK(C)
+OP_SETFIELD,  // A B C	R[A][K[B]:shortstring] := RK(C)
 
-OP_NEWTABLE,/*	A vB vC k	R[A] := {}				*/
+OP_NEWTABLE,  // A vB vC k	R[A] := {}
 
-OP_SELF,/*	A B C	R[A+1] := R[B]; R[A] := R[B][K[C]:shortstring]	*/
+OP_SELF,  // A B C	R[A+1] := R[B]; R[A] := R[B][K[C]:shortstring]
 
-OP_ADDI,/*	A B sC	R[A] := R[B] + sC				*/
+OP_ADDI,  // A B sC	R[A] := R[B] + sC
 
-OP_ADDK,/*	A B C	R[A] := R[B] + K[C]:number			*/
-OP_SUBK,/*	A B C	R[A] := R[B] - K[C]:number			*/
-OP_MULK,/*	A B C	R[A] := R[B] * K[C]:number			*/
-OP_MODK,/*	A B C	R[A] := R[B] % K[C]:number			*/
-OP_POWK,/*	A B C	R[A] := R[B] ^ K[C]:number			*/
-OP_DIVK,/*	A B C	R[A] := R[B] / K[C]:number			*/
-OP_IDIVK,/*	A B C	R[A] := R[B] // K[C]:number			*/
+OP_ADDK,  // A B C	R[A] := R[B] + K[C]:number
+OP_SUBK,  // A B C	R[A] := R[B] - K[C]:number
+OP_MULK,  // A B C	R[A] := R[B] * K[C]:number
+OP_MODK,  // A B C	R[A] := R[B] % K[C]:number
+OP_POWK,  // A B C	R[A] := R[B] ^ K[C]:number
+OP_DIVK,  // A B C	R[A] := R[B] / K[C]:number
+OP_IDIVK,  // A B C	R[A] := R[B] // K[C]:number
 
-OP_BANDK,/*	A B C	R[A] := R[B] & K[C]:integer			*/
-OP_BORK,/*	A B C	R[A] := R[B] | K[C]:integer			*/
-OP_BXORK,/*	A B C	R[A] := R[B] ~ K[C]:integer			*/
+OP_BANDK,  // A B C	R[A] := R[B] & K[C]:integer
+OP_BORK,  // A B C	R[A] := R[B] | K[C]:integer
+OP_BXORK,  // A B C	R[A] := R[B] ~ K[C]:integer
 
-OP_SHLI,/*	A B sC	R[A] := sC << R[B]				*/
-OP_SHRI,/*	A B sC	R[A] := R[B] >> sC				*/
+OP_SHLI,  // A B sC	R[A] := sC << R[B]
+OP_SHRI,  // A B sC	R[A] := R[B] >> sC
 
-OP_ADD,/*	A B C	R[A] := R[B] + R[C]				*/
-OP_SUB,/*	A B C	R[A] := R[B] - R[C]				*/
-OP_MUL,/*	A B C	R[A] := R[B] * R[C]				*/
-OP_MOD,/*	A B C	R[A] := R[B] % R[C]				*/
-OP_POW,/*	A B C	R[A] := R[B] ^ R[C]				*/
-OP_DIV,/*	A B C	R[A] := R[B] / R[C]				*/
-OP_IDIV,/*	A B C	R[A] := R[B] // R[C]				*/
+OP_ADD,  // A B C	R[A] := R[B] + R[C]
+OP_SUB,  // A B C	R[A] := R[B] - R[C]
+OP_MUL,  // A B C	R[A] := R[B] * R[C]
+OP_MOD,  // A B C	R[A] := R[B] % R[C]
+OP_POW,  // A B C	R[A] := R[B] ^ R[C]
+OP_DIV,  // A B C	R[A] := R[B] / R[C]
+OP_IDIV,  // A B C	R[A] := R[B] // R[C]
 
-OP_BAND,/*	A B C	R[A] := R[B] & R[C]				*/
-OP_BOR,/*	A B C	R[A] := R[B] | R[C]				*/
-OP_BXOR,/*	A B C	R[A] := R[B] ~ R[C]				*/
-OP_SHL,/*	A B C	R[A] := R[B] << R[C]				*/
-OP_SHR,/*	A B C	R[A] := R[B] >> R[C]				*/
+OP_BAND,  // A B C	R[A] := R[B] & R[C]
+OP_BOR,  // A B C	R[A] := R[B] | R[C]
+OP_BXOR,  // A B C	R[A] := R[B] ~ R[C]
+OP_SHL,  // A B C	R[A] := R[B] << R[C]
+OP_SHR,  // A B C	R[A] := R[B] >> R[C]
 
-OP_MMBIN,/*	A B C	call C metamethod over R[A] and R[B]	(*)	*/
-OP_MMBINI,/*	A sB C k	call C metamethod over R[A] and sB	*/
-OP_MMBINK,/*	A B C k		call C metamethod over R[A] and K[B]	*/
+OP_MMBIN,  // A B C	call C metamethod over R[A] and R[B]	(*)
+OP_MMBINI,  // A sB C k	call C metamethod over R[A] and sB
+OP_MMBINK,  // A B C k		call C metamethod over R[A] and K[B]
 
-OP_UNM,/*	A B	R[A] := -R[B]					*/
-OP_BNOT,/*	A B	R[A] := ~R[B]					*/
-OP_NOT,/*	A B	R[A] := not R[B]				*/
-OP_LEN,/*	A B	R[A] := #R[B] (length operator)			*/
+OP_UNM,  // A B	R[A] := -R[B]
+OP_BNOT,  // A B	R[A] := ~R[B]
+OP_NOT,  // A B	R[A] := not R[B]
+OP_LEN,  // A B	R[A] := #R[B] (length operator)
 
-OP_CONCAT,/*	A B	R[A] := R[A].. ... ..R[A + B - 1]		*/
+OP_CONCAT,  // A B	R[A] := R[A].. ... ..R[A + B - 1]
 
-OP_CLOSE,/*	A	close all upvalues >= R[A]			*/
-OP_TBC,/*	A	mark variable A "to be closed"			*/
-OP_JMP,/*	sJ	pc += sJ					*/
-OP_EQ,/*	A B k	if ((R[A] == R[B]) ~= k) then pc++		*/
-OP_LT,/*	A B k	if ((R[A] <  R[B]) ~= k) then pc++		*/
-OP_LE,/*	A B k	if ((R[A] <= R[B]) ~= k) then pc++		*/
+OP_CLOSE,  // A	close all upvalues >= R[A]
+OP_TBC,  // A	mark variable A "to be closed"
+OP_JMP,  // sJ	pc += sJ
+OP_EQ,  // A B k	if ((R[A] == R[B]) ~= k) then pc++
+OP_LT,  // A B k	if ((R[A] <  R[B]) ~= k) then pc++
+OP_LE,  // A B k	if ((R[A] <= R[B]) ~= k) then pc++
 
-OP_EQK,/*	A B k	if ((R[A] == K[B]) ~= k) then pc++		*/
-OP_EQI,/*	A sB k	if ((R[A] == sB) ~= k) then pc++		*/
-OP_LTI,/*	A sB k	if ((R[A] < sB) ~= k) then pc++			*/
-OP_LEI,/*	A sB k	if ((R[A] <= sB) ~= k) then pc++		*/
-OP_GTI,/*	A sB k	if ((R[A] > sB) ~= k) then pc++			*/
-OP_GEI,/*	A sB k	if ((R[A] >= sB) ~= k) then pc++		*/
+OP_EQK,  // A B k	if ((R[A] == K[B]) ~= k) then pc++
+OP_EQI,  // A sB k	if ((R[A] == sB) ~= k) then pc++
+OP_LTI,  // A sB k	if ((R[A] < sB) ~= k) then pc++
+OP_LEI,  // A sB k	if ((R[A] <= sB) ~= k) then pc++
+OP_GTI,  // A sB k	if ((R[A] > sB) ~= k) then pc++
+OP_GEI,  // A sB k	if ((R[A] >= sB) ~= k) then pc++
 
-OP_TEST,/*	A k	if (not R[A] == k) then pc++			*/
-OP_TESTSET,/*	A B k	if (not R[B] == k) then pc++ else R[A] := R[B] (*) */
+OP_TEST,  // A k	if (not R[A] == k) then pc++
+OP_TESTSET,  // A B k	if (not R[B] == k) then pc++ else R[A] := R[B] (*)
 
-OP_CALL,/*	A B C	R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1]) */
-OP_TAILCALL,/*	A B C k	return R[A](R[A+1], ... ,R[A+B-1])		*/
+OP_CALL,  // A B C	R[A], ... ,R[A+C-2] := R[A](R[A+1], ... ,R[A+B-1])
+OP_TAILCALL,  // A B C k	return R[A](R[A+1], ... ,R[A+B-1])
 
-OP_RETURN,/*	A B C k	return R[A], ... ,R[A+B-2]	(see note)	*/
-OP_RETURN0,/*		return						*/
-OP_RETURN1,/*	A	return R[A]					*/
+OP_RETURN,  // A B C k	return R[A], ... ,R[A+B-2]	(see note)
+OP_RETURN0,  // return
+OP_RETURN1,  // A	return R[A]
 
-OP_FORLOOP,/*	A Bx	update counters; if loop continues then pc-=Bx; */
+OP_FORLOOP,  // A Bx	update counters; if loop continues then pc-=Bx;
 OP_FORPREP,/*	A Bx	<check values and prepare counters>;
                         if not to run then pc+=Bx+1;			*/
 
-OP_TFORPREP,/*	A Bx	create upvalue for R[A + 3]; pc+=Bx		*/
-OP_TFORCALL,/*	A C	R[A+4], ... ,R[A+3+C] := R[A](R[A+1], R[A+2]);	*/
-OP_TFORLOOP,/*	A Bx	if R[A+2] ~= nil then { R[A]=R[A+2]; pc -= Bx }	*/
+OP_TFORPREP,  // A Bx	create upvalue for R[A + 3]; pc+=Bx
+OP_TFORCALL,  // A C	R[A+4], ... ,R[A+3+C] := R[A](R[A+1], R[A+2]);
+OP_TFORLOOP,  // A Bx	if R[A+2] ~= nil then { R[A]=R[A+2]; pc -= Bx }
 
-OP_SETLIST,/*	A vB vC k	R[A][vC+i] := R[A+i], 1 <= i <= vB	*/
+OP_SETLIST,  // A vB vC k	R[A][vC+i] := R[A+i], 1 <= i <= vB
 
-OP_CLOSURE,/*	A Bx	R[A] := closure(KPROTO[Bx])			*/
+OP_CLOSURE,  // A Bx	R[A] := closure(KPROTO[Bx])
 
-OP_VARARG,/*	A C	R[A], R[A+1], ..., R[A+C-2] = vararg		*/
+OP_VARARG,  // A C	R[A], R[A+1], ..., R[A+C-2] = vararg
 
-OP_VARARGPREP,/*A	(adjust vararg parameters)			*/
+OP_VARARGPREP,  // A	(adjust vararg parameters)
 
-OP_EXTRAARG/*	Ax	extra (larger) argument for previous opcode	*/
+OP_EXTRAARG  // Ax	extra (larger) argument for previous opcode
 } OpCode;
 
 
@@ -575,7 +575,7 @@ inline bool testMMMode(int m) noexcept {
 	return (luaP_opmodes[m] & (1 << 7)) != 0;
 }
 
-/* InstructionView property method implementations (defined after luaP_opmodes) */
+// InstructionView property method implementations (defined after luaP_opmodes)
 inline OpMode InstructionView::getOpMode() const noexcept {
 	return static_cast<OpMode>(luaP_opmodes[opcode()] & 7);
 }

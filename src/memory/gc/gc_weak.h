@@ -89,4 +89,4 @@ private:
     static void genlink(GlobalState& g, GCObject* o);
 };
 
-#endif /* gc_weak_h */
+#endif  // gc_weak_h

@@ -35,7 +35,7 @@ static lua_State *globalL = nullptr;
 static const char *progname = LUA_PROGNAME;
 
 
-#if defined(LUA_USE_POSIX)   /* { */
+#if defined(LUA_USE_POSIX)  // {
 
 /*
 ** Use 'sigaction' when available.
@@ -44,23 +44,23 @@ static void setsignal (int sig, void (*handler)(int)) {
   struct sigaction sa;
   sa.sa_handler = handler;
   sa.sa_flags = 0;
-  sigemptyset(&sa.sa_mask);  /* do not mask any signal */
+  sigemptyset(&sa.sa_mask);  // do not mask any signal
   sigaction(sig, &sa, nullptr);
 }
 
-#else           /* }{ */
+#else  // }{
 
 #define setsignal            signal
 
-#endif                               /* } */
+#endif  // }
 
 
 /*
 ** Hook set by signal function to stop the interpreter.
 */
 static void lstop (lua_State *L, lua_Debug *ar) {
-  (void)ar;  /* unused arg. */
-  lua_sethook(L, nullptr, 0, 0);  /* reset hook */
+  (void)ar;  // unused arg.
+  lua_sethook(L, nullptr, 0, 0);  // reset hook
   luaL_error(L, "interrupted!");
 }
 
@@ -73,7 +73,7 @@ static void lstop (lua_State *L, lua_Debug *ar) {
 */
 static void laction (int i) {
   int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
-  setsignal(i, SIG_DFL); /* if another SIGINT happens, terminate process */
+  setsignal(i, SIG_DFL);  // if another SIGINT happens, terminate process
   lua_sethook(globalL, lstop, flag, 1);
 }
 
@@ -121,7 +121,7 @@ static int report (lua_State *L, int status) {
     if (msg == nullptr)
       msg = "(error message not a string)";
     l_message(progname, msg);
-    lua_pop(L, 1);  /* remove message */
+    lua_pop(L, 1);  // remove message
   }
   return status;
 }
@@ -132,16 +132,16 @@ static int report (lua_State *L, int status) {
 */
 static int msghandler (lua_State *L) {
   const char *msg = lua_tostring(L, 1);
-  if (msg == nullptr) {  /* is error object not a string? */
-    if (luaL_callmeta(L, 1, "__tostring") &&  /* does it have a metamethod */
-        lua_type(L, -1) == LUA_TSTRING)  /* that produces a string? */
-      return 1;  /* that is the message */
+  if (msg == nullptr) {  // is error object not a string?
+    if (luaL_callmeta(L, 1, "__tostring") &&  // does it have a metamethod
+        lua_type(L, -1) == LUA_TSTRING)  // that produces a string?
+      return 1;  // that is the message
     else
       msg = lua_pushfstring(L, "(error object is a %s value)",
                                luaL_typename(L, 1));
   }
-  luaL_traceback(L, L, msg, 1);  /* append a standard traceback */
-  return 1;  /* return the traceback */
+  luaL_traceback(L, L, msg, 1);  // append a standard traceback
+  return 1;  // return the traceback
 }
 
 
@@ -151,14 +151,14 @@ static int msghandler (lua_State *L) {
 */
 static int docall (lua_State *L, int narg, int nres) {
   int status;
-  int base = lua_gettop(L) - narg;  /* function index */
-  lua_pushcfunction(L, msghandler);  /* push message handler */
-  lua_insert(L, base);  /* put it under function and args */
-  globalL = L;  /* to be available to 'laction' */
-  setsignal(SIGINT, laction);  /* set C-signal handler */
+  int base = lua_gettop(L) - narg;  // function index
+  lua_pushcfunction(L, msghandler);  // push message handler
+  lua_insert(L, base);  // put it under function and args
+  globalL = L;  // to be available to 'laction'
+  setsignal(SIGINT, laction);  // set C-signal handler
   status = lua_pcall(L, narg, nres, base);
-  setsignal(SIGINT, SIG_DFL); /* reset C-signal handler */
-  lua_remove(L, base);  /* remove message handler from the stack */
+  setsignal(SIGINT, SIG_DFL);  // reset C-signal handler
+  lua_remove(L, base);  // remove message handler from the stack
   return status;
 }
 
@@ -181,7 +181,7 @@ static void print_version (void) {
 */
 static void createargtable (lua_State *L, char **argv, int argc, int script) {
   int i, narg;
-  narg = argc - (script + 1);  /* number of positive indices */
+  narg = argc - (script + 1);  // number of positive indices
   lua_createtable(L, narg, script + 1);
   for (i = 0; i < argc; i++) {
     lua_pushstring(L, argv[i]);
@@ -216,21 +216,21 @@ static int dolibrary (lua_State *L, char *globname) {
   int status;
   char *suffix = nullptr;
   char *modname = strchr(globname, '=');
-  if (modname == nullptr) {  /* no explicit name? */
-    modname = globname;  /* module name is equal to global name */
-    suffix = strchr(modname, *LUA_IGMARK);  /* look for a suffix mark */
+  if (modname == nullptr) {  // no explicit name?
+    modname = globname;  // module name is equal to global name
+    suffix = strchr(modname, *LUA_IGMARK);  // look for a suffix mark
   }
   else {
     *modname = '\0';  /* global name ends here */
-    modname++;  /* module name starts after the '=' */
+    modname++;  // module name starts after the '='
   }
   lua_getglobal(L, "require");
   lua_pushstring(L, modname);
-  status = docall(L, 1, 1);  /* call 'require(modname)' */
+  status = docall(L, 1, 1);  // call 'require(modname)'
   if (status == LUA_OK) {
-    if (suffix != nullptr)  /* is there a suffix mark? */
+    if (suffix != nullptr)  // is there a suffix mark?
       *suffix = '\0';  /* remove suffix from global name */
-    lua_setglobal(L, globname);  /* globname = require(modname) */
+    lua_setglobal(L, globname);  // globname = require(modname)
   }
   return report(L, status);
 }
@@ -247,7 +247,7 @@ static int pushargs (lua_State *L) {
   luaL_checkstack(L, n + 3, "too many arguments to script");
   for (i = 1; i <= n; i++)
     lua_rawgeti(L, -i, i);
-  lua_remove(L, -i);  /* remove table from the stack */
+  lua_remove(L, -i);  // remove table from the stack
   return n;
 }
 
@@ -256,22 +256,22 @@ static int handle_script (lua_State *L, char **argv) {
   int status;
   const char *fname = argv[0];
   if (strcmp(fname, "-") == 0 && strcmp(argv[-1], "--") != 0)
-    fname = nullptr;  /* stdin */
+    fname = nullptr;  // stdin
   status = luaL_loadfile(L, fname);
   if (status == LUA_OK) {
-    int n = pushargs(L);  /* push arguments to script */
+    int n = pushargs(L);  // push arguments to script
     status = docall(L, n, LUA_MULTRET);
   }
   return report(L, status);
 }
 
 
-/* bits of various argument indicators in 'args' */
-#define has_error	1	/* bad option */
-#define has_i		2	/* -i */
-#define has_v		4	/* -v */
-#define has_e		8	/* -e */
-#define has_E		16	/* -E */
+// bits of various argument indicators in 'args'
+#define has_error	1  // bad option
+#define has_i		2  // -i
+#define has_v		4  // -v
+#define has_e		8  // -e
+#define has_E		16  // -E
 
 
 /*
@@ -284,53 +284,53 @@ static int handle_script (lua_State *L, char **argv) {
 static int collectargs (char **argv, int *first) {
   int args = 0;
   int i;
-  if (argv[0] != nullptr) {  /* is there a program name? */
-    if (argv[0][0])  /* not empty? */
-      progname = argv[0];  /* save it */
+  if (argv[0] != nullptr) {  // is there a program name?
+    if (argv[0][0])  // not empty?
+      progname = argv[0];  // save it
   }
-  else {  /* no program name */
+  else {  // no program name
     *first = -1;
     return 0;
   }
-  for (i = 1; argv[i] != nullptr; i++) {  /* handle arguments */
+  for (i = 1; argv[i] != nullptr; i++) {  // handle arguments
     *first = i;
-    if (argv[i][0] != '-')  /* not an option? */
-        return args;  /* stop handling options */
-    switch (argv[i][1]) {  /* else check option */
-      case '-':  /* '--' */
-        if (argv[i][2] != '\0')  /* extra characters after '--'? */
-          return has_error;  /* invalid option */
-        /* if there is a script name, it comes after '--' */
+    if (argv[i][0] != '-')  // not an option?
+        return args;  // stop handling options
+    switch (argv[i][1]) {  // else check option
+      case '-':  // '--'
+        if (argv[i][2] != '\0')  // extra characters after '--'?
+          return has_error;  // invalid option
+        // if there is a script name, it comes after '--'
         *first = (argv[i + 1] != nullptr) ? i + 1 : 0;
         return args;
-      case '\0':  /* '-' */
-        return args;  /* script "name" is '-' */
+      case '\0':  // '-'
+        return args;  // script "name" is '-'
       case 'E':
-        if (argv[i][2] != '\0')  /* extra characters? */
-          return has_error;  /* invalid option */
+        if (argv[i][2] != '\0')  // extra characters?
+          return has_error;  // invalid option
         args |= has_E;
         break;
       case 'W':
-        if (argv[i][2] != '\0')  /* extra characters? */
-          return has_error;  /* invalid option */
+        if (argv[i][2] != '\0')  // extra characters?
+          return has_error;  // invalid option
         break;
       case 'i':
         args |= has_i;  /* (-i implies -v) *//* FALLTHROUGH */
       case 'v':
-        if (argv[i][2] != '\0')  /* extra characters? */
-          return has_error;  /* invalid option */
+        if (argv[i][2] != '\0')  // extra characters?
+          return has_error;  // invalid option
         args |= has_v;
         break;
       case 'e':
-        args |= has_e;  /* FALLTHROUGH */
-      case 'l':  /* both options need an argument */
-        if (argv[i][2] == '\0') {  /* no concatenated argument? */
-          i++;  /* try next 'argv' */
+        args |= has_e;  // FALLTHROUGH
+      case 'l':  // both options need an argument
+        if (argv[i][2] == '\0') {  // no concatenated argument?
+          i++;  // try next 'argv'
           if (argv[i] == nullptr || argv[i][0] == '-')
-            return has_error;  /* no next argument or it is another option */
+            return has_error;  // no next argument or it is another option
         }
         break;
-      default:  /* invalid option */
+      default:  // invalid option
         return has_error;
     }
   }
@@ -348,11 +348,11 @@ static int runargs (lua_State *L, char **argv, int n) {
   int i;
   for (i = 1; i < n; i++) {
     int option = argv[i][1];
-    lua_assert(argv[i][0] == '-');  /* already checked */
+    lua_assert(argv[i][0] == '-');  // already checked
     switch (option) {
       case 'e':  case 'l': {
         int status;
-        char *extra = argv[i] + 2;  /* both options need an argument */
+        char *extra = argv[i] + 2;  // both options need an argument
         if (*extra == '\0') extra = argv[++i];
         lua_assert(extra != nullptr);
         status = (option == 'e')
@@ -362,7 +362,7 @@ static int runargs (lua_State *L, char **argv, int n) {
         break;
       }
       case 'W':
-        lua_warning(L, "@on", 0);  /* warnings on */
+        lua_warning(L, "@on", 0);  // warnings on
         break;
     }
   }
@@ -375,7 +375,7 @@ static int handle_luainit (lua_State *L) {
   const char *init = getenv(name + 1);
   if (init == nullptr) {
     name = "=" LUA_INIT_VAR;
-    init = getenv(name + 1);  /* try alternative name */
+    init = getenv(name + 1);  // try alternative name
   }
   if (init == nullptr) return LUA_OK;
   else if (init[0] == '@')
@@ -405,28 +405,28 @@ static int handle_luainit (lua_State *L) {
 ** lua_stdin_is_tty detects whether the standard input is a 'tty' (that
 ** is, whether we're running lua interactively).
 */
-#if !defined(lua_stdin_is_tty)	/* { */
+#if !defined(lua_stdin_is_tty)  // {
 
-#if defined(LUA_USE_POSIX)	/* { */
+#if defined(LUA_USE_POSIX)  // {
 
 #include <unistd.h>
 #define lua_stdin_is_tty()	isatty(0)
 
-#elif defined(LUA_USE_WINDOWS)	/* }{ */
+#elif defined(LUA_USE_WINDOWS)  // }{
 
 #include <io.h>
 #include <windows.h>
 
 #define lua_stdin_is_tty()	_isatty(_fileno(stdin))
 
-#else				/* }{ */
+#else  // }{
 
-/* ISO C definition */
-#define lua_stdin_is_tty()	1  /* assume stdin is a tty */
+// ISO C definition
+#define lua_stdin_is_tty()	1  // assume stdin is a tty
 
-#endif				/* } */
+#endif  // }
 
-#endif				/* } */
+#endif  // }
 
 
 /*
@@ -437,11 +437,11 @@ static int handle_luainit (lua_State *L) {
 ** * lua_freeline defines how to free a line read by lua_readline.
 */
 
-#if !defined(lua_readline)	/* { */
-/* Otherwise, all previously listed functions should be defined. */
+#if !defined(lua_readline)  // {
+// Otherwise, all previously listed functions should be defined.
 
-#if defined(LUA_USE_READLINE)	/* { */
-/* Lua will be linked with '-lreadline' */
+#if defined(LUA_USE_READLINE)  // {
+// Lua will be linked with '-lreadline'
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -451,45 +451,45 @@ static int handle_luainit (lua_State *L) {
 #define lua_saveline(line)	add_history(line)
 #define lua_freeline(line)	free(line)
 
-#else		/* }{ */
-/* use dynamically loaded readline (or nothing) */
+#else  // }{
+// use dynamically loaded readline (or nothing)
 
-/* pointer to 'readline' function (if any) */
+// pointer to 'readline' function (if any)
 typedef char *(*l_readlineT) (const char *prompt);
 static l_readlineT l_readline = nullptr;
 
-/* pointer to 'add_history' function (if any) */
+// pointer to 'add_history' function (if any)
 typedef void (*l_addhistT) (const char *string);
 static l_addhistT l_addhist = nullptr;
 
 
 static char *lua_readline (char *buff, const char *prompt) {
-  if (l_readline != nullptr)  /* is there a 'readline'? */
-    return (*l_readline)(prompt);  /* use it */
-  else {  /* emulate 'readline' over 'buff' */
+  if (l_readline != nullptr)  // is there a 'readline'?
+    return (*l_readline)(prompt);  // use it
+  else {  // emulate 'readline' over 'buff'
     fputs(prompt, stdout);
-    fflush(stdout);  /* show prompt */
-    return fgets(buff, LUA_MAXINPUT, stdin);  /* read line */
+    fflush(stdout);  // show prompt
+    return fgets(buff, LUA_MAXINPUT, stdin);  // read line
   }
 }
 
 
 static void lua_saveline (const char *line) {
-  if (l_addhist != nullptr)  /* is there an 'add_history'? */
-    (*l_addhist)(line);  /* use it */
-  /* else nothing to be done */
+  if (l_addhist != nullptr)  // is there an 'add_history'?
+    (*l_addhist)(line);  // use it
+  // else nothing to be done
 }
 
 
 static void lua_freeline (char *line) {
-  if (l_readline != nullptr)  /* is there a 'readline'? */
-    free(line);  /* free line created by it */
-  /* else 'lua_readline' used an automatic buffer; nothing to free */
+  if (l_readline != nullptr)  // is there a 'readline'?
+    free(line);  // free line created by it
+  // else 'lua_readline' used an automatic buffer; nothing to free
 }
 
 
-#if defined(LUA_USE_DLOPEN) && defined(LUA_READLINELIB)		/* { */
-/* try to load 'readline' dynamically */
+#if defined(LUA_USE_DLOPEN) && defined(LUA_READLINELIB)  // {
+// try to load 'readline' dynamically
 
 #include <dlfcn.h>
 
@@ -508,17 +508,17 @@ static void lua_initreadline (lua_State *L) {
   }
 }
 
-#else		/* }{ */
-/* no dlopen or LUA_READLINELIB undefined */
+#else  // }{
+// no dlopen or LUA_READLINELIB undefined
 
-/* Leave pointers with nullptr */
+// Leave pointers with nullptr
 #define lua_initreadline(L)	((void)L)
 
-#endif		/* } */
+#endif  // }
 
-#endif				/* } */
+#endif  // }
 
-#endif				/* } */
+#endif  // }
 
 
 /*
@@ -528,15 +528,15 @@ static void lua_initreadline (lua_State *L) {
 */
 static const char *get_prompt (lua_State *L, int firstline) {
   if (lua_getglobal(L, firstline ? "_PROMPT" : "_PROMPT2") == LUA_TNIL)
-    return (firstline ? LUA_PROMPT : LUA_PROMPT2);  /* use the default */
-  else {  /* apply 'tostring' over the value */
+    return (firstline ? LUA_PROMPT : LUA_PROMPT2);  // use the default
+  else {  // apply 'tostring' over the value
     const char *p = luaL_tolstring(L, -1, nullptr);
-    lua_remove(L, -2);  /* remove original value */
+    lua_remove(L, -2);  // remove original value
     return p;
   }
 }
 
-/* mark in error messages for incomplete statements */
+// mark in error messages for incomplete statements
 #define EOFMARK		"<eof>"
 #define marklen		(sizeof(EOFMARK)/sizeof(char) - 1)
 
@@ -553,7 +553,7 @@ static int incomplete (lua_State *L, int status) {
     if (lmsg >= marklen && strcmp(msg + lmsg - marklen, EOFMARK) == 0)
       return 1;
   }
-  return 0;  /* else... */
+  return 0;  // else...
 }
 
 
@@ -565,12 +565,12 @@ static int pushline (lua_State *L, int firstline) {
   size_t l;
   const char *prmt = get_prompt(L, firstline);
   char *b = lua_readline(buffer, prmt);
-  lua_pop(L, 1);  /* remove prompt */
+  lua_pop(L, 1);  // remove prompt
   if (b == nullptr)
-    return 0;  /* no input */
+    return 0;  // no input
   l = strlen(b);
-  if (l > 0 && b[l-1] == '\n')  /* line ends with newline? */
-    b[--l] = '\0';  /* remove it */
+  if (l > 0 && b[l-1] == '\n')  // line ends with newline?
+    b[--l] = '\0';  // remove it
   lua_pushlstring(L, b, l);
   lua_freeline(b);
   return 1;
@@ -582,13 +582,13 @@ static int pushline (lua_State *L, int firstline) {
 ** has either compiled chunk or original line (if compilation failed).
 */
 static int addreturn (lua_State *L) {
-  const char *line = lua_tostring(L, -1);  /* original line */
+  const char *line = lua_tostring(L, -1);  // original line
   const char *retline = lua_pushfstring(L, "return %s;", line);
   int status = luaL_loadbuffer(L, retline, strlen(retline), "=stdin");
   if (status == LUA_OK)
-    lua_remove(L, -2);  /* remove modified line */
+    lua_remove(L, -2);  // remove modified line
   else
-    lua_pop(L, 2);  /* pop result from 'luaL_loadbuffer' and modified line */
+    lua_pop(L, 2);  // pop result from 'luaL_loadbuffer' and modified line
   return status;
 }
 
@@ -596,9 +596,9 @@ static int addreturn (lua_State *L) {
 static void checklocal (const char *line) {
   static const size_t szloc = sizeof("local") - 1;
   static const char space[] = " \t";
-  line += strspn(line, space);  /* skip spaces */
-  if (strncmp(line, "local", szloc) == 0 &&  /* "local"? */
-      strchr(space, *(line + szloc)) != nullptr) {  /* followed by a space? */
+  line += strspn(line, space);  // skip spaces
+  if (strncmp(line, "local", szloc) == 0 &&  // "local"?
+      strchr(space, *(line + szloc)) != nullptr) {  // followed by a space?
     lua_writestringerror("%s\n",
       "warning: locals do not survive across lines in interactive mode");
   }
@@ -612,17 +612,17 @@ static void checklocal (const char *line) {
 */
 static int multiline (lua_State *L) {
   size_t len;
-  const char *line = lua_tolstring(L, 1, &len);  /* get first line */
+  const char *line = lua_tolstring(L, 1, &len);  // get first line
   checklocal(line);
-  for (;;) {  /* repeat until gets a complete statement */
-    int status = luaL_loadbuffer(L, line, len, "=stdin");  /* try it */
+  for (;;) {  // repeat until gets a complete statement
+    int status = luaL_loadbuffer(L, line, len, "=stdin");  // try it
     if (!incomplete(L, status) || !pushline(L, 0))
-      return status;  /* should not or cannot try to add continuation line */
-    lua_remove(L, -2);  /* remove error message (from incomplete line) */
-    lua_pushliteral(L, "\n");  /* add newline... */
-    lua_insert(L, -2);  /* ...between the two lines */
-    lua_concat(L, 3);  /* join them */
-    line = lua_tolstring(L, 1, &len);  /* get what is has */
+      return status;  // should not or cannot try to add continuation line
+    lua_remove(L, -2);  // remove error message (from incomplete line)
+    lua_pushliteral(L, "\n");  // add newline...
+    lua_insert(L, -2);  // ...between the two lines
+    lua_concat(L, 3);  // join them
+    line = lua_tolstring(L, 1, &len);  // get what is has
   }
 }
 
@@ -638,13 +638,13 @@ static int loadline (lua_State *L) {
   int status;
   lua_settop(L, 0);
   if (!pushline(L, 1))
-    return -1;  /* no input */
-  if ((status = addreturn(L)) != LUA_OK)  /* 'return ...' did not work? */
-    status = multiline(L);  /* try as command, maybe with continuation lines */
+    return -1;  // no input
+  if ((status = addreturn(L)) != LUA_OK)  // 'return ...' did not work?
+    status = multiline(L);  // try as command, maybe with continuation lines
   line = lua_tostring(L, 1);
-  if (line[0] != '\0')  /* non empty? */
-    lua_saveline(line);  /* keep history */
-  lua_remove(L, 1);  /* remove line from the stack */
+  if (line[0] != '\0')  // non empty?
+    lua_saveline(line);  // keep history
+  lua_remove(L, 1);  // remove line from the stack
   lua_assert(lua_gettop(L) == 1);
   return status;
 }
@@ -655,7 +655,7 @@ static int loadline (lua_State *L) {
 */
 static void l_print (lua_State *L) {
   int n = lua_gettop(L);
-  if (n > 0) {  /* any result to be printed? */
+  if (n > 0) {  // any result to be printed?
     luaL_checkstack(L, LUA_MINSTACK, "too many results to print");
     lua_getglobal(L, "print");
     lua_insert(L, 1);
@@ -673,7 +673,7 @@ static void l_print (lua_State *L) {
 static void doREPL (lua_State *L) {
   int status;
   const char *oldprogname = progname;
-  progname = nullptr;  /* no 'progname' on errors in interactive mode */
+  progname = nullptr;  // no 'progname' on errors in interactive mode
   lua_initreadline(L);
   while ((status = loadline(L)) != -1) {
     if (status == LUA_OK)
@@ -681,12 +681,12 @@ static void doREPL (lua_State *L) {
     if (status == LUA_OK) l_print(L);
     else report(L, status);
   }
-  lua_settop(L, 0);  /* clear stack */
+  lua_settop(L, 0);  // clear stack
   lua_writeline();
   progname = oldprogname;
 }
 
-/* }================================================================== */
+// }==================================================================
 
 #if !defined(luai_openlibs)
 #define luai_openlibs(L)	luaL_openselectedlibs(L, ~0, 0)
@@ -702,60 +702,60 @@ static int pmain (lua_State *L) {
   char **argv = static_cast<char **>(lua_touserdata(L, 2));
   int script;
   int args = collectargs(argv, &script);
-  int optlim = (script > 0) ? script : argc; /* first argv not an option */
-  luaL_checkversion(L);  /* check that interpreter has correct version */
-  if (args == has_error) {  /* bad arg? */
-    print_usage(argv[script]);  /* 'script' has index of bad arg. */
+  int optlim = (script > 0) ? script : argc;  // first argv not an option
+  luaL_checkversion(L);  // check that interpreter has correct version
+  if (args == has_error) {  // bad arg?
+    print_usage(argv[script]);  // 'script' has index of bad arg.
     return 0;
   }
-  if (args & has_v)  /* option '-v'? */
+  if (args & has_v)  // option '-v'?
     print_version();
-  if (args & has_E) {  /* option '-E'? */
-    lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
+  if (args & has_E) {  // option '-E'?
+    lua_pushboolean(L, 1);  // signal for libraries to ignore env. vars.
     lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
   }
-  luai_openlibs(L);  /* open standard libraries */
-  createargtable(L, argv, argc, script);  /* create table 'arg' */
-  lua_gc(L, LUA_GCRESTART);  /* start GC... */
-  lua_gc(L, LUA_GCGEN);  /* ...in generational mode */
-  if (!(args & has_E)) {  /* no option '-E'? */
-    if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
-      return 0;  /* error running LUA_INIT */
+  luai_openlibs(L);  // open standard libraries
+  createargtable(L, argv, argc, script);  // create table 'arg'
+  lua_gc(L, LUA_GCRESTART);  // start GC...
+  lua_gc(L, LUA_GCGEN);  // ...in generational mode
+  if (!(args & has_E)) {  // no option '-E'?
+    if (handle_luainit(L) != LUA_OK)  // run LUA_INIT
+      return 0;  // error running LUA_INIT
   }
-  if (!runargs(L, argv, optlim))  /* execute arguments -e and -l */
-    return 0;  /* something failed */
-  if (script > 0) {  /* execute main script (if there is one) */
+  if (!runargs(L, argv, optlim))  // execute arguments -e and -l
+    return 0;  // something failed
+  if (script > 0) {  // execute main script (if there is one)
     if (handle_script(L, argv + script) != LUA_OK)
-      return 0;  /* interrupt in case of error */
+      return 0;  // interrupt in case of error
   }
-  if (args & has_i)  /* -i option? */
-    doREPL(L);  /* do read-eval-print loop */
-  else if (script < 1 && !(args & (has_e | has_v))) { /* no active option? */
-    if (lua_stdin_is_tty()) {  /* running in interactive mode? */
+  if (args & has_i)  // -i option?
+    doREPL(L);  // do read-eval-print loop
+  else if (script < 1 && !(args & (has_e | has_v))) {  // no active option?
+    if (lua_stdin_is_tty()) {  // running in interactive mode?
       print_version();
-      doREPL(L);  /* do read-eval-print loop */
+      doREPL(L);  // do read-eval-print loop
     }
     else
-      dofile(L, nullptr);  /* executes stdin as a file */
+      dofile(L, nullptr);  // executes stdin as a file
   }
-  lua_pushboolean(L, 1);  /* signal no errors */
+  lua_pushboolean(L, 1);  // signal no errors
   return 1;
 }
 
 
 int main (int argc, char **argv) {
   int status, result;
-  lua_State *L = luaL_newstate();  /* create state */
+  lua_State *L = luaL_newstate();  // create state
   if (L == nullptr) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
   }
-  lua_gc(L, LUA_GCSTOP);  /* stop GC while building state */
-  lua_pushcfunction(L, &pmain);  /* to call 'pmain' in protected mode */
-  lua_pushinteger(L, argc);  /* 1st argument */
-  lua_pushlightuserdata(L, argv); /* 2nd argument */
-  status = lua_pcall(L, 2, 1, 0);  /* do the call */
-  result = lua_toboolean(L, -1);  /* get result */
+  lua_gc(L, LUA_GCSTOP);  // stop GC while building state
+  lua_pushcfunction(L, &pmain);  // to call 'pmain' in protected mode
+  lua_pushinteger(L, argc);  // 1st argument
+  lua_pushlightuserdata(L, argv);  // 2nd argument
+  status = lua_pcall(L, 2, 1, 0);  // do the call
+  result = lua_toboolean(L, -1);  // get result
   report(L, status);
   lua_close(L);
   return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;

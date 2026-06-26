@@ -8,9 +8,9 @@
 
 #include <span>
 
-#include "lobject_core.h"  /* GCBase, TValue, GCObject */
+#include "lobject_core.h"  // GCBase, TValue, GCObject
 
-/* Forward declarations */
+// Forward declarations
 class lua_State;
 class TString;
 typedef union StackValue *StkId;
@@ -41,13 +41,13 @@ class Node {
 private:
   union {
     struct {
-      Value value_;  /* value */
-      LuaT tt_;   /* value type tag */
-      LuaT key_tt;  /* key type */
-      int next;  /* for chaining */
-      Value key_val;  /* key value */
+      Value value_;  // value
+      LuaT tt_;  // value type tag
+      LuaT key_tt;  // key type
+      int next;  // for chaining
+      Value key_val;  // key value
     } u;
-    TValue i_val;  /* direct access to node's value as a proper 'TValue' */
+    TValue i_val;  // direct access to node's value as a proper 'TValue'
   };
 
 public:
@@ -148,10 +148,10 @@ public:
 // Table inherits from GCBase (CRTP)
 class Table : public GCBase<Table> {
 private:
-  mutable lu_byte flags;  /* 1<<p means tagmethod(p) is not present (mutable for metamethod caching) */
-  lu_byte logSizeOfNodeArray;  /* log2 of number of slots of 'node' array */
-  unsigned int asize;  /* number of slots in 'array' array */
-  Value *array;  /* array part */
+  mutable lu_byte flags;  // 1<<p means tagmethod(p) is not present (mutable for metamethod caching)
+  lu_byte logSizeOfNodeArray;  // log2 of number of slots of 'node' array
+  unsigned int asize;  // number of slots in 'array' array
+  Value *array;  // array part
   Node *node;
   Table *metatable;
   GCObject *gclist;
@@ -292,13 +292,13 @@ public:
 };
 
 
-/* }================================================================== */
+// }==================================================================
 
 
 // Note: Returns Node* even for const Table* to support Lua's read/write lookup semantics
 inline Node* gnode(Table* t, unsigned int i) noexcept { return t->getNode(i); }
 inline Node* gnode(const Table* t, unsigned int i) noexcept {
-  return const_cast<Table*>(t)->getNode(i);  /* Lookup functions need mutable access */
+  return const_cast<Table*>(t)->getNode(i);  // Lookup functions need mutable access
 }
 inline TValue* gval(Node* n) noexcept { return n->getValue(); }
 inline const TValue* gval(const Node* n) noexcept { return n->getValue(); }
@@ -328,7 +328,7 @@ inline constexpr lu_byte NOTBITDUMMY = cast_byte(~BITDUMMY);
 // Definitions moved after farr2val and fval2arr are defined (see below)
 
 
-/* results from pset */
+// results from pset
 inline constexpr int HOK = 0;
 inline constexpr int HNOTFOUND = 1;
 inline constexpr int HNOTATABLE = 2;

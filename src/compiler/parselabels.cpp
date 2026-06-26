@@ -36,13 +36,13 @@ inline bool eqstr(const TString& a, const TString& b) noexcept {
 ** nodes for block list (list of active blocks)
 */
 typedef struct BlockCnt {
-  struct BlockCnt *previous;  /* chain */
-  int firstlabel;  /* index of first label in this block */
-  int firstgoto;  /* index of first pending goto in this block */
-  short numberOfActiveVariables;  /* number of active declarations at block entry */
-  lu_byte upval;  /* true if some variable in the block is an upvalue */
-  lu_byte isloop;  /* 1 if 'block' is a loop; 2 if it has pending breaks */
-  lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+  struct BlockCnt *previous;  // chain
+  int firstlabel;  // index of first label in this block
+  int firstgoto;  // index of first pending goto in this block
+  short numberOfActiveVariables;  // number of active declarations at block entry
+  lu_byte upval;  // true if some variable in the block is an upvalue
+  lu_byte isloop;  // 1 if 'block' is a loop; 2 if it has pending breaks
+  lu_byte insidetbc;  // true if inside the scope of a to-be-closed var.
 } BlockCnt;
 
 
@@ -54,7 +54,7 @@ l_noret LexState::jumpscopeerror(FuncState *funcState, Labeldesc *gt) {
   TString *tsname = funcState->getlocalvardesc(gt->numberOfActiveVariables)->vd.name;
   const char *varname = (tsname != nullptr) ? getStringContents(tsname) : "*";
   semerror("<goto %s> at line %d jumps into the scope of '%s'",
-           getStringContents(gt->name), gt->line, varname);  /* raise the error */
+           getStringContents(gt->name), gt->line, varname);  // raise the error
 }
 
 
@@ -68,22 +68,22 @@ l_noret LexState::jumpscopeerror(FuncState *funcState, Labeldesc *gt) {
 */
 void LexState::closegoto(FuncState *funcState, int g, Labeldesc *label, int bup) {
   int i;
-  Labellist *gl = &getDyndata()->gt;  /* list of gotos */
-  Labeldesc *gt = &(*gl)[g];  /* goto to be resolved */
+  Labellist *gl = &getDyndata()->gt;  // list of gotos
+  Labeldesc *gt = &(*gl)[g];  // goto to be resolved
   lua_assert(eqstr(*gt->name, *label->name));
-  if (l_unlikely(gt->numberOfActiveVariables < label->numberOfActiveVariables))  /* enter some scope? */
+  if (l_unlikely(gt->numberOfActiveVariables < label->numberOfActiveVariables))  // enter some scope?
     jumpscopeerror(funcState, gt);
   if (gt->close ||
-      (label->numberOfActiveVariables < gt->numberOfActiveVariables && bup)) {  /* needs close? */
+      (label->numberOfActiveVariables < gt->numberOfActiveVariables && bup)) {  // needs close?
     lu_byte stklevel = funcState->reglevel(label->numberOfActiveVariables);
-    /* move jump to CLOSE position */
+    // move jump to CLOSE position
     funcState->getProto().getCode()[gt->pc + 1] = funcState->getProto().getCode()[gt->pc];
-    /* put CLOSE instruction at original position */
+    // put CLOSE instruction at original position
     funcState->getProto().getCode()[gt->pc] = CREATE_ABCk(OP_CLOSE, stklevel, 0, 0, 0);
-    gt->pc++;  /* must point to jump instruction */
+    gt->pc++;  // must point to jump instruction
   }
-  funcState->patchlist(gt->pc, label->pc);  /* goto jumps to label */
-  for (i = g; i < gl->getN() - 1; i++)  /* remove goto from pending list */
+  funcState->patchlist(gt->pc, label->pc);  // goto jumps to label
+  for (i = g; i < gl->getN() - 1; i++)  // remove goto from pending list
     (*gl)[i] = (*gl)[i + 1];
   gl->setN(gl->getN() - 1);
 }
@@ -98,10 +98,10 @@ Labeldesc *LexState::findlabel(TString* name, int ilb) {
   Dyndata *dynData = getDyndata();
   for (; ilb < dynData->label.getN(); ilb++) {
     Labeldesc *lb = &dynData->label[ilb];
-    if (eqstr(*lb->name, *name))  /* correct label? */
+    if (eqstr(*lb->name, *name))  // correct label?
       return lb;
   }
-  return nullptr;  /* label not found */
+  return nullptr;  // label not found
 }
 
 
@@ -110,7 +110,7 @@ Labeldesc *LexState::findlabel(TString* name, int ilb) {
 */
 int LexState::newlabelentry(FuncState *funcState, Labellist *l, TString* name, int line, int pc) {
   int n = l->getN();
-  Labeldesc* desc = l->allocateNew();  /* LuaVector automatically grows */
+  Labeldesc* desc = l->allocateNew();  // LuaVector automatically grows
   desc->name = name;
   desc->line = line;
   desc->numberOfActiveVariables = funcState->getNumActiveVars();
@@ -131,8 +131,8 @@ void LexState::createlabel(FuncState *funcState, TString *name, int line, int la
   // FuncState passed as parameter
   Labellist *ll = &getDyndata()->label;
   int l = newlabelentry(funcState, ll, name, line, funcState->getlabel());
-  if (last) {  /* label is last no-op statement in the block? */
-    /* assume that locals are already out of scope */
+  if (last) {  // label is last no-op statement in the block?
+    // assume that locals are already out of scope
     (*ll)[l].numberOfActiveVariables = funcState->getBlock()->numberOfActiveVariables;
   }
 }
@@ -142,7 +142,7 @@ void LexState::createlabel(FuncState *funcState, TString *name, int line, int la
 ** generates an error for an undefined 'goto'.
 */
 l_noret LexState::undefgoto([[maybe_unused]] FuncState *funcState, Labeldesc *gt) {
-  /* breaks are checked when created, cannot be undefined */
+  // breaks are checked when created, cannot be undefined
   lua_assert(!eqstr(*gt->name, *getBreakName()));
   semerror("no visible label '%s' for <goto> at line %d",
            getStringContents(gt->name), gt->line);

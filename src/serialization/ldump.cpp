@@ -26,11 +26,11 @@ typedef struct {
   lua_State *L;
   lua_Writer writer;
   void *data;
-  size_t offset;  /* current position relative to beginning of dump */
+  size_t offset;  // current position relative to beginning of dump
   int strip;
   int status;
-  Table *h;  /* table to track saved strings */
-  lua_Unsigned nstr;  /* counter for counting saved strings */
+  Table *h;  // table to track saved strings
+  lua_Unsigned nstr;  // counter for counting saved strings
 } DumpState;
 
 
@@ -52,7 +52,7 @@ inline void dumpVector(DumpState* D, const T* v, size_t n) {
 ** of the dump.
 */
 static void dumpBlock (DumpState *D, const void *b, size_t size) {
-  if (D->status == 0) {  /* do not write anything after an error */
+  if (D->status == 0) {  // do not write anything after an error
     lua_unlock(D->L);
     D->status = (*D->writer)(D->L, b, size, D->data);
     lua_lock(D->L);
@@ -67,7 +67,7 @@ static void dumpBlock (DumpState *D, const void *b, size_t size) {
 */
 static void dumpAlign (DumpState *D, unsigned align) {
   unsigned padding = align - cast_uint(D->offset % align);
-  if (padding < align) {  /* padding == align means no padding */
+  if (padding < align) {  // padding == align means no padding
     static lua_Integer paddingContent = 0;
     lua_assert(align <= sizeof(lua_Integer));
     dumpBlock(D, &paddingContent, padding);
@@ -100,8 +100,8 @@ inline constexpr int DIBS = (l_numbits<lua_Unsigned>() + 6) / 7;
 static void dumpVarint (DumpState *D, lua_Unsigned x) {
   lu_byte buff[DIBS];
   unsigned n = 1;
-  buff[DIBS - 1] = x & 0x7f;  /* fill least-significant byte */
-  while ((x >>= 7) != 0)  /* fill other bytes in reverse order */
+  buff[DIBS - 1] = x & 0x7f;  // fill least-significant byte
+  while ((x >>= 7) != 0)  // fill other bytes in reverse order
     buff[DIBS - (++n)] = cast_byte((x & 0x7f) | 0x80);
   dumpVector(D, buff + DIBS - n, n);
 }
@@ -149,21 +149,21 @@ static void dumpString (DumpState *D, TString *ts) {
   else {
     TValue idx;
     LuaT tag = D->h->getStr(ts, &idx);
-    if (!tagisempty(tag)) {  /* string already saved? */
-      dumpVarint(D, 1);  /* reuse a saved string */
-      dumpVarint(D, l_castS2U(ivalue(&idx)));  /* index of saved string */
+    if (!tagisempty(tag)) {  // string already saved?
+      dumpVarint(D, 1);  // reuse a saved string
+      dumpVarint(D, l_castS2U(ivalue(&idx)));  // index of saved string
     }
-    else {  /* must write and save the string */
-      TValue key, value;  /* to save the string in the hash */
+    else {  // must write and save the string
+      TValue key, value;  // to save the string in the hash
       size_t size;
       const char *s = getStringWithLength(ts, size);
       dumpSize(D, size + 2);
-      dumpVector(D, s, size + 1);  /* include ending '\0' */
-      D->nstr++;  /* one more saved string */
-      setsvalue(D->L, &key, ts);  /* the string is the key */
-      value.setInt(l_castU2S(D->nstr));  /* its index is the value */
-      D->h->set(D->L, &key, &value);  /* h[ts] = nstr */
-      /* integer value does not need barrier */
+      dumpVector(D, s, size + 1);  // include ending '\0'
+      D->nstr++;  // one more saved string
+      setsvalue(D->L, &key, ts);  // the string is the key
+      value.setInt(l_castU2S(D->nstr));  // its index is the value
+      D->h->set(D->L, &key, &value);  // h[ts] = nstr
+      // integer value does not need barrier
     }
   }
 }
@@ -235,7 +235,7 @@ static void dumpDebug (DumpState *D, const Proto& f) {
   n = (D->strip) ? 0 : static_cast<int>(abslineinfo.size());
   dumpInt(D, n);
   if (n > 0) {
-    /* 'abslineinfo' is an array of structures of int's */
+    // 'abslineinfo' is an array of structures of int's
     dumpAlign(D, sizeof(int));
     dumpVector(D, abslineinfo.data(), cast_uint(n));
   }
@@ -293,8 +293,8 @@ static void dumpHeader (DumpState *D) {
 int luaU_dump (lua_State *L, const Proto *f, lua_Writer w, void *data,
                int strip) {
   DumpState D;
-  D.h = Table::create(L);  /* aux. table to keep strings already dumped */
-  sethvalue2s(L, L->getTop().p, D.h);  /* anchor it */
+  D.h = Table::create(L);  // aux. table to keep strings already dumped
+  sethvalue2s(L, L->getTop().p, D.h);  // anchor it
   L->getStackSubsystem().push();
   D.L = L;
   D.writer = w;
@@ -306,7 +306,7 @@ int luaU_dump (lua_State *L, const Proto *f, lua_Writer w, void *data,
   dumpHeader(&D);
   dumpByte(&D, f->getUpvaluesSize());
   dumpFunction(&D, *f);
-  dumpBlock(&D, nullptr, 0);  /* signal end of dump */
+  dumpBlock(&D, nullptr, 0);  // signal end of dump
   return D.status;
 }
 

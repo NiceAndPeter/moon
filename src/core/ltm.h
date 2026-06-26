@@ -21,7 +21,7 @@ enum class TMS {
   TM_GC,
   TM_MODE,
   TM_LEN,
-  TM_EQ,  /* last tag method with fast access */
+  TM_EQ,  // last tag method with fast access
   TM_ADD,
   TM_SUB,
   TM_MUL,
@@ -41,7 +41,7 @@ enum class TMS {
   TM_CONCAT,
   TM_CALL,
   TM_CLOSE,
-  TM_N		/* number of elements in the enum */
+  TM_N  // number of elements in the enum
 };
 
 

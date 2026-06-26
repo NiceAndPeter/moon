@@ -7,10 +7,10 @@
 #define lfunc_h
 
 
-#include "lobject_core.h"  /* GCBase, GCObject, TValue */
-#include "lproto.h"  /* Proto */
+#include "lobject_core.h"  // GCBase, GCObject, TValue
+#include "lproto.h"  // Proto
 
-/* Forward declarations */
+// Forward declarations
 class lua_State;
 class TString;
 typedef union StackValue *StkId;
@@ -50,9 +50,9 @@ inline lua_CFunction fvalue(const TValue* o) noexcept { return o->functionValue(
 constexpr lua_CFunction fvalueraw(const Value& v) noexcept { return v.f; }
 
 
-/* setfvalue now defined as inline function below */
+// setfvalue now defined as inline function below
 
-/* setclCvalue now defined as inline function below */
+// setclCvalue now defined as inline function below
 
 
 /*
@@ -62,15 +62,15 @@ constexpr lua_CFunction fvalueraw(const Value& v) noexcept { return v.f; }
 class UpVal : public GCBase<UpVal> {
 private:
   union {
-    TValue *p;  /* points to stack or to its own value */
-    ptrdiff_t offset;  /* used while the stack is being reallocated */
+    TValue *p;  // points to stack or to its own value
+    ptrdiff_t offset;  // used while the stack is being reallocated
   } v;
   union {
-    struct {  /* (when open) */
-      UpVal *next;  /* linked list */
+    struct {  // (when open)
+      UpVal *next;  // linked list
       UpVal **previous;
     } open;
-    TValue value;  /* the value (when closed) */
+    TValue value;  // the value (when closed)
   } u;
 
 public:
@@ -139,7 +139,7 @@ private:
   lu_byte numberOfUpvalues;
   GCObject *gclist;
   lua_CFunction f;
-  TValue upvalue[1];  /* list of upvalues */
+  TValue upvalue[1];  // list of upvalues
 
 public:
   // Member placement new operator for GC allocation (defined in lgc.h)
@@ -177,7 +177,7 @@ private:
   lu_byte numberOfUpvalues;
   GCObject *gclist;
   Proto *p;
-  UpVal *upvals[1];  /* list of upvalues */
+  UpVal *upvals[1];  // list of upvalues
 
 public:
   // Member placement new operator for GC allocation (defined in lgc.h)
@@ -224,7 +224,7 @@ inline Proto* getproto(const TValue* o) noexcept {
 	return clLvalue(o)->getProto();
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 // Simple forwarding calls to the static size helpers.
@@ -250,7 +250,7 @@ inline constexpr int MAXMISS = 10;
 
 
 
-/* special status to close upvalues preserving the top of the stack */
+// special status to close upvalues preserving the top of the stack
 inline constexpr int CLOSEKTOP = (LUA_ERRERR + 1);
 
 

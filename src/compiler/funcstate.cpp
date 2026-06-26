@@ -38,13 +38,13 @@ inline bool eqstr(const TString& a, const TString& b) noexcept {
 ** nodes for block list (list of active blocks)
 */
 typedef struct BlockCnt {
-  struct BlockCnt *previous;  /* chain */
-  int firstlabel;  /* index of first label in this block */
-  int firstgoto;  /* index of first pending goto in this block */
-  short numberOfActiveVariables;  /* number of active declarations at block entry */
-  lu_byte upval;  /* true if some variable in the block is an upvalue */
-  lu_byte isloop;  /* 1 if 'block' is a loop; 2 if it has pending breaks */
-  lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+  struct BlockCnt *previous;  // chain
+  int firstlabel;  // index of first label in this block
+  int firstgoto;  // index of first pending goto in this block
+  short numberOfActiveVariables;  // number of active declarations at block entry
+  lu_byte upval;  // true if some variable in the block is an upvalue
+  lu_byte isloop;  // 1 if 'block' is a loop; 2 if it has pending breaks
+  lu_byte insidetbc;  // true if inside the scope of a to-be-closed var.
 } BlockCnt;
 
 
@@ -54,12 +54,12 @@ inline bool hasmultret(expkind k) noexcept {
 
 
 typedef struct ConsControl {
-  ExpDesc v;  /* last list item read */
-  ExpDesc *t;  /* table descriptor */
-  int nh;  /* total number of 'record' elements */
-  int na;  /* number of array elements already stored */
-  int tostore;  /* number of array elements pending to be stored */
-  int maxtostore;  /* maximum number of pending elements */
+  ExpDesc v;  // last list item read
+  ExpDesc *t;  // table descriptor
+  int nh;  // total number of 'record' elements
+  int na;  // number of array elements already stored
+  int tostore;  // number of array elements pending to be stored
+  int maxtostore;  // maximum number of pending elements
 } ConsControl;
 
 
@@ -116,11 +116,11 @@ Vardesc *FuncState::getlocalvardesc(int vidx) {
 */
 lu_byte FuncState::reglevel(int nvar) {
   while (nvar-- > 0) {
-    Vardesc *vd = getlocalvardesc(nvar);  /* get previous variable */
-    if (vd->isInReg())  /* is in a register? */
+    Vardesc *vd = getlocalvardesc(nvar);  // get previous variable
+    if (vd->isInReg())  // is in a register?
       return cast_byte(vd->vd.registerIndex + 1);
   }
-  return 0;  /* no variables in registers */
+  return 0;  // no variables in registers
 }
 
 
@@ -139,7 +139,7 @@ lu_byte FuncState::nvarstack() {
 LocVar *FuncState::localdebuginfo(int vidx) {
   Vardesc *vd = getlocalvardesc(vidx);
   if (!vd->isInReg())
-    return nullptr;  /* no debug info. for constants */
+    return nullptr;  // no debug info. for constants
   else {
     int idx = vd->vd.protoLocalVarIndex;
     lua_assert(idx < getNumDebugVars());
@@ -169,7 +169,7 @@ void FuncState::removevars(int tolevel) {
   getLexState().getDyndata()->actvar().setN(current_n - (getNumActiveVars() - tolevel));
   while (getNumActiveVars() > tolevel) {
     LocVar *var = localdebuginfo(--getNumActiveVarsRef());
-    if (var)  /* does it have debug information? */
+    if (var)  // does it have debug information?
       var->setEndPC(getPC());
   }
 }
@@ -184,7 +184,7 @@ int FuncState::searchupvalue(TString& name) {
   for (size_t i = 0; i < static_cast<size_t>(getNumUpvalues()); i++) {
     if (eqstr(*upvaluesSpan[i].getName(), name)) return static_cast<int>(i);
   }
-  return -1;  /* not found */
+  return -1;  // not found
 }
 
 
@@ -236,29 +236,29 @@ int FuncState::searchvar(TString& n, ExpDesc& var) {
   int nactive = static_cast<int>(getNumActiveVars());
   for (int i = nactive - 1; i >= 0; i--) {
     Vardesc *vd = getlocalvardesc(i);
-    if (vd->isGlobal()) {  /* global declaration? */
-      if (vd->vd.name == nullptr) {  /* collective declaration? */
-        if (var.getInfo() < 0)  /* no previous collective declaration? */
-          var.setInfo(getFirstLocal() + i);  /* this is the first one */
+    if (vd->isGlobal()) {  // global declaration?
+      if (vd->vd.name == nullptr) {  // collective declaration?
+        if (var.getInfo() < 0)  // no previous collective declaration?
+          var.setInfo(getFirstLocal() + i);  // this is the first one
       }
-      else {  /* global name */
-        if (eqstr(n, *vd->vd.name)) {  /* found? */
+      else {  // global name
+        if (eqstr(n, *vd->vd.name)) {  // found?
           var.init(VGLOBAL, getFirstLocal() + i);
           return VGLOBAL;
         }
-        else if (var.getInfo() == -1)  /* active preambular declaration? */
-          var.setInfo(-2);  /* invalidate preambular declaration */
+        else if (var.getInfo() == -1)  // active preambular declaration?
+          var.setInfo(-2);  // invalidate preambular declaration
       }
     }
-    else if (eqstr(n, *vd->vd.name)) {  /* found? */
-      if (vd->vd.kind == RDKCTC)  /* compile-time constant? */
+    else if (eqstr(n, *vd->vd.name)) {  // found?
+      if (vd->vd.kind == RDKCTC)  // compile-time constant?
         var.init(VCONST, getFirstLocal() + i);
-      else  /* local variable */
+      else  // local variable
         init_var(var, i);
       return cast_int(var.getKind());
     }
   }
-  return -1;  /* not found */
+  return -1;  // not found
 }
 
 
@@ -292,22 +292,22 @@ void FuncState::marktobeclosed() {
 ** 'var' as 'void' as a flag.
 */
 void FuncState::singlevaraux(TString& n, ExpDesc& var, int base) {
-  int v = searchvar(n, var);  /* look up variables at current level */
-  if (v >= 0) {  /* found? */
+  int v = searchvar(n, var);  // look up variables at current level
+  if (v >= 0) {  // found?
     if (v == VLOCAL && !base)
-      markupval(var.getLocalVarIndex());  /* local will be used as an upval */
+      markupval(var.getLocalVarIndex());  // local will be used as an upval
   }
-  else {  /* not found at current level; try upvalues */
-    int idx = searchupvalue(n);  /* try existing upvalues */
-    if (idx < 0) {  /* not found? */
-      if (getPrev() != nullptr)  /* more levels? */
-        getPrev()->singlevaraux(n, var, 0);  /* try upper levels */
-      if (var.getKind() == VLOCAL || var.getKind() == VUPVAL)  /* local or upvalue? */
-        idx = newupvalue(n, var);  /* will be a new upvalue */
-      else  /* it is a global or a constant */
-        return;  /* don't need to do anything at this level */
+  else {  // not found at current level; try upvalues
+    int idx = searchupvalue(n);  // try existing upvalues
+    if (idx < 0) {  // not found?
+      if (getPrev() != nullptr)  // more levels?
+        getPrev()->singlevaraux(n, var, 0);  // try upper levels
+      if (var.getKind() == VLOCAL || var.getKind() == VUPVAL)  // local or upvalue?
+        idx = newupvalue(n, var);  // will be a new upvalue
+      else  // it is a global or a constant
+        return;  // don't need to do anything at this level
     }
-    var.init(VUPVAL, idx);  /* new or old upvalue */
+    var.init(VUPVAL, idx);  // new or old upvalue
   }
 }
 
@@ -322,24 +322,24 @@ void FuncState::singlevaraux(TString& n, ExpDesc& var, int base) {
 void FuncState::solvegotos(BlockCnt& blockCnt) {
   LexState& lexState = getLexState();
   Labellist *gl = &lexState.getDyndata()->gt;
-  int outlevel = reglevel(blockCnt.numberOfActiveVariables);  /* level outside the block */
-  int igt = blockCnt.firstgoto;  /* first goto in the finishing block */
-  while (igt < gl->getN()) {   /* for each pending goto */
+  int outlevel = reglevel(blockCnt.numberOfActiveVariables);  // level outside the block
+  int igt = blockCnt.firstgoto;  // first goto in the finishing block
+  while (igt < gl->getN()) {  // for each pending goto
     Labeldesc *gt = &(*gl)[igt];
-    /* search for a matching label in the current block */
+    // search for a matching label in the current block
     Labeldesc *lb = lexState.findlabel(gt->name, blockCnt.firstlabel);
-    if (lb != nullptr)  /* found a match? */
-      lexState.closegoto(this, igt, lb, blockCnt.upval);  /* close and remove goto */
-    else {  /* adjust 'goto' for outer block */
+    if (lb != nullptr)  // found a match?
+      lexState.closegoto(this, igt, lb, blockCnt.upval);  // close and remove goto
+    else {  // adjust 'goto' for outer block
       /* block has variables to be closed and goto escapes the scope of
          some variable? */
       if (blockCnt.upval && reglevel(gt->numberOfActiveVariables) > outlevel)
-        gt->close = 1;  /* jump may need a close */
-      gt->numberOfActiveVariables = blockCnt.numberOfActiveVariables;  /* correct level for outer block */
-      igt++;  /* go to next goto */
+        gt->close = 1;  // jump may need a close
+      gt->numberOfActiveVariables = blockCnt.numberOfActiveVariables;  // correct level for outer block
+      igt++;  // go to next goto
     }
   }
-  lexState.getDyndata()->label.setN(blockCnt.firstlabel);  /* remove local labels */
+  lexState.getDyndata()->label.setN(blockCnt.firstlabel);  // remove local labels
 }
 
 
@@ -349,9 +349,9 @@ void FuncState::enterblock(BlockCnt& blk, lu_byte isloop) {
   blk.firstlabel = getLexState().getDyndata()->label.getN();
   blk.firstgoto = getLexState().getDyndata()->gt.getN();
   blk.upval = 0;
-  /* inherit 'insidetbc' from enclosing block */
+  // inherit 'insidetbc' from enclosing block
   blk.insidetbc = (getBlock() != nullptr && getBlock()->insidetbc);
-  blk.previous = getBlock();  /* link block in function's block list */
+  blk.previous = getBlock();  // link block in function's block list
   setBlock(&blk);
   lua_assert(getFirstFreeRegister() == luaY_nvarstack(this));
 }
@@ -360,20 +360,20 @@ void FuncState::enterblock(BlockCnt& blk, lu_byte isloop) {
 void FuncState::leaveblock() {
   BlockCnt *blk = getBlock();
   LexState& lexstate = getLexState();
-  lu_byte stklevel = reglevel(blk->numberOfActiveVariables);  /* level outside block */
-  if (blk->previous && blk->upval)  /* need a 'close'? */
+  lu_byte stklevel = reglevel(blk->numberOfActiveVariables);  // level outside block
+  if (blk->previous && blk->upval)  // need a 'close'?
     codeABC(OP_CLOSE, stklevel, 0, 0);
-  setFirstFreeRegister(stklevel);  /* free registers */
-  removevars(blk->numberOfActiveVariables);  /* remove block locals */
-  lua_assert(blk->numberOfActiveVariables == getNumActiveVars());  /* back to level on entry */
-  if (blk->isloop == 2)  /* has to fix pending breaks? */
+  setFirstFreeRegister(stklevel);  // free registers
+  removevars(blk->numberOfActiveVariables);  // remove block locals
+  lua_assert(blk->numberOfActiveVariables == getNumActiveVars());  // back to level on entry
+  if (blk->isloop == 2)  // has to fix pending breaks?
     lexstate.createlabel(this, lexstate.getBreakName(), 0, 0);
   solvegotos(*blk);
-  if (blk->previous == nullptr) {  /* was it the last block? */
-    if (blk->firstgoto < lexstate.getDyndata()->gt.getN())  /* still pending gotos? */
-      lexstate.undefgoto(this, &lexstate.getDyndata()->gt[blk->firstgoto]);  /* error */
+  if (blk->previous == nullptr) {  // was it the last block?
+    if (blk->firstgoto < lexstate.getDyndata()->gt.getN())  // still pending gotos?
+      lexstate.undefgoto(this, &lexstate.getDyndata()->gt[blk->firstgoto]);  // error
   }
-  setBlock(blk->previous);  /* current block now is previous one */
+  setBlock(blk->previous);  // current block now is previous one
 }
 
 
@@ -382,9 +382,9 @@ void FuncState::closelistfield(ConsControl& cc) {
   exp2nextreg(cc.v);
   cc.v.setKind(VVOID);
   if (cc.tostore >= cc.maxtostore) {
-    setlist(cc.t->getInfo(), cc.na, cc.tostore);  /* flush */
+    setlist(cc.t->getInfo(), cc.na, cc.tostore);  // flush
     cc.na += cc.tostore;
-    cc.tostore = 0;  /* no more items pending */
+    cc.tostore = 0;  // no more items pending
   }
 }
 
@@ -394,7 +394,7 @@ void FuncState::lastlistfield(ConsControl& cc) {
   if (hasmultret(cc.v.getKind())) {
     setreturns(cc.v, LUA_MULTRET);
     setlist(cc.t->getInfo(), cc.na, LUA_MULTRET);
-    cc.na--;  /* do not count last expression (unknown number of elements) */
+    cc.na--;  // do not count last expression (unknown number of elements)
   }
   else {
     if (cc.v.getKind() != VVOID)
@@ -412,11 +412,11 @@ void FuncState::lastlistfield(ConsControl& cc) {
 */
 int FuncState::maxtostore() {
   int numfreeregs = MAX_FSTACK - getFirstFreeRegister();
-  if (numfreeregs >= 160)  /* "lots" of registers? */
-    return numfreeregs / 5;  /* use up to 1/5 of them */
-  else if (numfreeregs >= 80)  /* still "enough" registers? */
-    return 10;  /* one 'SETLIST' instruction for each 10 values */
-  else  /* save registers for potential more nesting */
+  if (numfreeregs >= 160)  // "lots" of registers?
+    return numfreeregs / 5;  // use up to 1/5 of them
+  else if (numfreeregs >= 80)  // still "enough" registers?
+    return 10;  // one 'SETLIST' instruction for each 10 values
+  else  // save registers for potential more nesting
     return 1;
 }
 
@@ -427,11 +427,11 @@ void FuncState::setvararg(int nparams) {
 }
 
 
-/* Create code to store the "top" register in 'var' */
+// Create code to store the "top" register in 'var'
 void FuncState::storevartop(ExpDesc& var) {
   ExpDesc e;
   e.init(VNONRELOC, getFirstFreeRegister() - 1);
-  storevar(var, e);  /* will also free the top register */
+  storevar(var, e);  // will also free the top register
 }
 
 
@@ -452,7 +452,7 @@ void FuncState::fixforjump(int pcpos, int dest, int back) {
 
 
 void FuncState::checktoclose(int level) {
-  if (level != -1) {  /* is there a to-be-closed variable? */
+  if (level != -1) {  // is there a to-be-closed variable?
     marktobeclosed();
     codeABC(OP_TBC, reglevel(level), 0, 0);
   }

@@ -48,13 +48,13 @@ inline bool eqstr(const TString& a, const TString& b) noexcept {
 ** nodes for block list (list of active blocks)
 */
 typedef struct BlockCnt {
-  struct BlockCnt *previous;  /* chain */
-  int firstlabel;  /* index of first label in this block */
-  int firstgoto;  /* index of first pending goto in this block */
-  short numberOfActiveVariables;  /* number of active declarations at block entry */
-  lu_byte upval;  /* true if some variable in the block is an upvalue */
-  lu_byte isloop;  /* 1 if 'block' is a loop; 2 if it has pending breaks */
-  lu_byte insidetbc;  /* true if inside the scope of a to-be-closed var. */
+  struct BlockCnt *previous;  // chain
+  int firstlabel;  // index of first label in this block
+  int firstgoto;  // index of first pending goto in this block
+  short numberOfActiveVariables;  // number of active declarations at block entry
+  lu_byte upval;  // true if some variable in the block is an upvalue
+  lu_byte isloop;  // 1 if 'block' is a loop; 2 if it has pending breaks
+  lu_byte insidetbc;  // true if inside the scope of a to-be-closed var.
 } BlockCnt;
 
 
@@ -74,13 +74,13 @@ void ExpDesc::initString(TString *s) {
 }
 
 
-/* External API wrapper */
+// External API wrapper
 void luaY_checklimit (FuncState *fs, int v, int l, const char *what) {
   fs->checklimit(v, l, what);
 }
 
 
-/* External API wrapper */
+// External API wrapper
 lu_byte luaY_nvarstack (FuncState *fs) {
   return fs->nvarstack();
 }
@@ -96,12 +96,12 @@ inline void leavelevel(LexState* ls) noexcept {
 
 
 typedef struct ConsControl {
-  ExpDesc v;  /* last list item read */
-  ExpDesc *t;  /* table descriptor */
-  int nh;  /* total number of 'record' elements */
-  int na;  /* number of array elements already stored */
-  int tostore;  /* number of array elements pending to be stored */
-  int maxtostore;  /* maximum number of pending elements */
+  ExpDesc v;  // last list item read
+  ExpDesc *t;  // table descriptor
+  int nh;  // total number of 'record' elements
+  int na;  // number of array elements already stored
+  int tostore;  // number of array elements pending to be stored
+  int maxtostore;  // maximum number of pending elements
 } ConsControl;
 
 
@@ -157,9 +157,9 @@ inline BinOpr getbinopr (int op) noexcept {
 }
 
 
-/* Priority table for binary operators is defined in parser.cpp */
+// Priority table for binary operators is defined in parser.cpp
 
-#define UNARY_PRIORITY	12  /* priority for unary operators */
+#define UNARY_PRIORITY	12  // priority for unary operators
 
 
 /*
@@ -168,7 +168,7 @@ inline BinOpr getbinopr (int op) noexcept {
 */
 struct LHS_assign {
   struct LHS_assign *prev;
-  ExpDesc v;  /* variable (global, local, upvalue, or indexed) */
+  ExpDesc v;  // variable (global, local, upvalue, or indexed)
 };
 
 
@@ -179,14 +179,14 @@ struct LHS_assign {
 LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
   LexState lexstate;
-  LClosure *cl = LClosure::create(L, 1);  /* create main closure */
-  setclLvalue2s(L, L->getTop().p, cl);  /* anchor it (to avoid being collected) */
-  L->inctop();  lexstate.setTable(Table::create(L));  /* create table for scanner */
-  sethvalue2s(L, L->getTop().p, lexstate.getTable());  /* anchor it */
+  LClosure *cl = LClosure::create(L, 1);  // create main closure
+  setclLvalue2s(L, L->getTop().p, cl);  // anchor it (to avoid being collected)
+  L->inctop();  lexstate.setTable(Table::create(L));  // create table for scanner
+  sethvalue2s(L, L->getTop().p, lexstate.getTable());  // anchor it
   L->inctop();  Proto* proto = luaF_newproto(L);
   cl->setProto(proto);
   luaC_objbarrier(L, cl, cl->getProto());
-  proto->setSource(TString::create(L, name));  /* create and anchor TString */
+  proto->setSource(TString::create(L, name));  // create and anchor TString
   luaC_objbarrier(L, proto, proto->getSource());
   FuncState funcstate(*proto, lexstate);
   lexstate.setBuffer(buff);
@@ -198,8 +198,8 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   Parser parser(lexstate, nullptr);
   parser.mainfunc(&funcstate);
   lua_assert(!funcstate.getPrev() && funcstate.getNumUpvalues() == 1);
-  /* all scopes should be correctly finished */
+  // all scopes should be correctly finished
   lua_assert(dyd->actvar().getN() == 0 && dyd->gt.getN() == 0 && dyd->label.getN() == 0);
-  L->getStackSubsystem().pop();  /* remove scanner's table */
-  return cl;  /* closure is on the stack, too */
+  L->getStackSubsystem().pop();  // remove scanner's table
+  return cl;  // closure is on the stack, too
 }

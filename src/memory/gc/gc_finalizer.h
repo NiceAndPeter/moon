@@ -89,4 +89,4 @@ private:
     static void dothecall(lua_State* L, void* ud);
 };
 
-#endif /* gc_finalizer_h */
+#endif  // gc_finalizer_h

@@ -21,12 +21,12 @@
 ** Now delegates to LuaStack::ensureSpace() and ensureSpaceP().
 */
 
-/* Ensure stack has space for n elements (replaces old luaD_checkstack) */
+// Ensure stack has space for n elements (replaces old luaD_checkstack)
 inline void luaD_checkstack(lua_State* L, int n) noexcept {
 	L->getStackSubsystem().ensureSpace(L, n);
 }
 
-/* Check stack preserving pointer (replaces old checkstackp macro) */
+// Check stack preserving pointer (replaces old checkstackp macro)
 #define checkstackp(L,n,p)  \
   (p = L->getStackSubsystem().ensureSpaceP(L, n, p))
 
@@ -42,8 +42,8 @@ inline constexpr int LUAI_MAXCCALLS = 200;
 #endif
 
 
-/* Removed luaD_reallocstack, luaD_growstack, luaD_shrinkstack, luaD_inctop - now lua_State methods */
-/* Removed all luaD_* functions - now lua_State methods (Pfunc typedef moved to lstate.h) */
+// Removed luaD_reallocstack, luaD_growstack, luaD_shrinkstack, luaD_inctop - now lua_State methods
+// Removed all luaD_* functions - now lua_State methods (Pfunc typedef moved to lstate.h)
 
 #endif
 

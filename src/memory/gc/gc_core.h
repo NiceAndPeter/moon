@@ -72,4 +72,4 @@ public:
     static void freeupval(lua_State* L, UpVal* uv);
 };
 
-#endif /* gc_core_h */
+#endif  // gc_core_h

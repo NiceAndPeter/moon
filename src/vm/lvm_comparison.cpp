@@ -31,22 +31,22 @@
 ** have different lengths.
 */
 [[nodiscard]] int l_strcmp (const TString *ts1, const TString *ts2) {
-  size_t rl1;  /* real length */
+  size_t rl1;  // real length
   auto *s1 = getStringWithLength(ts1, rl1);
   size_t rl2;
   auto *s2 = getStringWithLength(ts2, rl2);
-  for (;;) {  /* for each segment */
+  for (;;) {  // for each segment
     auto temp = strcoll(s1, s2);
-    if (temp != 0)  /* not equal? */
-      return temp;  /* done */
-    else {  /* strings are equal up to a '\0' */
-      auto zl1 = strlen(s1);  /* index of first '\0' in 's1' */
-      auto zl2 = strlen(s2);  /* index of first '\0' in 's2' */
-      if (zl2 == rl2)  /* 's2' is finished? */
-        return (zl1 == rl1) ? 0 : 1;  /* check 's1' */
-      else if (zl1 == rl1)  /* 's1' is finished? */
-        return -1;  /* 's1' is less than 's2' ('s2' is not finished) */
-      /* both strings longer than 'zl'; go on comparing after the '\0' */
+    if (temp != 0)  // not equal?
+      return temp;  // done
+    else {  // strings are equal up to a '\0'
+      auto zl1 = strlen(s1);  // index of first '\0' in 's1'
+      auto zl2 = strlen(s2);  // index of first '\0' in 's2'
+      if (zl2 == rl2)  // 's2' is finished?
+        return (zl1 == rl1) ? 0 : 1;  // check 's1'
+      else if (zl1 == rl1)  // 's1' is finished?
+        return -1;  // 's1' is less than 's2' ('s2' is not finished)
+      // both strings longer than 'zl'; go on comparing after the '\0'
       zl1++; zl2++;
       s1 += zl1; rl1 -= zl1; s2 += zl2; rl2 -= zl2;
     }
@@ -76,13 +76,13 @@
 */
 [[nodiscard]] int LTintfloat (lua_Integer i, lua_Number f) {
   if (l_intfitsf(i))
-    return luai_numlt(cast_num(i), f);  /* compare them as floats */
-  else {  /* i < f <=> i < ceil(f) */
+    return luai_numlt(cast_num(i), f);  // compare them as floats
+  else {  // i < f <=> i < ceil(f)
     lua_Integer fi;
-    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Iceil))  /* fi = ceil(f) */
-      return i < fi;   /* compare them as integers */
-    else  /* 'f' is either greater or less than all integers */
-      return f > 0;  /* greater? */
+    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Iceil))  // fi = ceil(f)
+      return i < fi;  // compare them as integers
+    else  // 'f' is either greater or less than all integers
+      return f > 0;  // greater?
   }
 }
 
@@ -93,13 +93,13 @@
 */
 [[nodiscard]] int LEintfloat (lua_Integer i, lua_Number f) {
   if (l_intfitsf(i))
-    return luai_numle(cast_num(i), f);  /* compare them as floats */
-  else {  /* i <= f <=> i <= floor(f) */
+    return luai_numle(cast_num(i), f);  // compare them as floats
+  else {  // i <= f <=> i <= floor(f)
     lua_Integer fi;
-    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Ifloor))  /* fi = floor(f) */
-      return i <= fi;   /* compare them as integers */
-    else  /* 'f' is either greater or less than all integers */
-      return f > 0;  /* greater? */
+    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Ifloor))  // fi = floor(f)
+      return i <= fi;  // compare them as integers
+    else  // 'f' is either greater or less than all integers
+      return f > 0;  // greater?
   }
 }
 
@@ -110,13 +110,13 @@
 */
 [[nodiscard]] int LTfloatint (lua_Number f, lua_Integer i) {
   if (l_intfitsf(i))
-    return luai_numlt(f, cast_num(i));  /* compare them as floats */
-  else {  /* f < i <=> floor(f) < i */
+    return luai_numlt(f, cast_num(i));  // compare them as floats
+  else {  // f < i <=> floor(f) < i
     lua_Integer fi;
-    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Ifloor))  /* fi = floor(f) */
-      return fi < i;   /* compare them as integers */
-    else  /* 'f' is either greater or less than all integers */
-      return f < 0;  /* less? */
+    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Ifloor))  // fi = floor(f)
+      return fi < i;  // compare them as integers
+    else  // 'f' is either greater or less than all integers
+      return f < 0;  // less?
   }
 }
 
@@ -127,13 +127,13 @@
 */
 [[nodiscard]] int LEfloatint (lua_Number f, lua_Integer i) {
   if (l_intfitsf(i))
-    return luai_numle(f, cast_num(i));  /* compare them as floats */
-  else {  /* f <= i <=> ceil(f) <= i */
+    return luai_numle(f, cast_num(i));  // compare them as floats
+  else {  // f <= i <=> ceil(f) <= i
     lua_Integer fi;
-    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Iceil))  /* fi = ceil(f) */
-      return fi <= i;   /* compare them as integers */
-    else  /* 'f' is either greater or less than all integers */
-      return f < 0;  /* less? */
+    if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Iceil))  // fi = ceil(f)
+      return fi <= i;  // compare them as integers
+    else  // 'f' is either greater or less than all integers
+      return f < 0;  // less?
   }
 }
 
@@ -143,8 +143,8 @@
 */
 int lua_State::lessThanOthers(const TValue *l, const TValue *r) {
   lua_assert(!ttisnumber(l) || !ttisnumber(r));
-  if (ttisstring(l) && ttisstring(r))  /* both are strings? */
-    return *tsvalue(l) < *tsvalue(r);  /* Use TString operator< */
+  if (ttisstring(l) && ttisstring(r))  // both are strings?
+    return *tsvalue(l) < *tsvalue(r);  // Use TString operator<
   else
     return luaT_callorderTM(this, l, r, TMS::TM_LT);
 }
@@ -155,11 +155,11 @@ int lua_State::lessThanOthers(const TValue *l, const TValue *r) {
 */
 int lua_State::lessEqualOthers(const TValue *l, const TValue *r) {
   lua_assert(!ttisnumber(l) || !ttisnumber(r));
-  if (ttisstring(l) && ttisstring(r))  /* both are strings? */
-    return *tsvalue(l) <= *tsvalue(r);  /* Use TString operator<= */
+  if (ttisstring(l) && ttisstring(r))  // both are strings?
+    return *tsvalue(l) <= *tsvalue(r);  // Use TString operator<=
   else
     return luaT_callorderTM(this, l, r, TMS::TM_LE);
 }
 
 
-/* luaV_lessequal, luaV_equalobj removed - use VirtualMachine methods directly */
+// luaV_lessequal, luaV_equalobj removed - use VirtualMachine methods directly

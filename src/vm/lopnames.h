@@ -10,7 +10,7 @@
 #include <cstddef>
 
 
-/* ORDER OP */
+// ORDER OP
 
 static constexpr std::array<const char*, 84> opnames = {
   "MOVE",

@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-/* test Lua with compatibility code */
+// test Lua with compatibility code
 #define LUA_COMPAT_MATHLIB
 #undef LUA_COMPAT_GLOBAL
 
@@ -18,7 +18,7 @@
 #define LUA_DEBUG
 
 
-/* turn on assertions (unless explicitly disabled via LUA_TESTS_NO_ASSERT) */
+// turn on assertions (unless explicitly disabled via LUA_TESTS_NO_ASSERT)
 #ifndef LUA_TESTS_NO_ASSERT
 #ifndef LUAI_ASSERT
 #define LUAI_ASSERT
@@ -26,11 +26,11 @@
 #endif
 
 
-/* to avoid warnings, and to make sure value is really unused */
+// to avoid warnings, and to make sure value is really unused
 #define UNUSED(x)       (x=0, (void)(x))
 
 
-/* test for sizes in 'l_sprintf' (make sure whole buffer is available) */
+// test for sizes in 'l_sprintf' (make sure whole buffer is available)
 #undef l_sprintf
 #if !defined(LUA_USE_C89)
 #define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
@@ -39,19 +39,19 @@
 #endif
 
 
-/* get a chance to test code without jump tables */
+// get a chance to test code without jump tables
 #define LUA_USE_JUMPTABLE	0
 
 
-/* use 32-bit integers in random generator */
+// use 32-bit integers in random generator
 #define LUA_RAND32
 
 
-/* test stack reallocation without strict address use */
+// test stack reallocation without strict address use
 #define LUAI_STRICT_ADDRESS	0
 
 
-/* memory-allocator control variables */
+// memory-allocator control variables
 typedef struct Memcontrol {
   int failnext;
   unsigned long numblocks;
@@ -100,7 +100,7 @@ extern void lua_printstack (lua_State *L);
 extern int lua_printallstack (lua_State *L);
 
 
-/* test for lock/unlock */
+// test for lock/unlock
 
 struct L_EXTRA { int lock; int *plock; };
 #undef LUA_EXTRASPACE
@@ -135,7 +135,7 @@ LUA_API void *debug_realloc (void *ud, void *block,
 
 
 
-/* change some sizes to give some bugs a chance */
+// change some sizes to give some bugs a chance
 
 #undef LUAL_BUFFERSIZE
 #define LUAL_BUFFERSIZE		23
@@ -160,12 +160,12 @@ LUA_API void *debug_realloc (void *ud, void *block,
 #define LUAI_MAXSTACK   68000
 
 
-/* test mode uses more stack space */
+// test mode uses more stack space
 #undef LUAI_MAXCCALLS
 #define LUAI_MAXCCALLS	180
 
 
-/* force Lua to use its own implementations */
+// force Lua to use its own implementations
 #undef lua_strx2number
 #undef lua_number2strx
 

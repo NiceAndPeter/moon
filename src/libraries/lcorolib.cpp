@@ -32,22 +32,22 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
   int status, nres;
   if (l_unlikely(!lua_checkstack(co, narg))) {
     lua_pushliteral(L, "too many arguments to resume");
-    return -1;  /* error flag */
+    return -1;  // error flag
   }
   lua_xmove(L, co, narg);
   status = lua_resume(co, L, narg, &nres);
   if (l_likely(status == LUA_OK || status == LUA_YIELD)) {
     if (l_unlikely(!lua_checkstack(L, nres + 1))) {
-      lua_pop(co, nres);  /* remove results anyway */
+      lua_pop(co, nres);  // remove results anyway
       lua_pushliteral(L, "too many results to resume");
-      return -1;  /* error flag */
+      return -1;  // error flag
     }
-    lua_xmove(co, L, nres);  /* move yielded values */
+    lua_xmove(co, L, nres);  // move yielded values
     return nres;
   }
   else {
-    lua_xmove(co, L, 1);  /* move error message */
-    return -1;  /* error flag */
+    lua_xmove(co, L, 1);  // move error message
+    return -1;  // error flag
   }
 }
 
@@ -59,12 +59,12 @@ static int luaB_coresume (lua_State *L) {
   if (l_unlikely(r < 0)) {
     lua_pushboolean(L, 0);
     lua_insert(L, -2);
-    return 2;  /* return false + error message */
+    return 2;  // return false + error message
   }
   else {
     lua_pushboolean(L, 1);
     lua_insert(L, -(r + 1));
-    return r + 1;  /* return true + 'resume' returns */
+    return r + 1;  // return true + 'resume' returns
   }
 }
 
@@ -72,20 +72,20 @@ static int luaB_coresume (lua_State *L) {
 static int luaB_auxwrap (lua_State *L) {
   lua_State *co = lua_tothread(L, lua_upvalueindex(1));
   int r = auxresume(L, co, lua_gettop(L));
-  if (l_unlikely(r < 0)) {  /* error? */
+  if (l_unlikely(r < 0)) {  // error?
     int stat = lua_status(co);
-    if (stat != LUA_OK && stat != LUA_YIELD) {  /* error in the coroutine? */
-      stat = lua_closethread(co, L);  /* close its tbc variables */
+    if (stat != LUA_OK && stat != LUA_YIELD) {  // error in the coroutine?
+      stat = lua_closethread(co, L);  // close its tbc variables
       lua_assert(stat != LUA_OK);
-      lua_xmove(co, L, 1);  /* move error message to the caller */
+      lua_xmove(co, L, 1);  // move error message to the caller
     }
-    if (stat != LUA_ERRMEM &&  /* not a memory error and ... */
-        lua_type(L, -1) == LUA_TSTRING) {  /* ... error object is a string? */
-      luaL_where(L, 1);  /* add extra info, if available */
+    if (stat != LUA_ERRMEM &&  // not a memory error and ...
+        lua_type(L, -1) == LUA_TSTRING) {  // ... error object is a string?
+      luaL_where(L, 1);  // add extra info, if available
       lua_insert(L, -2);
       lua_concat(L, 2);
     }
-    return lua_error(L);  /* propagate error */
+    return lua_error(L);  // propagate error
   }
   return r;
 }
@@ -95,8 +95,8 @@ static int luaB_cocreate (lua_State *L) {
   lua_State *NL;
   luaL_checktype(L, 1, LUA_TFUNCTION);
   NL = lua_newthread(L);
-  lua_pushvalue(L, 1);  /* move function to top */
-  lua_xmove(L, NL, 1);  /* move function from L to NL */
+  lua_pushvalue(L, 1);  // move function to top
+  lua_xmove(L, NL, 1);  // move function from L to NL
   return 1;
 }
 
@@ -131,14 +131,14 @@ static int auxstatus (lua_State *L, lua_State *co) {
         return COS_YIELD;
       case LUA_OK: {
         lua_Debug ar;
-        if (lua_getstack(co, 0, &ar))  /* does it have frames? */
-          return COS_NORM;  /* it is running */
+        if (lua_getstack(co, 0, &ar))  // does it have frames?
+          return COS_NORM;  // it is running
         else if (lua_gettop(co) == 0)
             return COS_DEAD;
         else
-          return COS_YIELD;  /* initial state */
+          return COS_YIELD;  // initial state
       }
-      default:  /* some error occurred */
+      default:  // some error occurred
         return COS_DEAD;
     }
   }
@@ -183,18 +183,18 @@ static int luaB_close (lua_State *L) {
       }
       else {
         lua_pushboolean(L, 0);
-        lua_xmove(co, L, 1);  /* move error message */
+        lua_xmove(co, L, 1);  // move error message
         return 2;
       }
     }
-    case COS_RUN:  /* running coroutine? */
-      lua_geti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);  /* get main */
+    case COS_RUN:  // running coroutine?
+      lua_geti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);  // get main
       if (lua_tothread(L, -1) == co)
         return luaL_error(L, "cannot close main thread");
-      lua_closethread(co, L);  /* close itself */
-      lua_assert(0);  /* previous call does not return */
+      lua_closethread(co, L);  // close itself
+      lua_assert(0);  // previous call does not return
       return 0;
-    default:  /* normal or running coroutine */
+    default:  // normal or running coroutine
       return luaL_error(L, "cannot close a %s coroutine", statname[status]);
   }
 }

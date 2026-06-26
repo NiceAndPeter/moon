@@ -20,8 +20,8 @@ inline constexpr bool cvt2str(const TValue* o) noexcept {
 #if !defined(LUA_NOCVTN2S)
 	return ttisnumber(o);
 #else
-	(void)o;  /* suppress unused parameter warning */
-	return false;  /* no conversion from numbers to strings */
+	(void)o;  // suppress unused parameter warning
+	return false;  // no conversion from numbers to strings
 #endif
 }
 
@@ -30,8 +30,8 @@ inline constexpr bool cvt2num(const TValue* o) noexcept {
 #if !defined(LUA_NOCVTS2N)
 	return ttisstring(o);
 #else
-	(void)o;  /* suppress unused parameter warning */
-	return false;  /* no conversion from strings to numbers */
+	(void)o;  // suppress unused parameter warning
+	return false;  // no conversion from strings to numbers
 #endif
 }
 
@@ -52,9 +52,9 @@ inline constexpr bool cvt2num(const TValue* o) noexcept {
 #ifndef F2Imod_defined
 #define F2Imod_defined
 enum class F2Imod {
-  F2Ieq,     /* no rounding; accepts only integral values */
-  F2Ifloor,  /* takes the floor of the number */
-  F2Iceil    /* takes the ceiling of the number */
+  F2Ieq,  // no rounding; accepts only integral values
+  F2Ifloor,  // takes the floor of the number
+  F2Iceil  // takes the ceiling of the number
 };
 #endif
 
@@ -64,7 +64,7 @@ enum class F2Imod {
 ** can be converted to a float without rounding. Used in comparisons.
 */
 
-/* number of bits in the mantissa of a float (kept as macro for preprocessor #if) */
+// number of bits in the mantissa of a float (kept as macro for preprocessor #if)
 #define NBM		(l_floatatt(MANT_DIG))
 
 /*
@@ -77,35 +77,35 @@ enum class F2Imod {
 #if ((((LUA_MAXINTEGER >> (NBM / 4)) >> (NBM / 4)) >> (NBM / 4)) \
 	>> (NBM - (3 * (NBM / 4))))  >  0
 
-/* limit for integers that fit in a float */
+// limit for integers that fit in a float
 inline constexpr lua_Unsigned MAXINTFITSF = (static_cast<lua_Unsigned>(1) << NBM);
 
-/* check whether 'i' is in the interval [-MAXINTFITSF, MAXINTFITSF] */
+// check whether 'i' is in the interval [-MAXINTFITSF, MAXINTFITSF]
 inline constexpr bool l_intfitsf(lua_Integer i) noexcept {
 	return (MAXINTFITSF + l_castS2U(i)) <= (2 * MAXINTFITSF);
 }
 
-#else  /* all integers fit in a float precisely */
+#else  // all integers fit in a float precisely
 
 inline constexpr bool l_intfitsf(lua_Integer i) noexcept {
-	(void)i;  /* suppress unused parameter warning */
+	(void)i;  // suppress unused parameter warning
 	return true;
 }
 
 #endif
 
 
-/* convert an object to a float (including string coercion) */
+// convert an object to a float (including string coercion)
 inline bool tonumber(const TValue* o, lua_Number* n) noexcept {
 	if (ttisfloat(o)) {
 		*n = fltvalue(o);
 		return true;
 	}
-	return o->toNumber(n);  /* use TValue method */
+	return o->toNumber(n);  // use TValue method
 }
 
 
-/* convert an object to a float (without string coercion) */
+// convert an object to a float (without string coercion)
 inline bool tonumberns(const TValue* o, lua_Number& n) noexcept {
 	if (ttisfloat(o)) {
 		n = fltvalue(o);
@@ -119,23 +119,23 @@ inline bool tonumberns(const TValue* o, lua_Number& n) noexcept {
 }
 
 
-/* convert an object to an integer (including string coercion) */
+// convert an object to an integer (including string coercion)
 inline bool tointeger(const TValue* o, lua_Integer* i) noexcept {
 	if (l_likely(ttisinteger(o))) {
 		*i = ivalue(o);
 		return true;
 	}
-	return o->toInteger(i, LUA_FLOORN2I);  /* use TValue method */
+	return o->toInteger(i, LUA_FLOORN2I);  // use TValue method
 }
 
 
-/* convert an object to an integer (without string coercion) */
+// convert an object to an integer (without string coercion)
 inline bool tointegerns(const TValue* o, lua_Integer* i) noexcept {
 	if (l_likely(ttisinteger(o))) {
 		*i = ivalue(o);
 		return true;
 	}
-	return o->toIntegerNoString(i, LUA_FLOORN2I);  /* use TValue method */
+	return o->toIntegerNoString(i, LUA_FLOORN2I);  // use TValue method
 }
 
 
@@ -144,6 +144,6 @@ inline bool tointegerns(const TValue* o, lua_Integer* i) noexcept {
 #define intop(op,v1,v2) l_castU2S(l_castS2U(v1) op l_castS2U(v2))
 
 
-/* All luaV_* wrapper functions removed - use VirtualMachine methods directly */
+// All luaV_* wrapper functions removed - use VirtualMachine methods directly
 
 #endif

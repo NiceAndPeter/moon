@@ -12,11 +12,11 @@
 #include "lmem.h"
 
 
-inline constexpr int EOZ = -1;			/* end of stream */
+inline constexpr int EOZ = -1;  // end of stream
 
 typedef class Zio ZIO;
 
-/* Forward declaration for inline function */
+// Forward declaration for inline function
 LUAI_FUNC int luaZ_fill (ZIO *z);
 
 
@@ -26,7 +26,7 @@ public:
   size_t n;
   size_t buffsize;
 
-  /* Default constructor */
+  // Default constructor
   Mbuffer() noexcept : buffer(nullptr), n(0), buffsize(0) {}
 };
 
@@ -67,22 +67,22 @@ inline void luaZ_freebuffer(lua_State *L, Mbuffer *buff) {
 
 LUAI_FUNC void luaZ_init (lua_State *L, ZIO *z, lua_Reader reader,
                                         void *data);
-LUAI_FUNC size_t luaZ_read (ZIO* z, void *b, size_t n);	/* read next n bytes */
+LUAI_FUNC size_t luaZ_read (ZIO* z, void *b, size_t n);  // read next n bytes
 
 LUAI_FUNC const void *luaZ_getaddr (ZIO* z, size_t n);
 
 
-/* --------- Private Part ------------------ */
+// --------- Private Part ------------------
 
 class Zio {
 public:
-  size_t n;			/* bytes still unread */
-  const char *p;		/* current position in buffer */
-  lua_Reader reader;		/* reader function */
-  void *data;			/* additional data */
-  lua_State *L;			/* Lua state (for reader) */
+  size_t n;  // bytes still unread
+  const char *p;  // current position in buffer
+  lua_Reader reader;  // reader function
+  void *data;  // additional data
+  lua_State *L;  // Lua state (for reader)
 
-  /* Constructor */
+  // Constructor
   Zio(lua_State *L_arg, lua_Reader reader_arg, void *data_arg) noexcept
     : n(0), p(nullptr), reader(reader_arg), data(data_arg), L(L_arg) {}
 };

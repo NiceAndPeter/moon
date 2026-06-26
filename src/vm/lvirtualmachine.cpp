@@ -40,7 +40,7 @@ inline void luai_threadyield(lua_State* L) noexcept {
 ** Constants from lvm.cpp needed for VM operations
 */
 
-/* Limit for table tag-method (metamethod) chains to prevent infinite loops */
+// Limit for table tag-method (metamethod) chains to prevent infinite loops
 inline constexpr int MAXTAGLOOP = 2000;
 
 /*
@@ -393,7 +393,7 @@ void VirtualMachine::execute(CallInfo *ci) {
 
  startfunc:
   hooksEnabled = L->getHookMask();
- returning:  /* hooksEnabled already set */
+ returning:  // hooksEnabled already set
   currentClosure = ci->getFunc();
   constants = currentClosure->getProto()->getConstants();
   programCounter = ci->getSavedPC();
@@ -401,23 +401,23 @@ void VirtualMachine::execute(CallInfo *ci) {
     hooksEnabled = luaG_tracecall(L);
   stackFrameBase = ci->funcRef().p + 1;
 
-  Instruction i;  /* instruction being executed (moved outside loop for lambda capture) */
+  Instruction i;  // instruction being executed (moved outside loop for lambda capture)
 
   // VM instruction fetch lambda
   auto vmfetch = [&]() {
-    if (l_unlikely(hooksEnabled)) {  /* stack reallocation or hooks? */
-      hooksEnabled = luaG_traceexec(L, programCounter);  /* handle hooks */
-      updateStackBase(ci);  /* correct stack */
+    if (l_unlikely(hooksEnabled)) {  // stack reallocation or hooks?
+      hooksEnabled = luaG_traceexec(L, programCounter);  // handle hooks
+      updateStackBase(ci);  // correct stack
     }
     i = *(programCounter++);
   };
 
-  /* main loop of interpreter */
+  // main loop of interpreter
   for (;;) {
     vmfetch();
     lua_assert(stackFrameBase == ci->funcRef().p + 1);
     lua_assert(stackFrameBase <= L->getTop().p && L->getTop().p <= L->getStackLast().p);
-    /* for tests, invalidate top for instructions not expecting it */
+    // for tests, invalidate top for instructions not expecting it
     lua_assert(luaP_isIT(i) || (cast_void(L->getStackSubsystem().setTopPtr(stackFrameBase)), 1));
     switch (InstructionView(i).opcode()) {
       case OP_MOVE: {
@@ -457,7 +457,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       case OP_LFALSESKIP: {
         auto ra = getRegisterA(i);
         setbfvalue(s2v(ra));
-        programCounter++;  /* skip next instruction */
+        programCounter++;  // skip next instruction
         break;
       }
       case OP_LOADTRUE: {
@@ -490,7 +490,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto ra = getRegisterA(i);
         auto *upval = currentClosure->getUpval(InstructionView(i).b())->getVP();
         auto *rc = getConstantC(i);
-        auto *key = tsvalue(rc);  /* key must be a short string */
+        auto *key = tsvalue(rc);  // key must be a short string
         LuaT tag;
         tag = fastget(upval, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
         if (tagisempty(tag))
@@ -502,7 +502,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto *rb = getValueB(i);
         auto *rc = getValueC(i);
         LuaT tag;
-        if (ttisinteger(rc)) {  /* fast track for integers? */
+        if (ttisinteger(rc)) {  // fast track for integers?
           fastgeti(rb, ivalue(rc), s2v(ra), tag);
         }
         else
@@ -528,7 +528,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
         auto *rc = getConstantC(i);
-        auto *key = tsvalue(rc);  /* key must be a short string */
+        auto *key = tsvalue(rc);  // key must be a short string
         LuaT tag;
         tag = fastget(rb, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
         if (tagisempty(tag))
@@ -539,7 +539,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto *upval = currentClosure->getUpval(InstructionView(i).a())->getVP();
         auto *rb = getConstantB(i);
         auto *rc = getRegisterOrConstantC(i);
-        auto *key = tsvalue(rb);  /* key must be a short string */
+        auto *key = tsvalue(rb);  // key must be a short string
         auto hres = fastset(upval, key, rc, [](Table* tbl, TString* strkey, TValue* val) { return tbl->psetShortStr(strkey, val); });
         if (hres == HOK)
           finishfastset(upval, rc);
@@ -549,10 +549,10 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_SETTABLE: {
         auto ra = getRegisterA(i);
-        auto *rb = getValueB(i);  /* key (table is in 'ra') */
-        auto *rc = getRegisterOrConstantC(i);  /* value */
+        auto *rb = getValueB(i);  // key (table is in 'ra')
+        auto *rc = getRegisterOrConstantC(i);  // value
         int hres;
-        if (ttisinteger(rb)) {  /* fast track for integers? */
+        if (ttisinteger(rb)) {  // fast track for integers?
           fastseti(s2v(ra), ivalue(rb), rc, hres);
         }
         else {
@@ -583,7 +583,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto ra = getRegisterA(i);
         auto *rb = getConstantB(i);
         auto *rc = getRegisterOrConstantC(i);
-        auto *key = tsvalue(rb);  /* key must be a short string */
+        auto *key = tsvalue(rb);  // key must be a short string
         auto hres = fastset(s2v(ra), key, rc, [](Table* tbl, TString* strkey, TValue* val) { return tbl->psetShortStr(strkey, val); });
         if (hres == HOK)
           finishfastset(s2v(ra), rc);
@@ -593,21 +593,21 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_NEWTABLE: {
         auto ra = getRegisterA(i);
-        auto b = cast_uint(InstructionView(i).vb());  /* log2(hash size) + 1 */
-        auto c = cast_uint(InstructionView(i).vc());  /* array size */
+        auto b = cast_uint(InstructionView(i).vb());  // log2(hash size) + 1
+        auto c = cast_uint(InstructionView(i).vc());  // array size
         if (b > 0)
-          b = 1u << (b - 1);  /* hash size is 2^(b - 1) */
-        if (InstructionView(i).testk()) {  /* non-zero extra argument? */
+          b = 1u << (b - 1);  // hash size is 2^(b - 1)
+        if (InstructionView(i).testk()) {  // non-zero extra argument?
           lua_assert(InstructionView(*programCounter).ax() != 0);
-          /* add it to array size */
+          // add it to array size
           c += cast_uint(InstructionView(*programCounter).ax()) * (MAXARG_vC + 1);
         }
-        programCounter++;  /* skip extra argument */
-        L->getStackSubsystem().setTopPtr(ra + 1);  /* correct top in case of emergency GC */
-        auto *t = Table::create(L);  /* memory allocation */
+        programCounter++;  // skip extra argument
+        L->getStackSubsystem().setTopPtr(ra + 1);  // correct top in case of emergency GC
+        auto *t = Table::create(L);  // memory allocation
         sethvalue2s(L, ra, t);
         if (b != 0 || c != 0)
-          t->resize(L, c, b);  /* idem */
+          t->resize(L, c, b);  // idem
         checkGC(L, ra + 1);
         break;
       }
@@ -615,7 +615,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
         auto *rc = getConstantC(i);
-        auto *key = tsvalue(rc);  /* key must be a short string */
+        auto *key = tsvalue(rc);  // key must be a short string
         L->getStackSubsystem().setSlot(ra + 1, rb);
         LuaT tag = fastget(rb, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
         if (tagisempty(tag))
@@ -639,7 +639,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_MODK: {
-        saveInterpreterState(L, ci);  /* in case of division by 0 */
+        saveInterpreterState(L, ci);  // in case of division by 0
         op_arithK([this](lua_State*, lua_Integer a, lua_Integer b) { return mod(a, b); },
                   [this](lua_State*, lua_Number a, lua_Number b) { return modf(a, b); }, i);
         break;
@@ -653,7 +653,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_IDIVK: {
-        saveInterpreterState(L, ci);  /* in case of division by 0 */
+        saveInterpreterState(L, ci);  // in case of division by 0
         op_arithK([this](lua_State*, lua_Integer a, lua_Integer b) { return idiv(a, b); }, luai_numidiv, i);
         break;
       }
@@ -702,7 +702,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_MOD: {
-        saveInterpreterState(L, ci);  /* in case of division by 0 */
+        saveInterpreterState(L, ci);  // in case of division by 0
         op_arith([this](lua_State*, lua_Integer a, lua_Integer b) { return mod(a, b); },
                  [this](lua_State*, lua_Number a, lua_Number b) { return modf(a, b); }, i);
         break;
@@ -711,12 +711,12 @@ void VirtualMachine::execute(CallInfo *ci) {
         op_arithf(luai_numpow, i);
         break;
       }
-      case OP_DIV: {  /* float division (always with floats) */
+      case OP_DIV: {  // float division (always with floats)
         op_arithf(luai_numdiv, i);
         break;
       }
-      case OP_IDIV: {  /* floor division */
-        saveInterpreterState(L, ci);  /* in case of division by 0 */
+      case OP_IDIV: {  // floor division
+        saveInterpreterState(L, ci);  // in case of division by 0
         op_arith([this](lua_State*, lua_Integer a, lua_Integer b) { return idiv(a, b); }, luai_numidiv, i);
         break;
       }
@@ -742,7 +742,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_MMBIN: {
         auto ra = getRegisterA(i);
-        auto pi = *(programCounter - 2);  /* original arith. expression */
+        auto pi = *(programCounter - 2);  // original arith. expression
         auto *rb = getValueB(i);
         auto metamethodEvent = static_cast<TMS>(InstructionView(i).c());
         auto result = getRegisterA(pi);
@@ -752,7 +752,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_MMBINI: {
         auto ra = getRegisterA(i);
-        auto pi = *(programCounter - 2);  /* original arith. expression */
+        auto pi = *(programCounter - 2);  // original arith. expression
         auto imm = InstructionView(i).sb();
         auto metamethodEvent = static_cast<TMS>(InstructionView(i).c());
         auto flip = InstructionView(i).k();
@@ -762,7 +762,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_MMBINK: {
         auto ra = getRegisterA(i);
-        auto pi = *(programCounter - 2);  /* original arith. expression */
+        auto pi = *(programCounter - 2);  // original arith. expression
         auto *imm = getConstantB(i);
         auto metamethodEvent = static_cast<TMS>(InstructionView(i).c());
         auto flip = InstructionView(i).k();
@@ -812,21 +812,21 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_CONCAT: {
         auto ra = getRegisterA(i);
-        auto n = InstructionView(i).b();  /* number of elements to concatenate */
-        L->getStackSubsystem().setTopPtr(ra + n);  /* mark the end of concat operands */
+        auto n = InstructionView(i).b();  // number of elements to concatenate
+        L->getStackSubsystem().setTopPtr(ra + n);  // mark the end of concat operands
         protectCallNoTop([&]() { concat(n); });
-        checkGC(L, L->getTop().p); /* 'luaV_concat' ensures correct top */
+        checkGC(L, L->getTop().p);  // 'luaV_concat' ensures correct top
         break;
       }
       case OP_CLOSE: {
         auto ra = getRegisterA(i);
-        lua_assert(!InstructionView(i).b());  /* 'close must be alive */
+        lua_assert(!InstructionView(i).b());  // 'close must be alive
         protectCall([&]() { ra = luaF_close(L, ra, LUA_OK, 1); });
         break;
       }
       case OP_TBC: {
         auto ra = getRegisterA(i);
-        /* create new to-be-closed upvalue */
+        // create new to-be-closed upvalue
         halfProtectedCall([&]() { luaF_newtbcupval(L, ra); });
         break;
       }
@@ -853,8 +853,8 @@ void VirtualMachine::execute(CallInfo *ci) {
       case OP_EQK: {
         auto ra = getRegisterA(i);
         auto *rb = getConstantB(i);
-        /* basic types do not use '__eq'; we can use raw equality */
-        auto cond = (*s2v(ra) == *rb);  /* Use operator== for cleaner syntax */
+        // basic types do not use '__eq'; we can use raw equality
+        auto cond = (*s2v(ra) == *rb);  // Use operator== for cleaner syntax
         performConditionalJump(cond, ci, i);
         break;
       }
@@ -867,7 +867,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         else if (ttisfloat(s2v(ra)))
           cond = luai_numeq(fltvalue(s2v(ra)), cast_num(im));
         else
-          cond = 0;  /* other types cannot be equal to a number */
+          cond = 0;  // other types cannot be equal to a number
         performConditionalJump(cond, ci, i);
         break;
       }
@@ -908,14 +908,14 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto ra = getRegisterA(i);
         auto b = InstructionView(i).b();
         auto nresults = InstructionView(i).c() - 1;
-        if (b != 0)  /* fixed number of arguments? */
-          L->getStackSubsystem().setTopPtr(ra + b);  /* top signals number of arguments */
-        /* else previous instruction set top */
-        saveProgramCounter(ci);  /* in case of errors */
+        if (b != 0)  // fixed number of arguments?
+          L->getStackSubsystem().setTopPtr(ra + b);  // top signals number of arguments
+        // else previous instruction set top
+        saveProgramCounter(ci);  // in case of errors
         CallInfo *newci;
         if ((newci = L->preCall( ra, nresults)) == nullptr)
-          updateTrap(ci);  /* C call; nothing else to be done */
-        else {  /* Lua call: run function in this same C frame */
+          updateTrap(ci);  // C call; nothing else to be done
+        else {  // Lua call: run function in this same C frame
           ci = newci;
           goto startfunc;
         }
@@ -923,50 +923,50 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_TAILCALL: {
         auto ra = getRegisterA(i);
-        auto b = InstructionView(i).b();  /* number of arguments + 1 (function) */
+        auto b = InstructionView(i).b();  // number of arguments + 1 (function)
         auto nparams1 = InstructionView(i).c();
-        /* delta is virtual 'func' - real 'func' (vararg functions) */
+        // delta is virtual 'func' - real 'func' (vararg functions)
         auto delta = (nparams1) ? ci->getExtraArgs() + nparams1 : 0;
         if (b != 0)
           L->getStackSubsystem().setTopPtr(ra + b);
-        else  /* previous instruction set top */
+        else  // previous instruction set top
           b = cast_int(L->getTop().p - ra);
-        saveProgramCounter(ci);  /* several calls here can raise errors */
+        saveProgramCounter(ci);  // several calls here can raise errors
         if (InstructionView(i).testk()) {
-          luaF_closeupval(L, stackFrameBase);  /* close upvalues from current call */
-          lua_assert(L->getTbclist().p < stackFrameBase);  /* no pending tbc variables */
+          luaF_closeupval(L, stackFrameBase);  // close upvalues from current call
+          lua_assert(L->getTbclist().p < stackFrameBase);  // no pending tbc variables
           lua_assert(stackFrameBase == ci->funcRef().p + 1);
         }
-        int n;  /* number of results when calling a C function */
-        if ((n = L->preTailCall( ci, ra, b, delta)) < 0)  /* Lua function? */
-          goto startfunc;  /* execute the callee */
-        else {  /* C function? */
-          ci->funcRef().p -= delta;  /* restore 'func' (if vararg) */
-          L->postCall( ci, n);  /* finish caller */
-          updateTrap(ci);  /* 'luaD_poscall' can change hooks */
-          goto ret;  /* caller returns after the tail call */
+        int n;  // number of results when calling a C function
+        if ((n = L->preTailCall( ci, ra, b, delta)) < 0)  // Lua function?
+          goto startfunc;  // execute the callee
+        else {  // C function?
+          ci->funcRef().p -= delta;  // restore 'func' (if vararg)
+          L->postCall( ci, n);  // finish caller
+          updateTrap(ci);  // 'luaD_poscall' can change hooks
+          goto ret;  // caller returns after the tail call
         }
       }
       case OP_RETURN: {
         auto ra = getRegisterA(i);
-        auto n = InstructionView(i).b() - 1;  /* number of results */
+        auto n = InstructionView(i).b() - 1;  // number of results
         auto nparams1 = InstructionView(i).c();
-        if (n < 0)  /* not fixed? */
-          n = cast_int(L->getTop().p - ra);  /* get what is available */
+        if (n < 0)  // not fixed?
+          n = cast_int(L->getTop().p - ra);  // get what is available
         saveProgramCounter(ci);
-        if (InstructionView(i).testk()) {  /* may there be open upvalues? */
-          ci->setNRes(n);  /* save number of returns */
+        if (InstructionView(i).testk()) {  // may there be open upvalues?
+          ci->setNRes(n);  // save number of returns
           if (L->getTop().p < ci->topRef().p)
             L->getStackSubsystem().setTopPtr(ci->topRef().p);
           stackFrameBase = luaF_close(L, stackFrameBase, CLOSEKTOP, 1);
           updateTrap(ci);
           updateStackAfterRealloc(ra, ci, i);
         }
-        if (nparams1)  /* vararg function? */
+        if (nparams1)  // vararg function?
           ci->funcRef().p -= ci->getExtraArgs() + nparams1;
-        L->getStackSubsystem().setTopPtr(ra + n);  /* set call for 'luaD_poscall' */
+        L->getStackSubsystem().setTopPtr(ra + n);  // set call for 'luaD_poscall'
         L->postCall( ci, n);
-        updateTrap(ci);  /* 'luaD_poscall' can change hooks */
+        updateTrap(ci);  // 'luaD_poscall' can change hooks
         goto ret;
       }
       case OP_RETURN0: {
@@ -974,16 +974,16 @@ void VirtualMachine::execute(CallInfo *ci) {
           auto ra = getRegisterA(i);
           L->getStackSubsystem().setTopPtr(ra);
           saveProgramCounter(ci);
-          L->postCall( ci, 0);  /* no hurry... */
+          L->postCall( ci, 0);  // no hurry...
           hooksEnabled = 1;
         }
-        else {  /* do the 'poscall' here */
+        else {  // do the 'poscall' here
           auto nres = CallInfo::getNResults(ci->getCallStatus());
-          L->setCI(ci->getPrevious());  /* back to caller */
+          L->setCI(ci->getPrevious());  // back to caller
           L->getStackSubsystem().setTopPtr(stackFrameBase - 1);
           for (; l_unlikely(nres > 0); nres--) {
             setnilvalue(s2v(L->getTop().p));
-            L->getStackSubsystem().push();  /* all results are nil */
+            L->getStackSubsystem().push();  // all results are nil
           }
         }
         goto ret;
@@ -993,55 +993,55 @@ void VirtualMachine::execute(CallInfo *ci) {
           auto ra = getRegisterA(i);
           L->getStackSubsystem().setTopPtr(ra + 1);
           saveProgramCounter(ci);
-          L->postCall( ci, 1);  /* no hurry... */
+          L->postCall( ci, 1);  // no hurry...
           hooksEnabled = 1;
         }
-        else {  /* do the 'poscall' here */
+        else {  // do the 'poscall' here
           auto nres = CallInfo::getNResults(ci->getCallStatus());
-          L->setCI(ci->getPrevious());  /* back to caller */
+          L->setCI(ci->getPrevious());  // back to caller
           if (nres == 0)
-            L->getStackSubsystem().setTopPtr(stackFrameBase - 1);  /* asked for no results */
+            L->getStackSubsystem().setTopPtr(stackFrameBase - 1);  // asked for no results
           else {
             auto ra = getRegisterA(i);
             *s2v(stackFrameBase - 1) = *s2v(ra);  /* at least this result (operator=) */
             L->getStackSubsystem().setTopPtr(stackFrameBase);
             for (; l_unlikely(nres > 1); nres--) {
               setnilvalue(s2v(L->getTop().p));
-              L->getStackSubsystem().push();  /* complete missing results */
+              L->getStackSubsystem().push();  // complete missing results
             }
           }
         }
-       ret:  /* return from a Lua function */
+       ret:  // return from a Lua function
         if (ci->getCallStatus() & CIST_FRESH)
-          return;  /* end this frame */
+          return;  // end this frame
         else {
           ci = ci->getPrevious();
-          goto returning;  /* continue running caller in this frame */
+          goto returning;  // continue running caller in this frame
         }
       }
       case OP_FORLOOP: {
         auto ra = getRegisterA(i);
-        if (ttisinteger(s2v(ra + 1))) {  /* integer loop? */
+        if (ttisinteger(s2v(ra + 1))) {  // integer loop?
           auto count = l_castS2U(ivalue(s2v(ra)));
-          if (count > 0) {  /* still more iterations? */
+          if (count > 0) {  // still more iterations?
             auto step = ivalue(s2v(ra + 1));
-            auto idx = ivalue(s2v(ra + 2));  /* control variable */
-            s2v(ra)->changeInt(l_castU2S(count - 1));  /* update counter */
-            idx = intop(+, idx, step);  /* add step to index */
-            s2v(ra + 2)->changeInt(idx);  /* update control variable */
-            programCounter -= InstructionView(i).bx();  /* jump back */
+            auto idx = ivalue(s2v(ra + 2));  // control variable
+            s2v(ra)->changeInt(l_castU2S(count - 1));  // update counter
+            idx = intop(+, idx, step);  // add step to index
+            s2v(ra + 2)->changeInt(idx);  // update control variable
+            programCounter -= InstructionView(i).bx();  // jump back
           }
         }
-        else if (L->floatForLoop(ra))  /* float loop */
-          programCounter -= InstructionView(i).bx();  /* jump back */
-        updateTrap(ci);  /* allows a signal to break the loop */
+        else if (L->floatForLoop(ra))  // float loop
+          programCounter -= InstructionView(i).bx();  // jump back
+        updateTrap(ci);  // allows a signal to break the loop
         break;
       }
       case OP_FORPREP: {
         auto ra = getRegisterA(i);
-        saveInterpreterState(L, ci);  /* in case of errors */
+        saveInterpreterState(L, ci);  // in case of errors
         if (L->forPrep(ra))
-          programCounter += InstructionView(i).bx() + 1;  /* skip the loop */
+          programCounter += InstructionView(i).bx() + 1;  // skip the loop
         break;
       }
       case OP_TFORPREP: {
@@ -1052,14 +1052,14 @@ void VirtualMachine::execute(CallInfo *ci) {
           as to-be-closed.
        */
        auto ra = getRegisterA(i);
-       TValue temp;  /* to swap control and closing variables */
-       temp = *s2v(ra + 3);  /* Use operator= for temp assignment */
+       TValue temp;  // to swap control and closing variables
+       temp = *s2v(ra + 3);  // Use operator= for temp assignment
        *s2v(ra + 3) = *s2v(ra + 2);  /* Use operator= */
        *s2v(ra + 2) = temp;  /* Use operator= */
-        /* create to-be-closed upvalue (if closing var. is not nil) */
+        // create to-be-closed upvalue (if closing var. is not nil)
         halfProtectedCall([&]() { luaF_newtbcupval(L, ra + 2); });
-        programCounter += InstructionView(i).bx();  /* go to end of the loop */
-        i = *(programCounter++);  /* fetch next instruction */
+        programCounter += InstructionView(i).bx();  // go to end of the loop
+        i = *(programCounter++);  // fetch next instruction
         lua_assert(InstructionView(i).opcode() == OP_TFORCALL && ra == getRegisterA(i));
         goto l_tforcall;
       }
@@ -1076,17 +1076,17 @@ void VirtualMachine::execute(CallInfo *ci) {
         *s2v(ra + 4) = *s2v(ra + 1);  /* copy state (operator=) */
         *s2v(ra + 3) = *s2v(ra);  /* copy function (operator=) */
         L->getStackSubsystem().setTopPtr(ra + 3 + 3);
-        protectCallNoTop([&]() { L->call( ra + 3, InstructionView(i).c()); });  /* do the call */
-        updateStackAfterRealloc(ra, ci, i);  /* stack may have changed */
-        i = *(programCounter++);  /* go to next instruction */
+        protectCallNoTop([&]() { L->call( ra + 3, InstructionView(i).c()); });  // do the call
+        updateStackAfterRealloc(ra, ci, i);  // stack may have changed
+        i = *(programCounter++);  // go to next instruction
         lua_assert(InstructionView(i).opcode() == OP_TFORLOOP && ra == getRegisterA(i));
         goto l_tforloop;
       }}
       case OP_TFORLOOP: {
        l_tforloop: {
         auto ra = getRegisterA(i);
-        if (!ttisnil(s2v(ra + 3)))  /* continue loop? */
-          programCounter -= InstructionView(i).bx();  /* jump back */
+        if (!ttisnil(s2v(ra + 3)))  // continue loop?
+          programCounter -= InstructionView(i).bx();  // jump back
         break;
       }}
       case OP_SETLIST: {
@@ -1095,19 +1095,19 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto last = cast_uint(InstructionView(i).vc());
         auto *h = hvalue(s2v(ra));
         if (n == 0)
-          n = cast_uint(L->getTop().p - ra) - 1;  /* get up to the top */
+          n = cast_uint(L->getTop().p - ra) - 1;  // get up to the top
         else
-          L->getStackSubsystem().setTopPtr(ci->topRef().p);  /* correct top in case of emergency GC */
+          L->getStackSubsystem().setTopPtr(ci->topRef().p);  // correct top in case of emergency GC
         last += n;
         if (InstructionView(i).testk()) {
           last += cast_uint(InstructionView(*programCounter).ax()) * (MAXARG_vC + 1);
           programCounter++;
         }
-        /* when 'n' is known, table should have proper size */
-        if (last > h->arraySize()) {  /* needs more space? */
-          /* fixed-size sets should have space preallocated */
+        // when 'n' is known, table should have proper size
+        if (last > h->arraySize()) {  // needs more space?
+          // fixed-size sets should have space preallocated
           lua_assert(InstructionView(i).vb() == 0);
-          h->resizeArray(L, last);  /* preallocate it at once */
+          h->resizeArray(L, last);  // preallocate it at once
         }
         for (; n > 0; n--) {
           auto *val = s2v(ra + n);
@@ -1126,17 +1126,17 @@ void VirtualMachine::execute(CallInfo *ci) {
       }
       case OP_VARARG: {
         auto ra = getRegisterA(i);
-        auto n = InstructionView(i).c() - 1;  /* required results */
+        auto n = InstructionView(i).c() - 1;  // required results
         protectCall([&]() { luaT_getvarargs(L, ci, ra, n); });
         break;
       }
       case OP_VARARGPREP: {
         protectCallNoTop([&]() { luaT_adjustvarargs(L, InstructionView(i).a(), ci, currentClosure->getProto()); });
-        if (l_unlikely(hooksEnabled)) {  /* previous "Protect" updated hooksEnabled */
+        if (l_unlikely(hooksEnabled)) {  // previous "Protect" updated hooksEnabled
           L->hookCall( ci);
-          L->setOldPC(1);  /* next opcode will be seen as a "new" line */
+          L->setOldPC(1);  // next opcode will be seen as a "new" line
         }
-        updateStackBase(ci);  /* function has new base after adjustment */
+        updateStackBase(ci);  // function has new base after adjustment
         break;
       }
       case OP_EXTRAARG: {
@@ -1150,9 +1150,9 @@ void VirtualMachine::execute(CallInfo *ci) {
 void VirtualMachine::finishOp() {
   CallInfo *ci = L->getCI();
   StkId base = ci->funcRef().p + 1;
-  Instruction inst = *(ci->getSavedPC() - 1);  /* interrupted instruction */
+  Instruction inst = *(ci->getSavedPC() - 1);  // interrupted instruction
   OpCode op = static_cast<OpCode>(InstructionView(inst).opcode());
-  switch (op) {  /* finish its execution */
+  switch (op) {  // finish its execution
     case OP_MMBIN: case OP_MMBINI: case OP_MMBINK: {
       *s2v(base + InstructionView(*(ci->getSavedPC() - 2)).a()) = *s2v(--L->getTop().p);
       break;
@@ -1166,41 +1166,41 @@ void VirtualMachine::finishOp() {
     case OP_LT: case OP_LE:
     case OP_LTI: case OP_LEI:
     case OP_GTI: case OP_GEI:
-    case OP_EQ: {  /* note that 'OP_EQI'/'OP_EQK' cannot yield */
-      lua_assert(L->getTop().p > L->getStack().p);  /* ensure stack not empty */
+    case OP_EQ: {  // note that 'OP_EQI'/'OP_EQK' cannot yield
+      lua_assert(L->getTop().p > L->getStack().p);  // ensure stack not empty
       int res = !l_isfalse(s2v(L->getTop().p - 1));
       L->getStackSubsystem().pop();
       lua_assert(InstructionView(*ci->getSavedPC()).opcode() == OP_JMP);
-      if (res != InstructionView(inst).k())  /* condition failed? */
-        ci->setSavedPC(ci->getSavedPC() + 1);  /* skip jump instruction */
+      if (res != InstructionView(inst).k())  // condition failed?
+        ci->setSavedPC(ci->getSavedPC() + 1);  // skip jump instruction
       break;
     }
     case OP_CONCAT: {
-      StkId top = L->getTop().p - 1;  /* top when 'luaT_tryconcatTM' was called */
-      int a = InstructionView(inst).a();      /* first element to concatenate */
-      lua_assert(top >= base + a + 1);  /* ensure valid range for subtraction */
-      lua_assert(top >= L->getStack().p + 2);  /* ensure top-2 is valid */
-      int total = cast_int(top - 1 - (base + a));  /* yet to concatenate */
+      StkId top = L->getTop().p - 1;  // top when 'luaT_tryconcatTM' was called
+      int a = InstructionView(inst).a();  // first element to concatenate
+      lua_assert(top >= base + a + 1);  // ensure valid range for subtraction
+      lua_assert(top >= L->getStack().p + 2);  // ensure top-2 is valid
+      int total = cast_int(top - 1 - (base + a));  // yet to concatenate
       *s2v(top - 2) = *s2v(top);  /* put TM result in proper position (operator=) */
-      L->getStackSubsystem().setTopPtr(top - 1);  /* top is one after last element (at top-2) */
-      concat(total);  /* concat them (may yield again) */
+      L->getStackSubsystem().setTopPtr(top - 1);  // top is one after last element (at top-2)
+      concat(total);  // concat them (may yield again)
       break;
     }
-    case OP_CLOSE: {  /* yielded closing variables */
-      ci->setSavedPC(ci->getSavedPC() - 1);  /* repeat instruction to close other vars. */
+    case OP_CLOSE: {  // yielded closing variables
+      ci->setSavedPC(ci->getSavedPC() - 1);  // repeat instruction to close other vars.
       break;
     }
-    case OP_RETURN: {  /* yielded closing variables */
+    case OP_RETURN: {  // yielded closing variables
       StkId ra = base + InstructionView(inst).a();
       /* adjust top to signal correct number of returns, in case the
          return is "up to top" ('isIT') */
       L->getStackSubsystem().setTopPtr(ra + ci->getNRes());
-      /* repeat instruction to close other vars. and complete the return */
+      // repeat instruction to close other vars. and complete the return
       ci->setSavedPC(ci->getSavedPC() - 1);
       break;
     }
     default: {
-      /* only these other opcodes can yield */
+      // only these other opcodes can yield
       lua_assert(op == OP_TFORCALL || op == OP_CALL ||
            op == OP_TAILCALL || op == OP_SETTABUP || op == OP_SETTABLE ||
            op == OP_SETI || op == OP_SETFIELD);
@@ -1214,7 +1214,7 @@ void VirtualMachine::finishOp() {
 // Helper function for string to number conversion
 static int l_strton (const TValue *obj, TValue *result) {
   lua_assert(obj != result);
-  if (!cvt2num(obj))  /* is object not a string? */
+  if (!cvt2num(obj))  // is object not a string?
     return 0;
   else {
     TString *st = tsvalue(obj);
@@ -1230,25 +1230,25 @@ int VirtualMachine::tonumber(const TValue *obj, lua_Number *n) const {
     *n = cast_num(ivalue(obj));
     return 1;
   }
-  else if (l_strton(obj, &v)) {  /* string coercible to number? */
+  else if (l_strton(obj, &v)) {  // string coercible to number?
     *n = nvalue(&v);  /* convert result of 'luaO_str2num' to a float */
     return 1;
   }
   else
-    return 0;  /* conversion failed */
+    return 0;  // conversion failed
 }
 
-/* Wrapper for lobject.h inline functions to call */
+// Wrapper for lobject.h inline functions to call
 int VirtualMachine_flttointeger(lua_Number n, lua_Integer *p, F2Imod mode) {
   return VirtualMachine::flttointeger(n, p, mode);
 }
 
 int VirtualMachine::flttointeger(lua_Number n, lua_Integer *p, F2Imod mode) {
   lua_Number f = l_floor(n);
-  if (n != f) {  /* not an integral value? */
-    if (mode == F2Imod::F2Ieq) return 0;  /* fails if mode demands integral value */
-    else if (mode == F2Imod::F2Iceil)  /* needs ceiling? */
-      f += 1;  /* convert floor to ceiling (remember: n != f) */
+  if (n != f) {  // not an integral value?
+    if (mode == F2Imod::F2Ieq) return 0;  // fails if mode demands integral value
+    else if (mode == F2Imod::F2Iceil)  // needs ceiling?
+      f += 1;  // convert floor to ceiling (remember: n != f)
   }
   return lua_numbertointeger(f, p);
 }
@@ -1266,37 +1266,37 @@ int VirtualMachine::tointegerns(const TValue *obj, lua_Integer *p, F2Imod mode) 
 
 int VirtualMachine::tointeger(const TValue *obj, lua_Integer *p, F2Imod mode) const {
   TValue v;
-  if (l_strton(obj, &v))  /* does 'obj' point to a numerical string? */
-    obj = &v;  /* change it to point to its corresponding number */
+  if (l_strton(obj, &v))  // does 'obj' point to a numerical string?
+    obj = &v;  // change it to point to its corresponding number
   return tointegerns(obj, p, mode);
 }
 
 // === ARITHMETIC ===
 
 lua_Integer VirtualMachine::idiv(lua_Integer m, lua_Integer n) const {
-  if (l_unlikely(l_castS2U(n) + 1u <= 1u)) {  /* special cases: -1 or 0 */
+  if (l_unlikely(l_castS2U(n) + 1u <= 1u)) {  // special cases: -1 or 0
     if (n == 0)
       luaG_runerror(L, "attempt to divide by zero");
-    return intop(-, 0, m);   /* n==-1; avoid overflow with 0x80000...//-1 */
+    return intop(-, 0, m);  // n==-1; avoid overflow with 0x80000...//-1
   }
   else {
-    auto q = m / n;  /* perform C division */
-    if ((m ^ n) < 0 && m % n != 0)  /* 'm/n' would be negative non-integer? */
-      q -= 1;  /* correct result for different rounding */
+    auto q = m / n;  // perform C division
+    if ((m ^ n) < 0 && m % n != 0)  // 'm/n' would be negative non-integer?
+      q -= 1;  // correct result for different rounding
     return q;
   }
 }
 
 lua_Integer VirtualMachine::mod(lua_Integer m, lua_Integer n) const {
-  if (l_unlikely(l_castS2U(n) + 1u <= 1u)) {  /* special cases: -1 or 0 */
+  if (l_unlikely(l_castS2U(n) + 1u <= 1u)) {  // special cases: -1 or 0
     if (n == 0)
       luaG_runerror(L, "attempt to perform 'n%%0'");
-    return 0;   /* m % -1 == 0; avoid overflow with 0x80000...%-1 */
+    return 0;  // m % -1 == 0; avoid overflow with 0x80000...%-1
   }
   else {
     auto r = m % n;
-    if (r != 0 && (r ^ n) < 0)  /* 'm/n' would be non-integer negative? */
-      r += n;  /* correct result for different rounding */
+    if (r != 0 && (r ^ n) < 0)  // 'm/n' would be non-integer negative?
+      r += n;  // correct result for different rounding
     return r;
   }
 }
@@ -1308,14 +1308,14 @@ lua_Number VirtualMachine::modf(lua_Number m, lua_Number n) const {
 }
 
 lua_Integer VirtualMachine::shiftl(lua_Integer x, lua_Integer y) {
-  /* number of bits in an integer */
+  // number of bits in an integer
   constexpr int NBITS = l_numbits<lua_Integer>();
 
-  if (y < 0) {  /* shift right? */
+  if (y < 0) {  // shift right?
     if (y <= -NBITS) return 0;
     else return intop(>>, x, -y);
   }
-  else {  /* shift left */
+  else {  // shift left
     if (y >= NBITS) return 0;
     else return intop(<<, x, y);
   }
@@ -1324,29 +1324,29 @@ lua_Integer VirtualMachine::shiftl(lua_Integer x, lua_Integer y) {
 // === COMPARISONS ===
 
 int VirtualMachine::lessThan(const TValue *l, const TValue *r) const {
-  if (ttisnumber(l) && ttisnumber(r))  /* both operands are numbers? */
-    return *l < *r;  /* Use operator< for cleaner syntax */
+  if (ttisnumber(l) && ttisnumber(r))  // both operands are numbers?
+    return *l < *r;  // Use operator< for cleaner syntax
   else return L->lessThanOthers(l, r);
 }
 
 int VirtualMachine::lessEqual(const TValue *l, const TValue *r) const {
-  if (ttisnumber(l) && ttisnumber(r))  /* both operands are numbers? */
-    return *l <= *r;  /* Use operator<= for cleaner syntax */
+  if (ttisnumber(l) && ttisnumber(r))  // both operands are numbers?
+    return *l <= *r;  // Use operator<= for cleaner syntax
   else return L->lessEqualOthers(l, r);
 }
 
 int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
   const TValue *metamethod;
-  if (ttype(t1) != ttype(t2))  /* not the same type? */
+  if (ttype(t1) != ttype(t2))  // not the same type?
     return 0;
   else if (ttypetag(t1) != ttypetag(t2)) {
     switch (ttypetag(t1)) {
-      case LuaT::NUMINT: {  /* integer == float? */
+      case LuaT::NUMINT: {  // integer == float?
         lua_Integer i2;
         return (flttointeger(fltvalue(t2), &i2, F2Imod::F2Ieq) &&
                 ivalue(t1) == i2);
       }
-      case LuaT::NUMFLT: {  /* float == integer? */
+      case LuaT::NUMFLT: {  // float == integer?
         lua_Integer i1;
         return (flttointeger(fltvalue(t1), &i1, F2Imod::F2Ieq) &&
                 i1 == ivalue(t2));
@@ -1358,7 +1358,7 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
         return 0;
     }
   }
-  else {  /* equal variants */
+  else {  // equal variants
     switch (ttypetag(t1)) {
       case LuaT::NIL: case LuaT::VFALSE: case LuaT::VTRUE:
         return 1;
@@ -1377,7 +1377,7 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
         metamethod = fasttm(L, uvalue(t1)->getMetatable(), TMS::TM_EQ);
         if (metamethod == nullptr)
           metamethod = fasttm(L, uvalue(t2)->getMetatable(), TMS::TM_EQ);
-        break;  /* will try TM */
+        break;  // will try TM
       }
       case LuaT::TABLE: {
         if (hvalue(t1) == hvalue(t2)) return 1;
@@ -1385,17 +1385,17 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
         metamethod = fasttm(L, hvalue(t1)->getMetatable(), TMS::TM_EQ);
         if (metamethod == nullptr)
           metamethod = fasttm(L, hvalue(t2)->getMetatable(), TMS::TM_EQ);
-        break;  /* will try TM */
+        break;  // will try TM
       }
       case LuaT::LCF:
         return (fvalue(t1) == fvalue(t2));
-      default:  /* functions and threads */
+      default:  // functions and threads
         return (gcvalue(t1) == gcvalue(t2));
     }
-    if (metamethod == nullptr)  /* no TM? */
-      return 0;  /* objects are different */
+    if (metamethod == nullptr)  // no TM?
+      return 0;  // objects are different
     else {
-      auto tag = luaT_callTMres(L, metamethod, t1, t2, L->getTop().p);  /* call TM */
+      auto tag = luaT_callTMres(L, metamethod, t1, t2, L->getTop().p);  // call TM
       return !tagisfalse(tag);
     }
   }
@@ -1404,80 +1404,80 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
 // === TABLE OPERATIONS ===
 
 LuaT VirtualMachine::finishGet(const TValue *t, TValue *key, StkId val, LuaT tag) const {
-  const TValue *metamethod;  /* metamethod */
+  const TValue *metamethod;  // metamethod
   for (int loop = 0; loop < MAXTAGLOOP; loop++) {
-    if (tag == LuaT::NOTABLE) {  /* 't' is not a table? */
+    if (tag == LuaT::NOTABLE) {  // 't' is not a table?
       lua_assert(!ttistable(t));
       metamethod = luaT_gettmbyobj(L, t, TMS::TM_INDEX);
       if (l_unlikely(notm(metamethod)))
-        luaG_typeerror(L, t, "index");  /* no metamethod */
-      /* else will try the metamethod */
+        luaG_typeerror(L, t, "index");  // no metamethod
+      // else will try the metamethod
     }
-    else {  /* 't' is a table */
-      metamethod = fasttm(L, hvalue(t)->getMetatable(), TMS::TM_INDEX);  /* table's metamethod */
-      if (metamethod == nullptr) {  /* no metamethod? */
-        setnilvalue(s2v(val));  /* result is nil */
+    else {  // 't' is a table
+      metamethod = fasttm(L, hvalue(t)->getMetatable(), TMS::TM_INDEX);  // table's metamethod
+      if (metamethod == nullptr) {  // no metamethod?
+        setnilvalue(s2v(val));  // result is nil
         return LuaT::NIL;
       }
-      /* else will try the metamethod */
+      // else will try the metamethod
     }
-    if (ttisfunction(metamethod)) {  /* is metamethod a function? */
-      tag = luaT_callTMres(L, metamethod, t, key, val);  /* call it */
-      return tag;  /* return tag of the result */
+    if (ttisfunction(metamethod)) {  // is metamethod a function?
+      tag = luaT_callTMres(L, metamethod, t, key, val);  // call it
+      return tag;  // return tag of the result
     }
-    t = metamethod;  /* else try to access 'tm[key]' */
+    t = metamethod;  // else try to access 'tm[key]'
     tag = fastget(t, key, s2v(val), [](Table* tbl, const TValue* k, TValue* res) { return tbl->get(k, res); });
     if (!tagisempty(tag))
-      return tag;  /* done */
-    /* else repeat (tail call 'luaV_finishget') */
+      return tag;  // done
+    // else repeat (tail call 'luaV_finishget')
   }
   luaG_runerror(L, "'__index' chain too long; possible loop");
-  return LuaT::NIL;  /* to avoid warnings */
+  return LuaT::NIL;  // to avoid warnings
 }
 
 void VirtualMachine::finishSet(const TValue *t, TValue *key, TValue *val, int hres) const {
   for (int loop = 0; loop < MAXTAGLOOP; loop++) {
-    const TValue *metamethod;  /* '__newindex' metamethod */
-    if (hres != HNOTATABLE) {  /* is 't' a table? */
-      auto *h = hvalue(t);  /* save 't' table */
-      metamethod = fasttm(L, h->getMetatable(), TMS::TM_NEWINDEX);  /* get metamethod */
-      if (metamethod == nullptr) {  /* no metamethod? */
-        sethvalue2s(L, L->getTop().p, h);  /* anchor 't' */
-        L->getStackSubsystem().push();  /* assume EXTRA_STACK */
-        h->finishSet(L, key, val, hres);  /* set new value */
+    const TValue *metamethod;  // '__newindex' metamethod
+    if (hres != HNOTATABLE) {  // is 't' a table?
+      auto *h = hvalue(t);  // save 't' table
+      metamethod = fasttm(L, h->getMetatable(), TMS::TM_NEWINDEX);  // get metamethod
+      if (metamethod == nullptr) {  // no metamethod?
+        sethvalue2s(L, L->getTop().p, h);  // anchor 't'
+        L->getStackSubsystem().push();  // assume EXTRA_STACK
+        h->finishSet(L, key, val, hres);  // set new value
         L->getStackSubsystem().pop();
         invalidateTMcache(h);
         luaC_barrierback(L, obj2gco(h), val);
         return;
       }
-      /* else will try the metamethod */
+      // else will try the metamethod
     }
-    else {  /* not a table; check metamethod */
+    else {  // not a table; check metamethod
       metamethod = luaT_gettmbyobj(L, t, TMS::TM_NEWINDEX);
       if (l_unlikely(notm(metamethod)))
         luaG_typeerror(L, t, "index");
     }
-    /* try the metamethod */
+    // try the metamethod
     if (ttisfunction(metamethod)) {
       luaT_callTM(L, metamethod, t, key, val);
       return;
     }
-    t = metamethod;  /* else repeat assignment over 'tm' */
+    t = metamethod;  // else repeat assignment over 'tm'
     hres = fastset(t, key, val, [](Table* tbl, const TValue* k, TValue* v) { return tbl->pset(k, v); });
     if (hres == HOK) {
       finishfastset(t, val);
-      return;  /* done */
+      return;  // done
     }
-    /* else 'return luaV_finishset(L, t, key, val, slot)' (loop) */
+    // else 'return luaV_finishset(L, t, key, val, slot)' (loop)
   }
   luaG_runerror(L, "'__newindex' chain too long; possible loop");
 }
 
 // === STRING/OBJECT OPERATIONS ===
 
-/* Helper functions for string concatenation */
+// Helper functions for string concatenation
 
-/* Function to ensure that element at 'o' is a string (converts if possible) */
+// Function to ensure that element at 'o' is a string (converts if possible)
 static inline bool tostring(lua_State* L, TValue* o) {
 	if (ttisstring(o)) return true;
 	if (!cvt2str(o)) return false;
@@ -1489,12 +1489,12 @@ static inline bool isemptystr(const TValue* o) noexcept {
 	return ttisshrstring(o) && tsvalue(o)->length() == 0;
 }
 
-/* copy strings in stack from top - n up to top - 1 to buffer */
+// copy strings in stack from top - n up to top - 1 to buffer
 static void copy2buff (StkId top, int n, char *buff) {
-  auto tl = size_t{0};  /* size already copied */
+  auto tl = size_t{0};  // size already copied
   do {
     auto *st = tsvalue(s2v(top - n));
-    size_t l;  /* length of string being copied */
+    size_t l;  // length of string being copied
     auto *s = getStringWithLength(st, l);
     std::copy_n(s, l, buff + tl);
     tl += l;
@@ -1503,52 +1503,52 @@ static void copy2buff (StkId top, int n, char *buff) {
 
 void VirtualMachine::concat(int total) {
   if (total == 1)
-    return;  /* "all" values already concatenated */
+    return;  // "all" values already concatenated
   do {
     auto top = L->getTop().p;
-    auto n = 2;  /* number of elements handled in this pass (at least 2) */
+    auto n = 2;  // number of elements handled in this pass (at least 2)
     if (!(ttisstring(s2v(top - 2)) || cvt2str(s2v(top - 2))) ||
         !tostring(L, s2v(top - 1))) {
-      luaT_tryconcatTM(L);  /* may invalidate 'top' */
-      top = L->getTop().p;  /* recapture after potential GC */
+      luaT_tryconcatTM(L);  // may invalidate 'top'
+      top = L->getTop().p;  // recapture after potential GC
     }
-    else if (isemptystr(s2v(top - 1))) {  /* second operand is empty? */
-      cast_void(tostring(L, s2v(top - 2)));  /* result is first operand */
-      top = L->getTop().p;  /* recapture after potential GC */
+    else if (isemptystr(s2v(top - 1))) {  // second operand is empty?
+      cast_void(tostring(L, s2v(top - 2)));  // result is first operand
+      top = L->getTop().p;  // recapture after potential GC
     }
-    else if (isemptystr(s2v(top - 2))) {  /* first operand is empty string? */
+    else if (isemptystr(s2v(top - 2))) {  // first operand is empty string?
       *s2v(top - 2) = *s2v(top - 1);  /* result is second op. (operator=) */
     }
     else {
-      /* at least two non-empty string values; get as many as possible */
+      // at least two non-empty string values; get as many as possible
       auto tl = getStringLength(tsvalue(s2v(top - 1)));
       TString *ts;
-      /* collect total length and number of strings */
+      // collect total length and number of strings
       for (n = 1; n < total && tostring(L, s2v(top - n - 1)); n++) {
-        top = L->getTop().p;  /* recapture after tostring() which can trigger GC */
+        top = L->getTop().p;  // recapture after tostring() which can trigger GC
         auto l = getStringLength(tsvalue(s2v(top - n - 1)));
         if (l_unlikely(l >= MAX_SIZE - sizeof(TString) - tl)) {
-          L->getStackSubsystem().setTopPtr(top - total);  /* pop strings to avoid wasting stack */
+          L->getStackSubsystem().setTopPtr(top - total);  // pop strings to avoid wasting stack
           luaG_runerror(L, "string length overflow");
         }
         tl += l;
       }
-      if (tl <= LUAI_MAXSHORTLEN) {  /* is result a short string? */
+      if (tl <= LUAI_MAXSHORTLEN) {  // is result a short string?
         char buff[LUAI_MAXSHORTLEN];
-        copy2buff(top, n, buff);  /* copy strings to buffer */
+        copy2buff(top, n, buff);  // copy strings to buffer
         ts = TString::create(L, buff, tl);
-        top = L->getTop().p;  /* recapture after potential GC */
+        top = L->getTop().p;  // recapture after potential GC
       }
-      else {  /* long string; copy strings directly to final result */
+      else {  // long string; copy strings directly to final result
         ts = TString::createLongString(L, tl);
-        top = L->getTop().p;  /* recapture after potential GC */
+        top = L->getTop().p;  // recapture after potential GC
         copy2buff(top, n, getLongStringContents(ts));
       }
-      setsvalue2s(L, top - n, ts);  /* create result */
+      setsvalue2s(L, top - n, ts);  // create result
     }
-    total -= n - 1;  /* got 'n' strings to create one new */
-    L->getStackSubsystem().popN(n - 1);  /* popped 'n' strings and pushed one */
-  } while (total > 1);  /* repeat until only 1 result left */
+    total -= n - 1;  // got 'n' strings to create one new
+    L->getStackSubsystem().popN(n - 1);  // popped 'n' strings and pushed one
+  } while (total > 1);  // repeat until only 1 result left
 }
 
 void VirtualMachine::objlen(StkId ra, const TValue *rb) {
@@ -1557,8 +1557,8 @@ void VirtualMachine::objlen(StkId ra, const TValue *rb) {
     case LuaT::TABLE: {
       Table *h = hvalue(rb);
       metamethod = fasttm(L, h->getMetatable(), TMS::TM_LEN);
-      if (metamethod) break;  /* metamethod? break switch to call it */
-      s2v(ra)->setInt(l_castU2S(h->getn(L)));  /* else primitive len */
+      if (metamethod) break;  // metamethod? break switch to call it
+      s2v(ra)->setInt(l_castU2S(h->getn(L)));  // else primitive len
       return;
     }
     case LuaT::SHRSTR: {
@@ -1569,9 +1569,9 @@ void VirtualMachine::objlen(StkId ra, const TValue *rb) {
       s2v(ra)->setInt(cast_st2S(tsvalue(rb)->getLnglen()));
       return;
     }
-    default: {  /* try metamethod */
+    default: {  // try metamethod
       metamethod = luaT_gettmbyobj(L, rb, TMS::TM_LEN);
-      if (l_unlikely(notm(metamethod)))  /* no metamethod? */
+      if (l_unlikely(notm(metamethod)))  // no metamethod?
         luaG_typeerror(L, rb, "get length of");
       break;
     }

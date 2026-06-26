@@ -125,7 +125,7 @@ private:
 ** These replace the old macros for type-safe marking operations
 */
 
-/* Mark a value if it's a white collectable object */
+// Mark a value if it's a white collectable object
 inline void markvalue(GlobalState& g, const TValue* o) {
     checkliveness(mainthread(&g), o);
     if (iscollectable(o) && iswhite(gcvalue(o))) {
@@ -133,14 +133,14 @@ inline void markvalue(GlobalState& g, const TValue* o) {
     }
 }
 
-/* Mark a table node's key if it's white */
+// Mark a table node's key if it's white
 inline void markkey(GlobalState& g, const Node* n) {
     if (n->isKeyCollectable() && iswhite(n->getKeyGC())) {
         GCMarking::reallymarkobject(g, n->getKeyGC());
     }
 }
 
-/* Mark an object if it's white */
+// Mark an object if it's white
 template<typename T>
 inline void markobject(GlobalState& g, const T* t) {
     if (iswhite(t)) {
@@ -148,7 +148,7 @@ inline void markobject(GlobalState& g, const T* t) {
     }
 }
 
-/* Mark an object that can be nullptr */
+// Mark an object that can be nullptr
 template<typename T>
 inline void markobjectN(GlobalState& g, const T* t) {
     if (t) {
@@ -156,4 +156,4 @@ inline void markobjectN(GlobalState& g, const T* t) {
     }
 }
 
-#endif /* gc_marking_h */
+#endif  // gc_marking_h

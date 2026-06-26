@@ -126,10 +126,10 @@ public:
     */
     static int checkmajorminor(lua_State* L, GlobalState* g);
 
-    /* Special return values for singlestep() */
-    static constexpr l_mem STEP_2_PAUSE = -3;  /* finished collection; entered pause state */
-    static constexpr l_mem ATOMIC_STEP = -2;   /* atomic step */
-    static constexpr l_mem STEP_2_MINOR = -1;  /* moved to minor collections */
+    // Special return values for singlestep()
+    static constexpr l_mem STEP_2_PAUSE = -3;  // finished collection; entered pause state
+    static constexpr l_mem ATOMIC_STEP = -2;  // atomic step
+    static constexpr l_mem STEP_2_MINOR = -1;  // moved to minor collections
 };
 
-#endif /* gc_collector_h */
+#endif  // gc_collector_h

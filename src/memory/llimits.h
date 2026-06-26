@@ -21,31 +21,31 @@
 ** computations.) 'lu_mem' is a corresponding unsigned type.  Usually,
 ** 'ptrdiff_t' should work, but we use 'long' for 16-bit machines.
 */
-#if defined(LUAI_MEM)		/* { external definitions? */
+#if defined(LUAI_MEM)  // { external definitions?
 typedef LUAI_MEM l_mem;
 typedef LUAI_UMEM lu_mem;
-#elif LUAI_IS32INT	/* }{ */
+#elif LUAI_IS32INT  // }{
 typedef ptrdiff_t l_mem;
 typedef size_t lu_mem;
 #else  /* 16-bit ints */	/* }{ */
 typedef long l_mem;
 typedef unsigned long lu_mem;
-#endif				/* } */
+#endif  // }
 
-/* MAX_LMEM defined later in this file after cast functions and l_numbits */
+// MAX_LMEM defined later in this file after cast functions and l_numbits
 
 
-/* chars used as small naturals (so that 'char' is reserved for characters) */
+// chars used as small naturals (so that 'char' is reserved for characters)
 typedef unsigned char lu_byte;
 typedef signed char ls_byte;
 
 
-/* Type for thread status/error codes */
+// Type for thread status/error codes
 typedef lu_byte TStatus;
 
-/* The C API still uses 'int' for status/error codes - defined after cast_int */
+// The C API still uses 'int' for status/error codes - defined after cast_int
 
-/* maximum value for size_t */
+// maximum value for size_t
 inline constexpr size_t MAX_SIZET = ((size_t)(~(size_t)0));
 
 /*
@@ -74,19 +74,19 @@ inline constexpr bool ispow2(T x) noexcept {
 ** These functions return true if the multiplication would overflow
 */
 
-/* Check if multiplication a * b would overflow size_t */
+// Check if multiplication a * b would overflow size_t
 inline constexpr bool wouldMultiplyOverflow(size_t a, size_t b) noexcept {
 	if (a == 0 || b == 0)
 		return false;
 	return a > MAX_SIZET / b;
 }
 
-/* Check if multiplication a * b would overflow for a specific type size */
+// Check if multiplication a * b would overflow for a specific type size
 inline constexpr bool wouldSizeMultiplyOverflow(size_t count, size_t elemSize) noexcept {
 	return wouldMultiplyOverflow(count, elemSize);
 }
 
-/* Safe multiplication - returns 0 on overflow (for allocation failure path) */
+// Safe multiplication - returns 0 on overflow (for allocation failure path)
 inline constexpr size_t safeMul(size_t a, size_t b) noexcept {
 	if (wouldMultiplyOverflow(a, b))
 		return 0;
@@ -94,7 +94,7 @@ inline constexpr size_t safeMul(size_t a, size_t b) noexcept {
 }
 
 
-/* number of chars of a literal string without the ending \0 */
+// number of chars of a literal string without the ending \0
 template<size_t N>
 inline constexpr size_t LL(const char (&)[N]) noexcept {
 	return N - 1;
@@ -110,18 +110,18 @@ inline constexpr size_t LL(const char (&)[N]) noexcept {
 #if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
     __STDC_VERSION__ >= 199901L
 #include <cstdint>
-#if defined(UINTPTR_MAX)  /* even in C99 this type is optional */
+#if defined(UINTPTR_MAX)  // even in C99 this type is optional
 #define L_P2I	uintptr_t
-#else  /* no 'intptr'? */
-#define L_P2I	uintmax_t  /* use the largest available integer */
+#else  // no 'intptr'?
+#define L_P2I	uintmax_t  // use the largest available integer
 #endif
-#else  /* C89 option */
+#else  // C89 option
 #define L_P2I	size_t
 #endif
 
 
 
-/* types of 'usual argument conversions' for lua_Number and lua_Integer */
+// types of 'usual argument conversions' for lua_Number and lua_Integer
 typedef LUAI_UACNUMBER l_uacNumber;
 typedef LUAI_UACINT l_uacInt;
 
@@ -143,11 +143,11 @@ typedef LUAI_UACINT l_uacInt;
 #endif
 
 #define check_exp(c,e)		(lua_assert(c), (e))
-/* to avoid problems with conditions too long */
+// to avoid problems with conditions too long
 #define lua_longassert(c)	assert_code((c) ? (void)0 : lua_assert(0))
 
 
-/* macro to avoid warnings about unused variables */
+// macro to avoid warnings about unused variables
 #if !defined(UNUSED)
 #define UNUSED(x)	((void)(x))
 #endif
@@ -187,7 +187,7 @@ constexpr inline int cast_int(auto i) noexcept {
     return static_cast<int>(i);
 }
 
-/* The C API uses 'int' for status/error codes */
+// The C API uses 'int' for status/error codes
 inline int APIstatus(TStatus st) noexcept {
 	return cast_int(st);
 }
@@ -248,7 +248,7 @@ inline constexpr size_t MAX_SIZE = (sizeof(size_t) < sizeof(lua_Integer) ? MAX_S
 inline constexpr l_mem MAX_LMEM = cast(l_mem, (cast(lu_mem, 1) << (l_numbits<l_mem>() - 1)) - 1);
 
 
-/* cast a signed lua_Integer to lua_Unsigned */
+// cast a signed lua_Integer to lua_Unsigned
 #if !defined(l_castS2U)
 inline constexpr lua_Unsigned l_castS2U(lua_Integer i) noexcept {
 	return static_cast<lua_Unsigned>(i);
@@ -281,7 +281,7 @@ inline constexpr size_t ct_diff2sz(ptrdiff_t df) noexcept {
 	return static_cast<size_t>(df);
 }
 
-/* ptrdiff_t to lua_Integer */
+// ptrdiff_t to lua_Integer
 inline constexpr lua_Integer ct_diff2S(ptrdiff_t df) noexcept {
 	return cast_st2S(ct_diff2sz(df));
 }
@@ -341,14 +341,14 @@ typedef unsigned long l_uint32;
 ** Converted from macros to inline functions for better type safety and debugging.
 */
 
-/* float division */
+// float division
 #if !defined(luai_numdiv)
 inline lua_Number luai_numdiv([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
     return a / b;
 }
 #endif
 
-/* floor division (defined as 'floor(a/b)') */
+// floor division (defined as 'floor(a/b)')
 #if !defined(luai_numidiv)
 inline lua_Number luai_numidiv([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
     return l_floor(luai_numdiv(L, a, b));
@@ -374,14 +374,14 @@ inline void luai_nummod([[maybe_unused]] lua_State *L, lua_Number a, lua_Number 
 }
 #endif
 
-/* exponentiation */
+// exponentiation
 #if !defined(luai_numpow)
 inline lua_Number luai_numpow([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
     return (b == 2) ? a * a : l_mathop(pow)(a, b);
 }
 #endif
 
-/* the others are quite standard operations */
+// the others are quite standard operations
 #if !defined(luai_numadd)
 inline lua_Number luai_numadd([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
     return a + b;
@@ -462,19 +462,19 @@ inline bool lua_numbertointeger(lua_Number n, lua_Integer* p) noexcept {
 #if !defined(LUAI_FUNC)
 
 #if defined(__GNUC__) && ((__GNUC__*100 + __GNUC_MINOR__) >= 302) && \
-    defined(__ELF__)		/* { */
+    defined(__ELF__)  // {
 #define LUAI_FUNC	__attribute__((visibility("internal"))) extern
-#else				/* }{ */
+#else  // }{
 #define LUAI_FUNC	extern
-#endif				/* } */
+#endif  // }
 
 #define LUAI_DDEC(dec)	LUAI_FUNC dec
-#define LUAI_DDEF	/* empty */
+#define LUAI_DDEF  // empty
 
 #endif
 
 
-/* Give these macros simpler names for internal use */
+// Give these macros simpler names for internal use
 #define l_likely(x)	luai_likely(x)
 #define l_unlikely(x)	luai_unlikely(x)
 
@@ -484,23 +484,23 @@ inline bool lua_numbertointeger(lua_Number n, lua_Integer* p) noexcept {
 ** ===================================================================
 */
 
-/* print a string */
+// print a string
 #if !defined(lua_writestring)
 #define lua_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)
 #endif
 
-/* print a newline and flush the output */
+// print a newline and flush the output
 #if !defined(lua_writeline)
 #define lua_writeline()        (lua_writestring("\n", 1), fflush(stdout))
 #endif
 
-/* print an error message */
+// print an error message
 #if !defined(lua_writestringerror)
 #define lua_writestringerror(s,p) \
         (fprintf(stderr, (s), (p)), fflush(stderr))
 #endif
 
-/* }================================================================== */
+// }==================================================================
 
 #endif
 

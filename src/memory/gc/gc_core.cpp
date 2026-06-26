@@ -87,7 +87,7 @@ GCObject** GCCore::getgclist(GCObject* o) {
             return u->getGclistPtr();
         }
         case static_cast<int>(ctb(LuaT::UPVAL)):
-            /* UpVals use the base GCObject 'next' field for gray list linkage */
+            // UpVals use the base GCObject 'next' field for gray list linkage
             return o->getNextPtr();
         case static_cast<int>(ctb(LuaT::SHRSTR)):
         case static_cast<int>(ctb(LuaT::LNGSTR)):
@@ -110,10 +110,10 @@ GCObject** GCCore::getgclist(GCObject* o) {
 ** The object is set to gray and added to the specified list.
 */
 void GCCore::linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
-    lua_assert(!isgray(o));  /* cannot be in a gray list */
+    lua_assert(!isgray(o));  // cannot be in a gray list
     *pnext = *list;
     *list = o;
-    set2gray(o);  /* now it is */
+    set2gray(o);  // now it is
 }
 
 
@@ -128,7 +128,7 @@ void GCCore::linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
 void GCCore::clearkey(Node* n) {
     lua_assert(isempty(gval(n)));
     if (n->isKeyCollectable())
-        n->setKeyDead();  /* unused key; remove it */
+        n->setKeyDead();  // unused key; remove it
 }
 
 

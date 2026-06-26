@@ -27,7 +27,7 @@
 
 
 #if !defined(luai_verifycode)
-#define luai_verifycode(L,f)  /* empty */
+#define luai_verifycode(L,f)  // empty
 #endif
 
 
@@ -35,10 +35,10 @@ typedef struct {
   lua_State *L;
   ZIO *Z;
   const char *name;
-  Table *h;  /* list for string reuse */
-  size_t offset;  /* current position relative to beginning of dump */
-  lua_Unsigned nstr;  /* number of strings in the list */
-  lu_byte fixed;  /* dump is fixed in memory */
+  Table *h;  // list for string reuse
+  size_t offset;  // current position relative to beginning of dump
+  lua_Unsigned nstr;  // number of strings in the list
+  lu_byte fixed;  // dump is fixed in memory
 } LoadState;
 
 
@@ -66,7 +66,7 @@ static void loadBlock (LoadState *S, void *b, size_t size) {
 
 static void loadAlign (LoadState *S, unsigned align) {
   unsigned padding = align - cast_uint(S->offset % align);
-  if (padding < align) {  /* (padding == align) means no padding */
+  if (padding < align) {  // (padding == align) means no padding
     lua_Integer paddingContent;
     loadBlock(S, &paddingContent, padding);
     lua_assert(S->offset % align == 0);
@@ -141,7 +141,7 @@ static lua_Number loadNumber (LoadState *S) {
 
 static lua_Integer loadInteger (LoadState *S) {
   lua_Unsigned cx = loadVarint(S, LUA_MAXUNSIGNED);
-  /* decode unsigned to signed */
+  // decode unsigned to signed
   if ((cx & 1) != 0)
     return l_castU2S(~(cx >> 1));
   else
@@ -160,36 +160,36 @@ static void loadString (LoadState *S, Proto& p, TString **sl) {
   TString *ts;
   TValue sv;
   size_t size = loadSize(S);
-  if (size == 0) {  /* no string? */
-    lua_assert(*sl == nullptr);  /* must be prefilled */
+  if (size == 0) {  // no string?
+    lua_assert(*sl == nullptr);  // must be prefilled
     return;
   }
-  else if (size == 1) {  /* previously saved string? */
-    lua_Unsigned idx = loadVarint(S, LUA_MAXUNSIGNED);  /* get its index */
+  else if (size == 1) {  // previously saved string?
+    lua_Unsigned idx = loadVarint(S, LUA_MAXUNSIGNED);  // get its index
     TValue stv;
     if (novariant(S->h->getInt(l_castU2S(idx), &stv)) != LUA_TSTRING)
       error(S, "invalid string index");
     *sl = ts = tsvalue(&stv);  /* get its value */
     luaC_objbarrier(L, &p, ts);
-    return;  /* do not save it again */
+    return;  // do not save it again
   }
-  else if ((size -= 2) <= LUAI_MAXSHORTLEN) {  /* short string? */
-    char buff[LUAI_MAXSHORTLEN + 1];  /* extra space for '\0' */
-    loadVector(S, buff, size + 1);  /* load string into buffer */
+  else if ((size -= 2) <= LUAI_MAXSHORTLEN) {  // short string?
+    char buff[LUAI_MAXSHORTLEN + 1];  // extra space for '\0'
+    loadVector(S, buff, size + 1);  // load string into buffer
     *sl = ts = TString::create(L, buff, size);  /* create string */
     luaC_objbarrier(L, &p, ts);
   }
-  else if (S->fixed) {  /* for a fixed buffer, use a fixed string */
-    const char *s = getaddr<char>(S, size + 1);  /* get content address */
+  else if (S->fixed) {  // for a fixed buffer, use a fixed string
+    const char *s = getaddr<char>(S, size + 1);  // get content address
     *sl = ts = TString::createExternal(L, s, size, nullptr, nullptr);
     luaC_objbarrier(L, &p, ts);
   }
-  else {  /* create internal copy */
+  else {  // create internal copy
     *sl = ts = TString::createLongString(L, size);  /* create string */
     luaC_objbarrier(L, &p, ts);
-    loadVector(S, getLongStringContents(ts), size + 1);  /* load directly in final place */
+    loadVector(S, getLongStringContents(ts), size + 1);  // load directly in final place
   }
-  /* add string to list of saved strings */
+  // add string to list of saved strings
   S->nstr++;
   setsvalue(L, &sv, ts);
   S->h->setInt(L, l_castU2S(S->nstr), &sv);
@@ -248,10 +248,10 @@ static void loadConstants (LoadState *S, Proto& f) {
       case LuaT::SHRSTR:
       case LuaT::LNGSTR: {
         lua_assert(f.getSource() == nullptr);
-        loadString(S, f, f.getSourcePtr());  /* use 'source' to anchor string */
+        loadString(S, f, f.getSourcePtr());  // use 'source' to anchor string
         if (f.getSource() == nullptr)
           error(S, "bad format for constant string");
-        setsvalue2n(S->L, o, f.getSource());  /* save it in the right place */
+        setsvalue2n(S->L, o, f.getSource());  // save it in the right place
         f.setSource(nullptr);
         break;
       }
@@ -287,11 +287,11 @@ static void loadUpvalues (LoadState *S, Proto& f) {
   f.setUpvalues(luaM_newvectorchecked<Upvaldesc>(S->L, n));
   f.setUpvaluesSize(n);
   auto upvaluesSpan = f.getUpvaluesSpan();
-  /* make array valid for GC */
+  // make array valid for GC
   for (Upvaldesc& uv : upvaluesSpan) {
     uv.setName(nullptr);
   }
-  for (Upvaldesc& uv : upvaluesSpan) {  /* following calls can raise errors */
+  for (Upvaldesc& uv : upvaluesSpan) {  // following calls can raise errors
     uv.setInStack(loadByte(S));
     uv.setIndex(loadByte(S));
     uv.setKind(loadByte(S));
@@ -339,8 +339,8 @@ static void loadDebug (LoadState *S, Proto& f) {
     lv.setEndPC(loadInt(S));
   }
   n = loadInt(S);
-  if (n != 0) {  /* does it have debug information? */
-    n = f.getUpvaluesSize();  /* must be this many */
+  if (n != 0) {  // does it have debug information?
+    n = f.getUpvaluesSize();  // must be this many
     auto upvaluesSpan = f.getUpvaluesSpan();
     for (Upvaldesc& uv : upvaluesSpan)
       loadString(S, f, uv.getNamePtr());
@@ -352,9 +352,9 @@ static void loadFunction (LoadState *S, Proto& f) {
   f.setLineDefined(loadInt(S));
   f.setLastLineDefined(loadInt(S));
   f.setNumParams(loadByte(S));
-  f.setFlag(loadByte(S) & PF_ISVARARG);  /* get only the meaningful flags */
+  f.setFlag(loadByte(S) & PF_ISVARARG);  // get only the meaningful flags
   if (S->fixed)
-    f.setFlag(f.getFlag() | PF_FIXED);  /* signal that code is fixed */
+    f.setFlag(f.getFlag() | PF_FIXED);  // signal that code is fixed
   f.setMaxStackSize(loadByte(S));
   loadCode(S, f);
   loadConstants(S, f);
@@ -366,7 +366,7 @@ static void loadFunction (LoadState *S, Proto& f) {
 
 
 static void checkliteral (LoadState *S, const char *s, const char *msg) {
-  char buff[sizeof(LUA_SIGNATURE) + sizeof(LUAC_DATA)]; /* larger than both */
+  char buff[sizeof(LUA_SIGNATURE) + sizeof(LUAC_DATA)];  // larger than both
   size_t len = strlen(s);
   loadVector(S, buff, len);
   if (memcmp(s, buff, len) != 0)
@@ -399,7 +399,7 @@ static void checknumformat (LoadState *S, int eq, const char *tname) {
 
 
 static void checkHeader (LoadState *S) {
-  /* skip 1st char (already read and checked) */
+  // skip 1st char (already read and checked)
   checkliteral(S, &LUA_SIGNATURE[1], "not a binary chunk");
   if (loadByte(S) != LUAC_VERSION)
     error(S, "version mismatch");
@@ -427,14 +427,14 @@ LClosure *luaU_undump (lua_State *L, ZIO *Z, const char *name, int fixed) {
   S.L = L;
   S.Z = Z;
   S.fixed = cast_byte(fixed);
-  S.offset = 1;  /* fist byte was already read */
+  S.offset = 1;  // fist byte was already read
   checkHeader(&S);
   cl = LClosure::create(L, loadByte(&S));
   setclLvalue2s(L, L->getTop().p, cl);
   L->inctop();
-  S.h = Table::create(L);  /* create list of saved strings */
+  S.h = Table::create(L);  // create list of saved strings
   S.nstr = 0;
-  sethvalue2s(L, L->getTop().p, S.h);  /* anchor it */
+  sethvalue2s(L, L->getTop().p, S.h);  // anchor it
   L->inctop();
   cl->setProto(luaF_newproto(L));
   luaC_objbarrier(L, cl, cl->getProto());
@@ -442,7 +442,7 @@ LClosure *luaU_undump (lua_State *L, ZIO *Z, const char *name, int fixed) {
   if (cl->getNumUpvalues() != cl->getProto()->getUpvaluesSize())
     error(&S, "corrupted chunk");
   luai_verifycode(L, cl->getProto());
-  L->getStackSubsystem().pop();  /* pop table */
+  L->getStackSubsystem().pop();  // pop table
   return cl;
 }
 

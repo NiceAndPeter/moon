@@ -102,26 +102,26 @@ constexpr bool testbit(lu_byte x, int b) noexcept {
 ** used for object "age" in generational mode. Last bit is used
 ** by tests.
 */
-constexpr int WHITE0BIT = 3;     /* object is white (type 0) */
-constexpr int WHITE1BIT = 4;     /* object is white (type 1) */
-constexpr int BLACKBIT = 5;      /* object is black */
-constexpr int FINALIZEDBIT = 6;  /* object has been marked for finalization */
+constexpr int WHITE0BIT = 3;  // object is white (type 0)
+constexpr int WHITE1BIT = 4;  // object is white (type 1)
+constexpr int BLACKBIT = 5;  // object is black
+constexpr int FINALIZEDBIT = 6;  // object has been marked for finalization
 constexpr int TESTBIT = 7;
 
 constexpr lu_byte WHITEBITS = bit2mask(WHITE0BIT, WHITE1BIT);
 
-/* object age in generational mode */
+// object age in generational mode
 enum class GCAge : lu_byte {
-	New       = 0,  /* created in current cycle */
-	Survival  = 1,  /* created in previous cycle */
-	Old0      = 2,  /* marked old by frw. barrier in this cycle */
-	Old1      = 3,  /* first full cycle as old */
-	Old       = 4,  /* really old object (not to be visited) */
-	Touched1  = 5,  /* old object touched this cycle */
-	Touched2  = 6   /* old object touched in previous cycle */
+	New       = 0,  // created in current cycle
+	Survival  = 1,  // created in previous cycle
+	Old0      = 2,  // marked old by frw. barrier in this cycle
+	Old1      = 3,  // first full cycle as old
+	Old       = 4,  // really old object (not to be visited)
+	Touched1  = 5,  // old object touched this cycle
+	Touched2  = 6  // old object touched in previous cycle
 };
 
-constexpr lu_byte AGEBITS = 7;  /* all age bits (111) */
+constexpr lu_byte AGEBITS = 7;  // all age bits (111)
 
 // GCObject color and age inline method implementations
 
@@ -141,7 +141,7 @@ inline GCAge GCObject::getAge() const noexcept {
   return static_cast<GCAge>(marked & AGEBITS);
 }
 
-inline void GCObject::setAge(GCAge age) const noexcept {  /* const - marked is mutable */
+inline void GCObject::setAge(GCAge age) const noexcept {  // const - marked is mutable
   marked = cast_byte((marked & (~AGEBITS)) | static_cast<lu_byte>(age));
 }
 
@@ -150,7 +150,7 @@ inline bool GCObject::isOld() const noexcept {
 }
 
 template<typename Derived>
-inline void GCBase<Derived>::setAge(GCAge age) const noexcept {  /* const - marked is mutable */
+inline void GCBase<Derived>::setAge(GCAge age) const noexcept {  // const - marked is mutable
   marked = cast_byte((marked & (~AGEBITS)) | static_cast<lu_byte>(age));
 }
 
@@ -200,22 +200,22 @@ inline bool tofinalize(const GCObject* x) noexcept {
 	return testbit(x->getMarked(), FINALIZEDBIT);
 }
 
-/* Get the "other" white color (for dead object detection) */
+// Get the "other" white color (for dead object detection)
 inline lu_byte otherwhite(const GlobalState* g) noexcept {
 	return g->getCurrentWhite() ^ WHITEBITS;
 }
 
-/* Check if marked value is dead given other-white bits */
+// Check if marked value is dead given other-white bits
 constexpr bool isdeadm(lu_byte ow, lu_byte m) noexcept {
 	return (m & ow) != 0;
 }
 
-/* Check if a GC object is dead */
+// Check if a GC object is dead
 inline bool isdead(const GlobalState* g, const GCObject* v) noexcept {
 	return isdeadm(otherwhite(g), v->getMarked());
 }
 
-/* Template version for any GC-able type (Table, TString, UpVal, etc.) */
+// Template version for any GC-able type (Table, TString, UpVal, etc.)
 template<typename T>
 inline bool isdead(const GlobalState* g, const T* v) noexcept {
 	return isdeadm(otherwhite(g), reinterpret_cast<const GCObject*>(v)->getMarked());
@@ -245,8 +245,8 @@ inline lu_byte GlobalState::getWhite() const noexcept {
 	return cast_byte(getCurrentWhite() & WHITEBITS);
 }
 
-/* Note: G_NEW, G_SURVIVAL, G_OLD*, G_TOUCHED*, AGEBITS moved above for inline functions */
-/* Note: getage, setage, isold are now inline functions defined above */
+// Note: G_NEW, G_SURVIVAL, G_OLD*, G_TOUCHED*, AGEBITS moved above for inline functions
+// Note: getage, setage, isold are now inline functions defined above
 
 
 /*
@@ -312,9 +312,9 @@ inline constexpr int LUAI_MAJORMINOR = 50;
 inline constexpr int LUAI_GENMINORMUL = 20;
 
 
-/* incremental */
+// incremental
 
-/* Number of bytes must be LUAI_GCPAUSE% before starting new cycle */
+// Number of bytes must be LUAI_GCPAUSE% before starting new cycle
 inline constexpr int LUAI_GCPAUSE = 250;
 
 /*
@@ -324,7 +324,7 @@ inline constexpr int LUAI_GCPAUSE = 250;
 */
 inline constexpr int LUAI_GCMUL = 200;
 
-/* How many bytes to allocate before next GC step */
+// How many bytes to allocate before next GC step
 inline constexpr size_t LUAI_GCSTEPSIZE = (200 * sizeof(Table));
 
 
@@ -333,15 +333,15 @@ inline constexpr size_t LUAI_GCSTEPSIZE = (200 * sizeof(Table));
 #define setgcparam(g,p,v)  ((g)->setGCParam(LUA_GCP##p, luaO_codeparam(v)))
 #define applygcparam(g,p,x)  luaO_applyparam((g)->getGCParam(LUA_GCP##p), x)
 
-/* }====================================================== */
+// }======================================================
 
 
 /*
 ** Control when GC is running:
 */
-inline constexpr lu_byte GCSTPUSR = 1;  /* bit true when GC stopped by user */
-inline constexpr lu_byte GCSTPGC  = 2;  /* bit true when GC stopped by itself */
-inline constexpr lu_byte GCSTPCLS = 4;  /* bit true when closing Lua state */
+inline constexpr lu_byte GCSTPUSR = 1;  // bit true when GC stopped by user
+inline constexpr lu_byte GCSTPGC  = 2;  // bit true when GC stopped by itself
+inline constexpr lu_byte GCSTPCLS = 4;  // bit true when closing Lua state
 
 
 /*
@@ -352,7 +352,7 @@ inline constexpr lu_byte GCSTPCLS = 4;  /* bit true when closing Lua state */
 */
 
 
-/* Forward declarations needed by template functions */
+// Forward declarations needed by template functions
 LUAI_FUNC void luaC_step (lua_State& L);
 LUAI_FUNC void luaC_fullgc (lua_State& L, int isemergency);
 
@@ -362,7 +362,7 @@ inline void condchangemem([[maybe_unused]] lua_State* L,
                           [[maybe_unused]] PreFunc pre,
                           [[maybe_unused]] PostFunc post,
                           [[maybe_unused]] int emg) {
-	/* Empty in normal builds */
+	// Empty in normal builds
 }
 #else
 template<typename PreFunc, typename PostFunc>
@@ -385,13 +385,13 @@ inline void luaC_condGC(lua_State* L, PreFunc pre, PostFunc post) {
 	condchangemem(L, pre, post, 0);
 }
 
-/* more often than not, 'pre'/'pos' are empty */
+// more often than not, 'pre'/'pos' are empty
 inline void luaC_checkGC(lua_State* L) {
 	luaC_condGC(L, [](){}, [](){});
 }
 
 
-/* Forward declarations for barrier implementation functions */
+// Forward declarations for barrier implementation functions
 LUAI_FUNC void luaC_barrier_ (lua_State& L, GCObject *o, GCObject *v);
 LUAI_FUNC void luaC_barrierback_ (lua_State& L, GCObject *o);
 
@@ -431,24 +431,24 @@ inline void luaC_barrierback(lua_State* L, GCObject* p, const TValue* v) noexcep
 		luaC_objbarrierback(L, p, gcvalue(v));
 }
 
-/* Use GCObject::fix() method instead of luaC_fix */
+// Use GCObject::fix() method instead of luaC_fix
 LUAI_FUNC void luaC_freeallobjects (lua_State& L);
-/* luaC_step and luaC_fullgc declared earlier for template functions */
+// luaC_step and luaC_fullgc declared earlier for template functions
 LUAI_FUNC void luaC_runtilstate (lua_State& L, GCState state, int fast);
-LUAI_FUNC void propagateall (GlobalState& g);  /* used by GCCollector */
+LUAI_FUNC void propagateall (GlobalState& g);  // used by GCCollector
 [[nodiscard]] LUAI_FUNC GCObject *luaC_newobj (lua_State& L, LuaT tt, size_t sz);
 [[nodiscard]] LUAI_FUNC GCObject *luaC_newobjdt (lua_State& L, LuaT tt, size_t sz,
                                                  size_t offset);
-/* luaC_barrier_ and luaC_barrierback_ declared above before inline barrier functions */
-/* Use GCObject::checkFinalizer() method instead of luaC_checkfinalizer */
+// luaC_barrier_ and luaC_barrierback_ declared above before inline barrier functions
+// Use GCObject::checkFinalizer() method instead of luaC_checkfinalizer
 LUAI_FUNC void luaC_changemode (lua_State& L, GCKind newmode);
 
-/* Weak table functions */
+// Weak table functions
 [[nodiscard]] LUAI_FUNC int getmode (GlobalState *g, Table *h);
 LUAI_FUNC void traverseweakvalue (GlobalState& g, Table *h);
 [[nodiscard]] LUAI_FUNC int traverseephemeron (GlobalState *g, Table *h, int inv);
 
-/* Sweeping helper */
+// Sweeping helper
 LUAI_FUNC void freeobj (lua_State& L, GCObject *o);
 
 
@@ -493,7 +493,7 @@ inline void* Table::operator new(size_t size, lua_State* L, LuaT tt) {
   return luaC_newobj(*L, tt, size);
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*
@@ -515,7 +515,7 @@ inline TValue& TValue::operator=(const TValue& other) noexcept {
 	return *this;
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*
@@ -524,10 +524,10 @@ inline TValue& TValue::operator=(const TValue& other) noexcept {
 ** ===================================================================
 */
 
-/* mask with all color bits */
+// mask with all color bits
 constexpr int maskcolors = (bitmask(BLACKBIT) | WHITEBITS);
 
-/* mask with all GC bits */
+// mask with all GC bits
 constexpr int maskgcbits = (maskcolors | AGEBITS);
 
 /*
@@ -543,7 +543,7 @@ inline void makewhite(GlobalState* g, GCObject* x) noexcept {
 ** Clears all color bits, resulting in gray (neither white nor black).
 ** Gray objects are linked into gray lists for incremental processing.
 */
-inline void set2gray(const GCObject* x) noexcept {  /* const - marked is mutable */
+inline void set2gray(const GCObject* x) noexcept {  // const - marked is mutable
     x->clearMarkedBits(maskcolors);
 }
 
@@ -556,12 +556,12 @@ inline void set2black(GCObject* x) noexcept {
     x->setMarked(cast_byte((x->getMarked() & ~WHITEBITS) | bitmask(BLACKBIT)));
 }
 
-/* Check if a TValue contains a white collectable object */
+// Check if a TValue contains a white collectable object
 inline bool valiswhite(const TValue* x) noexcept {
     return iscollectable(x) && iswhite(gcvalue(x));
 }
 
-/* Check if a table node's key is white */
+// Check if a table node's key is white
 inline bool keyiswhite(const Node* n) noexcept {
     return n->isKeyCollectable() && iswhite(n->getKeyGC());
 }
@@ -573,7 +573,7 @@ inline GCObject* gcvalueN(const TValue* o) noexcept {
     return iscollectable(o) ? gcvalue(o) : nullptr;
 }
 
-/* }================================================================== */
+// }==================================================================
 
 
 #endif

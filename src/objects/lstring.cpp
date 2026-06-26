@@ -58,13 +58,13 @@ unsigned TString::computeHash(std::span<const char> str, unsigned seed) {
 
 size_t TString::calculateLongStringSize(size_t len, int kind) {
   switch (kind) {
-    case LSTRREG:  /* regular long string */
-      /* don't need 'falloc'/'ud', but need space for content */
+    case LSTRREG:  // regular long string
+      // don't need 'falloc'/'ud', but need space for content
       return tstringFallocOffset() + (len + 1) * sizeof(char);
-    case LSTRFIX:  /* fixed external long string */
-      /* don't need 'falloc'/'ud' */
+    case LSTRFIX:  // fixed external long string
+      // don't need 'falloc'/'ud'
       return tstringFallocOffset();
-    default:  /* external long string with deallocation */
+    default:  // external long string with deallocation
       lua_assert(kind == LSTRMEM);
       return sizeof(TString);
   }
@@ -73,16 +73,16 @@ size_t TString::calculateLongStringSize(size_t len, int kind) {
 
 static void tablerehash (TString **vect, unsigned int osize, unsigned int nsize) {
   unsigned int i;
-  /* clear new elements (only when growing) */
+  // clear new elements (only when growing)
   if (nsize > osize)
     std::fill_n(vect + osize, nsize - osize, nullptr);
-  for (i = 0; i < osize; i++) {  /* rehash old part of the array */
+  for (i = 0; i < osize; i++) {  // rehash old part of the array
     TString *p = vect[i];
     vect[i] = nullptr;
-    while (p) {  /* for each string in the list */
-      TString *hnext = p->getNext();  /* save next */
-      unsigned int h = lmod(p->getHash(), nsize);  /* new position */
-      p->setNext(vect[h]);  /* chain it into array */
+    while (p) {  // for each string in the list
+      TString *hnext = p->getNext();  // save next
+      unsigned int h = lmod(p->getHash(), nsize);  // new position
+      p->setNext(vect[h]);  // chain it into array
       vect[h] = p;
       p = hnext;
     }
@@ -94,19 +94,19 @@ void TString::resize(lua_State* L, unsigned int nsize) {
   StringTable *tb = G(L)->getStringTable();
   unsigned int osize = tb->getSize();
   TString **newvect;
-  if (nsize < osize)  /* shrinking table? */
-    tablerehash(tb->getHash(), osize, nsize);  /* depopulate shrinking part */
+  if (nsize < osize)  // shrinking table?
+    tablerehash(tb->getHash(), osize, nsize);  // depopulate shrinking part
   newvect = luaM_reallocvector<TString*>(L, tb->getHash(), osize, nsize);
-  if (l_unlikely(newvect == nullptr)) {  /* reallocation failed? */
-    if (nsize < osize)  /* was it shrinking table? */
-      tablerehash(tb->getHash(), nsize, osize);  /* restore to original size */
-    /* leave table as it was */
+  if (l_unlikely(newvect == nullptr)) {  // reallocation failed?
+    if (nsize < osize)  // was it shrinking table?
+      tablerehash(tb->getHash(), nsize, osize);  // restore to original size
+    // leave table as it was
   }
-  else {  /* allocation succeeded */
+  else {  // allocation succeeded
     tb->setHash(newvect);
     tb->setSize(nsize);
     if (nsize > osize)
-      tablerehash(newvect, osize, nsize);  /* rehash for new size */
+      tablerehash(newvect, osize, nsize);  // rehash for new size
   }
 }
 
@@ -115,8 +115,8 @@ void TString::clearCache(GlobalState* g) {
   unsigned int i, j;
   for (i = 0; i < STRCACHE_N; i++)
     for (j = 0; j < STRCACHE_M; j++) {
-      if (iswhite(g->getStrCache(i, j)))  /* will entry be collected? */
-        g->setStrCache(i, j, g->getMemErrMsg());  /* replace it with something fixed */
+      if (iswhite(g->getStrCache(i, j)))  // will entry be collected?
+        g->setStrCache(i, j, g->getMemErrMsg());  // replace it with something fixed
     }
 }
 
@@ -126,12 +126,12 @@ void TString::init(lua_State* L) {
   unsigned int i, j;
   StringTable *tb = G(L)->getStringTable();
   tb->setHash(luaM_newvector<TString*>(L, MINSTRTABSIZE));
-  tablerehash(tb->getHash(), 0, MINSTRTABSIZE);  /* clear array */
+  tablerehash(tb->getHash(), 0, MINSTRTABSIZE);  // clear array
   tb->setSize(MINSTRTABSIZE);
-  /* pre-create memory-error message */
+  // pre-create memory-error message
   g->setMemErrMsg(create(L, MEMERRMSG, sizeof(MEMERRMSG) - 1));
-  obj2gco(g->getMemErrMsg())->fix(L);  /* it should never be collected */
-  for (i = 0; i < STRCACHE_N; i++)  /* fill cache with valid strings */
+  obj2gco(g->getMemErrMsg())->fix(L);  // it should never be collected
+  for (i = 0; i < STRCACHE_N; i++)  // fill cache with valid strings
     for (j = 0; j < STRCACHE_M; j++)
       g->setStrCache(i, j, g->getMemErrMsg());
 }
@@ -178,20 +178,20 @@ TString* TString::createLongString(lua_State* L, size_t l) {
   size_t totalsize = calculateLongStringSize(l, LSTRREG);
   TString *ts = createstrobj(L, totalsize, ctb(LuaT::LNGSTR), G(L)->getSeed());
   ts->setLnglen(l);
-  ts->setShrlen(LSTRREG);  /* signals that it is a regular long string */
+  ts->setShrlen(LSTRREG);  // signals that it is a regular long string
   ts->setContents(cast_charp(ts) + tstringFallocOffset());
-  ts->getContentsField()[l] = '\0';  /* ending 0 */
+  ts->getContentsField()[l] = '\0';  // ending 0
   return ts;
 }
 
 
 static void growstrtab (lua_State *L, StringTable *tb) {
-  if (l_unlikely(tb->getNumElements() == std::numeric_limits<int>::max())) {  /* too many strings? */
-    luaC_fullgc(*L, 1);  /* try to free some... */
-    if (tb->getNumElements() == std::numeric_limits<int>::max())  /* still too many? */
-      luaM_error(L);  /* cannot even create a message... */
+  if (l_unlikely(tb->getNumElements() == std::numeric_limits<int>::max())) {  // too many strings?
+    luaC_fullgc(*L, 1);  // try to free some...
+    if (tb->getNumElements() == std::numeric_limits<int>::max())  // still too many?
+      luaM_error(L);  // cannot even create a message...
   }
-  if (tb->getSize() <= MAXSTRTB / 2)  /* can grow string table? */
+  if (tb->getSize() <= MAXSTRTB / 2)  // can grow string table?
     TString::resize(L, tb->getSize() * 2);
 }
 
@@ -205,25 +205,25 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
   StringTable *tb = g->getStringTable();
   unsigned int h = TString::computeHash(str, l, g->getSeed());
   TString **list = &tb->getHash()[lmod(h, tb->getSize())];
-  lua_assert(str != nullptr);  /* otherwise 'memcmp'/'memcpy' are undefined */
+  lua_assert(str != nullptr);  // otherwise 'memcmp'/'memcpy' are undefined
   for (ts = *list; ts != nullptr; ts = ts->getNext()) {
     if (l == cast_uint(ts->getShrlen()) &&
         (memcmp(str, getShortStringContents(ts), l * sizeof(char)) == 0)) {
-      /* found! */
-      if (isdead(g, ts))  /* dead (but not collected yet)? */
-        changewhite(ts);  /* resurrect it */
+      // found!
+      if (isdead(g, ts))  // dead (but not collected yet)?
+        changewhite(ts);  // resurrect it
       return ts;
     }
   }
-  /* else must create a new string */
-  if (tb->getNumElements() >= tb->getSize()) {  /* need to grow string table? */
+  // else must create a new string
+  if (tb->getNumElements() >= tb->getSize()) {  // need to grow string table?
     growstrtab(L, tb);
-    list = &tb->getHash()[lmod(h, tb->getSize())];  /* rehash with new size */
+    list = &tb->getHash()[lmod(h, tb->getSize())];  // rehash with new size
   }
   size_t allocsize = sizestrshr(l);
   ts = createstrobj(L, allocsize, ctb(LuaT::SHRSTR), h);
   ts->setShrlen(static_cast<ls_byte>(l));
-  getShortStringContents(ts)[l] = '\0';  /* ending 0 */
+  getShortStringContents(ts)[l] = '\0';  // ending 0
   std::copy_n(str, l, getShortStringContents(ts));
   ts->setNext(*list);
   *list = ts;
@@ -233,7 +233,7 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
 
 
 TString* TString::create(lua_State* L, const char* str, size_t l) {
-  if (l <= LUAI_MAXSHORTLEN)  /* short string? */
+  if (l <= LUAI_MAXSHORTLEN)  // short string?
     return internshrstr(L, str, l);
   else {
     TString *ts;
@@ -251,17 +251,17 @@ TString* TString::create(lua_State* L, std::span<const char> str) {
 
 
 TString* TString::create(lua_State* L, const char* str) {
-  unsigned int i = point2uint(str) % STRCACHE_N;  /* hash */
+  unsigned int i = point2uint(str) % STRCACHE_N;  // hash
   unsigned int j;
   GlobalState *g = G(L);
   for (j = 0; j < STRCACHE_M; j++) {
-    if (strcmp(str, getStringContents(g->getStrCache(i, j))) == 0)  /* hit? */
-      return g->getStrCache(i, j);  /* that is it */
+    if (strcmp(str, getStringContents(g->getStrCache(i, j))) == 0)  // hit?
+      return g->getStrCache(i, j);  // that is it
   }
-  /* normal route */
+  // normal route
   for (j = STRCACHE_M - 1; j > 0; j--)
-    g->setStrCache(i, j, g->getStrCache(i, j - 1));  /* move out last element */
-  /* new element is first in the list */
+    g->setStrCache(i, j, g->getStrCache(i, j - 1));  // move out last element
+  // new element is first in the list
   TString *newstr = create(L, str, strlen(str));
   g->setStrCache(i, 0, newstr);
   return newstr;
@@ -302,7 +302,7 @@ struct NewExt {
   ls_byte kind;
   const char *s;
    size_t len;
-  TString *ts;  /* output */
+  TString *ts;  // output
 };
 
 
@@ -318,13 +318,13 @@ TString* TString::createExternal(lua_State* L, const char* s, size_t len,
   struct NewExt ne;
   if (!falloc) {
     ne.kind = LSTRFIX;
-    f_newext(L, &ne);  /* just create header */
+    f_newext(L, &ne);  // just create header
   }
   else {
     ne.kind = LSTRMEM;
-    if (L->rawRunProtected( f_newext, &ne) != LUA_OK) {  /* mem. error? */
-      (*falloc)(ud, cast_voidp(s), len + 1, 0);  /* free external string */
-      luaM_error(L);  /* re-raise memory error */
+    if (L->rawRunProtected( f_newext, &ne) != LUA_OK) {  // mem. error?
+      (*falloc)(ud, cast_voidp(s), len + 1, 0);  // free external string
+      luaM_error(L);  // re-raise memory error
     }
     ne.ts->setFalloc(falloc);
     ne.ts->setUserData(ud);
@@ -342,10 +342,10 @@ TString* TString::createExternal(lua_State* L, const char* s, size_t len,
 
 unsigned TString::hashLongStr() {
   lua_assert(getType() == ctb(LuaT::LNGSTR));
-  if (getExtra() == 0) {  /* no hash? */
+  if (getExtra() == 0) {  // no hash?
     size_t len = getLnglen();
     setHash(computeHash(getLongStringContents(this), len, getHash()));
-    setExtra(1);  /* now it has its hash */
+    setExtra(1);  // now it has its hash
   }
   return getHash();
 }
@@ -354,14 +354,14 @@ bool TString::equals(const TString* other) const {
   size_t len1, len2;
   const char *s1 = getStringWithLength(this, len1);
   const char *s2 = getStringWithLength(other, len2);
-  return ((len1 == len2) &&  /* equal length and ... */
-          (memcmp(s1, s2, len1) == 0));  /* equal contents */
+  return ((len1 == len2) &&  // equal length and ...
+          (memcmp(s1, s2, len1) == 0));  // equal contents
 }
 
 void TString::remove(lua_State* L) {
   StringTable *tb = G(L)->getStringTable();
   TString **p = &tb->getHash()[lmod(getHash(), tb->getSize())];
-  while (*p != this)  /* find previous element */
+  while (*p != this)  // find previous element
     p = &(*p)->u.hashNext;
   *p = (*p)->u.hashNext;  /* remove element from its list */
   tb->decrementNumElements();
@@ -370,7 +370,7 @@ void TString::remove(lua_State* L) {
 TString* TString::normalize(lua_State* L) {
   size_t len = u.longLength;
   if (len > LUAI_MAXSHORTLEN)
-    return this;  /* long string; keep the original */
+    return this;  // long string; keep the original
   else {
     const char *str = getLongStringContents(this);
     return internshrstr(L, str, len);

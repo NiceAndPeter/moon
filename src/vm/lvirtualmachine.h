@@ -10,7 +10,7 @@
 #include "lvm.h"
 #include "lgc.h"
 
-/* Forward declarations */
+// Forward declarations
 struct lua_State;
 struct CallInfo;
 class Table;

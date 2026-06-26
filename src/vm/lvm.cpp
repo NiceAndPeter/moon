@@ -138,12 +138,12 @@ void lua_State::pushClosure(Proto *p, UpVal **encup, StkId base, StkId ra) {
   int nup = static_cast<int>(upvaluesSpan.size());
   LClosure *ncl = LClosure::create(this, nup);
   ncl->setProto(p);
-  setclLvalue2s(this, ra, ncl);  /* anchor new closure in stack */
+  setclLvalue2s(this, ra, ncl);  // anchor new closure in stack
   int i = 0;
-  for (const auto& uv : upvaluesSpan) {  /* fill in its upvalues */
-    if (uv.isInStack())  /* upvalue refers to local variable? */
+  for (const auto& uv : upvaluesSpan) {  // fill in its upvalues
+    if (uv.isInStack())  // upvalue refers to local variable?
       ncl->setUpval(i, luaF_findupval(this, base + uv.getIndex()));
-    else  /* get upvalue from enclosing function */
+    else  // get upvalue from enclosing function
       ncl->setUpval(i, encup[uv.getIndex()]);
     luaC_objbarrier(this, ncl, ncl->getUpval(i));
     i++;
@@ -154,7 +154,7 @@ void lua_State::pushClosure(Proto *p, UpVal **encup, StkId base, StkId ra) {
 /*
 ** finish execution of an opcode interrupted by a yield
 */
-/* luaV_finishOp removed - use VirtualMachine::finishOp() directly */
+// luaV_finishOp removed - use VirtualMachine::finishOp() directly
 
 
 
@@ -215,7 +215,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 ** and debuggability. See lines 1378-1514 for the lambda implementations.
 */
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*
@@ -387,9 +387,9 @@ inline void luai_threadyield(lua_State* L) noexcept {
 ** 2. An error is thrown (C++ exception)
 ** 3. The function yields (coroutine suspend)
 */
-/* luaV_execute removed - use VirtualMachine::execute() directly */
+// luaV_execute removed - use VirtualMachine::execute() directly
 
-/* }================================================================== */
+// }==================================================================
 
 
 /*

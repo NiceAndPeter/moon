@@ -27,7 +27,7 @@
 */
 static int l_strton (const TValue *obj, TValue *result) {
   lua_assert(obj != result);
-  if (!cvt2num(obj))  /* is object not a string? */
+  if (!cvt2num(obj))  // is object not a string?
     return 0;
   else {
     TString *st = tsvalue(obj);
@@ -48,16 +48,16 @@ static int tonumber_ (const TValue *obj, lua_Number *n) {
     *n = cast_num(ivalue(obj));
     return 1;
   }
-  else if (l_strton(obj, &v)) {  /* string coercible to number? */
+  else if (l_strton(obj, &v)) {  // string coercible to number?
     *n = nvalue(&v);  /* convert result of 'luaO_str2num' to a float */
     return 1;
   }
   else
-    return 0;  /* conversion failed */
+    return 0;  // conversion failed
 }
 
 
-/* luaV_flttointeger removed - use VirtualMachine::flttointeger() directly */
+// luaV_flttointeger removed - use VirtualMachine::flttointeger() directly
 
 
 /*
@@ -82,8 +82,8 @@ static int tointegerns_ (const TValue *obj, lua_Integer *p, F2Imod mode) {
 */
 static int tointeger_ (const TValue *obj, lua_Integer *p, F2Imod mode) {
   TValue v;
-  if (l_strton(obj, &v))  /* does 'obj' point to a numerical string? */
-    obj = &v;  /* change it to point to its corresponding number */
+  if (l_strton(obj, &v))  // does 'obj' point to a numerical string?
+    obj = &v;  // change it to point to its corresponding number
   return tointegerns_(obj, p, mode);
 }
 

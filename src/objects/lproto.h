@@ -12,9 +12,9 @@
 
 #include "llimits.h"
 #include "lua.h"
-#include "lobject_core.h"  /* GCBase, GCObject */
+#include "lobject_core.h"  // GCBase, GCObject
 
-/* Forward declarations */
+// Forward declarations
 class TString;
 class TValue;
 typedef l_uint32 Instruction;
@@ -33,10 +33,10 @@ typedef l_uint32 Instruction;
 */
 class Upvaldesc {
 private:
-  TString *name;  /* upvalue name (for debug information) */
-  lu_byte instack;  /* whether it is in stack (register) */
-  lu_byte idx;  /* index of upvalue (in stack or in outer function's list) */
-  lu_byte kind;  /* kind of corresponding variable */
+  TString *name;  // upvalue name (for debug information)
+  lu_byte instack;  // whether it is in stack (register)
+  lu_byte idx;  // index of upvalue (in stack or in outer function's list)
+  lu_byte kind;  // kind of corresponding variable
 
 public:
   // Inline accessors
@@ -62,8 +62,8 @@ public:
 class LocVar {
 private:
   TString *varname;
-  int startpc;  /* first point where variable is active */
-  int endpc;    /* first point where variable is dead */
+  int startpc;  // first point where variable is active
+  int endpc;  // first point where variable is dead
 
 public:
   // Inline accessors
@@ -110,7 +110,7 @@ public:
 ** Flags in Prototypes
 */
 inline constexpr lu_byte PF_ISVARARG = 1;
-inline constexpr lu_byte PF_FIXED = 2;  /* prototype has parts in fixed memory */
+inline constexpr lu_byte PF_FIXED = 2;  // prototype has parts in fixed memory
 
 
 /*
@@ -119,23 +119,23 @@ inline constexpr lu_byte PF_FIXED = 2;  /* prototype has parts in fixed memory *
 */
 class ProtoDebugInfo {
 private:
-  /* Line information */
-  ls_byte *lineinfo;            /* Map from opcodes to source lines */
+  // Line information
+  ls_byte *lineinfo;  // Map from opcodes to source lines
   int sizelineinfo;
-  AbsLineInfo *abslineinfo;     /* Absolute line info for faster lookup */
+  AbsLineInfo *abslineinfo;  // Absolute line info for faster lookup
   int sizeabslineinfo;
 
-  /* Local variable information */
-  LocVar *locvars;              /* Local variable descriptors */
+  // Local variable information
+  LocVar *locvars;  // Local variable descriptors
   int sizelocvars;
 
-  /* Source location */
-  int linedefined;              /* First line of function definition */
-  int lastlinedefined;          /* Last line of function definition */
-  TString *source;              /* Source file name */
+  // Source location
+  int linedefined;  // First line of function definition
+  int lastlinedefined;  // Last line of function definition
+  TString *source;  // Source file name
 
 public:
-  /* Inline accessors */
+  // Inline accessors
   ls_byte* getLineInfo() const noexcept { return lineinfo; }
   int getLineInfoSize() const noexcept { return sizelineinfo; }
   AbsLineInfo* getAbsLineInfo() const noexcept { return abslineinfo; }
@@ -146,7 +146,7 @@ public:
   int getLastLineDefined() const noexcept { return lastlinedefined; }
   TString* getSource() const noexcept { return source; }
 
-  /* Inline setters */
+  // Inline setters
   void setLineInfo(ls_byte* li) noexcept { lineinfo = li; }
   void setLineInfoSize(int s) noexcept { sizelineinfo = s; }
   void setAbsLineInfo(AbsLineInfo* ali) noexcept { abslineinfo = ali; }
@@ -157,7 +157,7 @@ public:
   void setLastLineDefined(int l) noexcept { lastlinedefined = l; }
   void setSource(TString* s) noexcept { source = s; }
 
-  /* Reference accessors for luaM_growvector */
+  // Reference accessors for luaM_growvector
   int& getLineInfoSizeRef() noexcept { return sizelineinfo; }
   int& getAbsLineInfoSizeRef() noexcept { return sizeabslineinfo; }
   int& getLocVarsSizeRef() noexcept { return sizelocvars; }
@@ -165,10 +165,10 @@ public:
   AbsLineInfo*& getAbsLineInfoRef() noexcept { return abslineinfo; }
   LocVar*& getLocVarsRef() noexcept { return locvars; }
 
-  /* Pointer accessors */
+  // Pointer accessors
   TString** getSourcePtr() noexcept { return &source; }
 
-  /* std::span accessors for debug info arrays */
+  // std::span accessors for debug info arrays
   std::span<ls_byte> getLineInfoSpan() noexcept {
     return std::span(lineinfo, static_cast<size_t>(sizelineinfo));
   }
@@ -198,21 +198,21 @@ public:
 // Proto inherits from GCBase (CRTP)
 class Proto : public GCBase<Proto> {
 private:
-  /* Runtime data (always needed for execution) */
-  lu_byte numparams;  /* number of fixed (named) parameters */
+  // Runtime data (always needed for execution)
+  lu_byte numparams;  // number of fixed (named) parameters
   lu_byte flag;
-  lu_byte maxstacksize;  /* number of registers needed by this function */
-  int sizeupvalues;  /* size of 'upvalues' */
-  int sizek;  /* size of 'k' */
+  lu_byte maxstacksize;  // number of registers needed by this function
+  int sizeupvalues;  // size of 'upvalues'
+  int sizek;  // size of 'k'
   int sizecode;
-  int sizep;  /* size of 'p' */
-  TValue *k;  /* constants used by the function */
-  Instruction *code;  /* opcodes */
-  Proto **p;  /* functions defined inside the function */
-  Upvaldesc *upvalues;  /* upvalue information */
+  int sizep;  // size of 'p'
+  TValue *k;  // constants used by the function
+  Instruction *code;  // opcodes
+  Proto **p;  // functions defined inside the function
+  Upvaldesc *upvalues;  // upvalue information
   GCObject *gclist;
 
-  /* Debug subsystem (debug information) */
+  // Debug subsystem (debug information)
   ProtoDebugInfo debugInfo;
 
 public:
@@ -243,11 +243,11 @@ public:
   static void* operator new(size_t) = delete;
   static void operator delete(void*) = delete;
 
-  /* Subsystem access (for direct debug info manipulation) */
+  // Subsystem access (for direct debug info manipulation)
   ProtoDebugInfo& getDebugInfo() noexcept { return debugInfo; }
   const ProtoDebugInfo& getDebugInfo() const noexcept { return debugInfo; }
 
-  /* Runtime data accessors */
+  // Runtime data accessors
   lu_byte getNumParams() const noexcept { return numparams; }
   lu_byte getFlag() const noexcept { return flag; }
   lu_byte getMaxStackSize() const noexcept { return maxstacksize; }
@@ -259,7 +259,7 @@ public:
   Instruction* getCode() const noexcept { return code; }
   TValue* getConstants() const noexcept { return k; }
 
-  /* std::span accessors for arrays */
+  // std::span accessors for arrays
   std::span<Instruction> getCodeSpan() noexcept {
     return std::span(code, static_cast<size_t>(sizecode));
   }
@@ -292,7 +292,7 @@ public:
   Upvaldesc* getUpvalues() const noexcept { return upvalues; }
   GCObject* getGclist() const noexcept { return gclist; }
 
-  /* Delegating accessors for ProtoDebugInfo */
+  // Delegating accessors for ProtoDebugInfo
   int getLineInfoSize() const noexcept { return debugInfo.getLineInfoSize(); }
   int getLocVarsSize() const noexcept { return debugInfo.getLocVarsSize(); }
   int getAbsLineInfoSize() const noexcept { return debugInfo.getAbsLineInfoSize(); }
@@ -303,7 +303,7 @@ public:
   AbsLineInfo* getAbsLineInfo() const noexcept { return debugInfo.getAbsLineInfo(); }
   LocVar* getLocVars() const noexcept { return debugInfo.getLocVars(); }
 
-  /* Runtime data setters */
+  // Runtime data setters
   void setNumParams(lu_byte n) noexcept { numparams = n; }
   void setFlag(lu_byte f) noexcept { flag = f; }
   void setMaxStackSize(lu_byte s) noexcept { maxstacksize = s; }
@@ -317,7 +317,7 @@ public:
   void setUpvalues(Upvaldesc* uv) noexcept { upvalues = uv; }
   void setGclist(GCObject* gc) noexcept { gclist = gc; }
 
-  /* Delegating setters for ProtoDebugInfo */
+  // Delegating setters for ProtoDebugInfo
   void setLineInfoSize(int s) noexcept { debugInfo.setLineInfoSize(s); }
   void setLocVarsSize(int s) noexcept { debugInfo.setLocVarsSize(s); }
   void setAbsLineInfoSize(int s) noexcept { debugInfo.setAbsLineInfoSize(s); }
@@ -328,11 +328,11 @@ public:
   void setAbsLineInfo(AbsLineInfo* ali) noexcept { debugInfo.setAbsLineInfo(ali); }
   void setLocVars(LocVar* lv) noexcept { debugInfo.setLocVars(lv); }
 
-  /* Pointer accessors for serialization and GC */
+  // Pointer accessors for serialization and GC
   TString** getSourcePtr() noexcept { return debugInfo.getSourcePtr(); }
   GCObject** getGclistPtr() noexcept { return &gclist; }
 
-  /* Runtime data reference accessors for luaM_growvector */
+  // Runtime data reference accessors for luaM_growvector
   int& getCodeSizeRef() noexcept { return sizecode; }
   int& getConstantsSizeRef() noexcept { return sizek; }
   int& getUpvaluesSizeRef() noexcept { return sizeupvalues; }
@@ -343,7 +343,7 @@ public:
   Proto**& getProtosRef() noexcept { return p; }
   Upvaldesc*& getUpvaluesRef() noexcept { return upvalues; }
 
-  /* Delegating reference accessors for ProtoDebugInfo */
+  // Delegating reference accessors for ProtoDebugInfo
   int& getLineInfoSizeRef() noexcept { return debugInfo.getLineInfoSizeRef(); }
   int& getLocVarsSizeRef() noexcept { return debugInfo.getLocVarsSizeRef(); }
   int& getAbsLineInfoSizeRef() noexcept { return debugInfo.getAbsLineInfoSizeRef(); }
@@ -364,7 +364,7 @@ public:
   const char* getLocalName(int local_number, int pc) const;
 };
 
-/* }================================================================== */
+// }==================================================================
 
 
 #endif

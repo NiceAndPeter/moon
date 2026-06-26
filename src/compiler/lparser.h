@@ -24,16 +24,16 @@
 ** by short-circuit operators 'and'/'or').
 */
 
-/* kinds of variables/expressions */
+// kinds of variables/expressions
 typedef enum {
   VVOID,  /* when 'ExpDesc' describes the last expression of a list,
              this kind means an empty list (so, no expression) */
-  VNIL,  /* constant nil */
-  VTRUE,  /* constant true */
-  VFALSE,  /* constant false */
-  VK,  /* constant in 'k'; info = index of constant in 'k' */
-  VKFLT,  /* floating constant; nval = numerical float value */
-  VKINT,  /* integer constant; ival = numerical integer value */
+  VNIL,  // constant nil
+  VTRUE,  // constant true
+  VFALSE,  // constant false
+  VK,  // constant in 'k'; info = index of constant in 'k'
+  VKFLT,  // floating constant; nval = numerical float value
+  VKINT,  // integer constant; ival = numerical integer value
   VKSTR,  /* string constant; strval = TString address;
              (string is fixed by the scanner) */
   VNONRELOC,  /* expression has its value in a fixed register;
@@ -43,7 +43,7 @@ typedef enum {
   VGLOBAL,  /* global variable;
                info = relative index in 'actvar.arr' (or -1 for
                       implicit declaration) */
-  VUPVAL,  /* upvalue variable; info = index of upvalue in 'upvalues' */
+  VUPVAL,  // upvalue variable; info = index of upvalue in 'upvalues'
   VCONST,  /* compile-time <const> variable;
               info = absolute index in 'actvar.arr'  */
   VINDEXED,  /* indexed variable;
@@ -65,8 +65,8 @@ typedef enum {
             info = pc of corresponding jump instruction */
   VRELOC,  /* expression can put result in any register;
               info = instruction pc */
-  VCALL,  /* expression is a function call; info = instruction pc */
-  VVARARG  /* vararg expression; info = instruction pc */
+  VCALL,  // expression is a function call; info = instruction pc
+  VVARARG  // vararg expression; info = instruction pc
 } expkind;
 
 
@@ -74,23 +74,23 @@ class ExpDesc {
 private:
   expkind k;
   union {
-    lua_Integer integerValue;    /* for VKINT */
-    lua_Number floatValue;  /* for VKFLT */
-    TString *stringValue;  /* for VKSTR */
-    int info;  /* for generic use */
-    struct {  /* for indexed variables */
-      short keyIndex;  /* index (R or "long" K) */
-      lu_byte tableRegister;  /* table (register or upvalue) */
-      lu_byte isReadOnly;  /* true if variable is read-only */
-      int stringKeyIndex;  /* index in 'k' of string key, or -1 if not a string */
+    lua_Integer integerValue;  // for VKINT
+    lua_Number floatValue;  // for VKFLT
+    TString *stringValue;  // for VKSTR
+    int info;  // for generic use
+    struct {  // for indexed variables
+      short keyIndex;  // index (R or "long" K)
+      lu_byte tableRegister;  // table (register or upvalue)
+      lu_byte isReadOnly;  // true if variable is read-only
+      int stringKeyIndex;  // index in 'k' of string key, or -1 if not a string
     } ind;
-    struct {  /* for local variables */
-      lu_byte registerIndex;  /* register holding the variable */
-      short variableIndex;  /* index in 'actvar.arr' */
+    struct {  // for local variables
+      lu_byte registerIndex;  // register holding the variable
+      short variableIndex;  // index in 'actvar.arr'
     } var;
   } u;
-  int trueJumpList;  /* patch list of 'exit when true' */
-  int falseJumpList;  /* patch list of 'exit when false' */
+  int trueJumpList;  // patch list of 'exit when true'
+  int falseJumpList;  // patch list of 'exit when false'
 
 public:
   // Inline accessors
@@ -150,27 +150,27 @@ public:
 };
 
 
-/* kinds of variables */
-inline constexpr lu_byte VDKREG = 0;   /* regular local */
-inline constexpr lu_byte RDKCONST = 1;   /* local constant */
-inline constexpr lu_byte RDKTOCLOSE = 2;   /* to-be-closed */
-inline constexpr lu_byte RDKCTC = 3;   /* local compile-time constant */
-inline constexpr lu_byte GDKREG = 4;   /* regular global */
-inline constexpr lu_byte GDKCONST = 5;   /* global constant */
+// kinds of variables
+inline constexpr lu_byte VDKREG = 0;  // regular local
+inline constexpr lu_byte RDKCONST = 1;  // local constant
+inline constexpr lu_byte RDKTOCLOSE = 2;  // to-be-closed
+inline constexpr lu_byte RDKCTC = 3;  // local compile-time constant
+inline constexpr lu_byte GDKREG = 4;  // regular global
+inline constexpr lu_byte GDKCONST = 5;  // global constant
 
-/* description of an active variable */
+// description of an active variable
 class Vardesc {
 public:
   union {
     struct {
-      Value value_;  /* value for compile-time constant */
-      lu_byte tt_;   /* type tag for compile-time constant */
+      Value value_;  // value for compile-time constant
+      lu_byte tt_;  // type tag for compile-time constant
       lu_byte kind;
-      lu_byte registerIndex;  /* register holding the variable */
-      short protoLocalVarIndex;  /* index of the variable in the Proto's 'locvars' array */
-      TString *name;  /* variable name */
+      lu_byte registerIndex;  // register holding the variable
+      short protoLocalVarIndex;  // index of the variable in the Proto's 'locvars' array
+      TString *name;  // variable name
     } vd;
-    TValue k;  /* constant value (if any) */
+    TValue k;  // constant value (if any)
   };
 
   // Variable kind helper methods
@@ -188,43 +188,43 @@ public:
 
 
 
-/* description of pending goto statements and label statements */
+// description of pending goto statements and label statements
 typedef struct Labeldesc {
-  TString *name;  /* label identifier */
-  int pc;  /* position in code */
-  int line;  /* line where it appeared */
-  short numberOfActiveVariables;  /* number of active variables in that position */
-  lu_byte close;  /* true for goto that escapes upvalues */
+  TString *name;  // label identifier
+  int pc;  // position in code
+  int line;  // line where it appeared
+  short numberOfActiveVariables;  // number of active variables in that position
+  lu_byte close;  // true for goto that escapes upvalues
 } Labeldesc;
 
 
-/* list of labels or gotos */
+// list of labels or gotos
 class Labellist {
 private:
   LuaVector<Labeldesc> vec;
 
 public:
   explicit Labellist(lua_State* L) : vec(L) {
-    /* Pre-reserve capacity to avoid early reallocations */
+    // Pre-reserve capacity to avoid early reallocations
     vec.reserve(16);
   }
 
-  /* Accessor methods matching old interface */
+  // Accessor methods matching old interface
   Labeldesc* getArr() noexcept { return vec.data(); }
   const Labeldesc* getArr() const noexcept { return vec.data(); }
   int getN() const noexcept { return static_cast<int>(vec.size()); }
   int getSize() const noexcept { return static_cast<int>(vec.capacity()); }
 
-  /* Modifying size */
+  // Modifying size
   void setN(int new_n) { vec.resize(static_cast<size_t>(new_n)); }
 
-  /* Direct vector access for modern operations */
+  // Direct vector access for modern operations
   void push_back(const Labeldesc& desc) { vec.push_back(desc); }
   void reserve(int capacity) { vec.reserve(static_cast<size_t>(capacity)); }
   Labeldesc& operator[](int index) { return vec[static_cast<size_t>(index)]; }
   const Labeldesc& operator[](int index) const { return vec[static_cast<size_t>(index)]; }
 
-  /* For luaM_growvector replacement */
+  // For luaM_growvector replacement
   void ensureCapacity(int needed) {
     if (needed > getSize()) {
       vec.reserve(static_cast<size_t>(needed));
@@ -237,22 +237,22 @@ public:
 };
 
 
-/* dynamic structures used by the parser */
+// dynamic structures used by the parser
 class Dyndata {
 private:
   LuaVector<Vardesc> actvar_vec;
 
 public:
-  Labellist gt;     /* list of pending gotos */
-  Labellist label;  /* list of active labels */
+  Labellist gt;  // list of pending gotos
+  Labellist label;  // list of active labels
 
   explicit Dyndata(lua_State* L)
     : actvar_vec(L), gt(L), label(L) {
-    /* Pre-reserve typical capacity to avoid early reallocations */
+    // Pre-reserve typical capacity to avoid early reallocations
     actvar_vec.reserve(32);
   }
 
-  /* Direct actvar accessor methods - avoid temporary object creation */
+  // Direct actvar accessor methods - avoid temporary object creation
   Vardesc* actvarGetArr() noexcept { return actvar_vec.data(); }
   const Vardesc* actvarGetArr() const noexcept { return actvar_vec.data(); }
   int actvarGetN() const noexcept { return static_cast<int>(actvar_vec.size()); }
@@ -267,7 +267,7 @@ public:
     return &actvar_vec.back();
   }
 
-  /* std::span accessors for actvar array */
+  // std::span accessors for actvar array
   std::span<Vardesc> actvarGetSpan() noexcept {
     return std::span(actvar_vec.data(), actvar_vec.size());
   }
@@ -275,7 +275,7 @@ public:
     return std::span(actvar_vec.data(), actvar_vec.size());
   }
 
-  /* Legacy accessor interface for backward compatibility */
+  // Legacy accessor interface for backward compatibility
   class ActvarAccessor {
   private:
     Dyndata* dyn;
@@ -291,10 +291,10 @@ public:
 };
 
 
-/* control of blocks */
-struct BlockCnt;  /* defined in lparser.c */
-struct ConsControl;  /* defined in lparser.c */
-struct LHS_assign;  /* defined in lparser.c */
+// control of blocks
+struct BlockCnt;  // defined in lparser.c
+struct ConsControl;  // defined in lparser.c
+struct LHS_assign;  // defined in lparser.c
 
 
 /*
@@ -302,31 +302,31 @@ struct LHS_assign;  /* defined in lparser.c */
 ** These classes separate FuncState's responsibilities into focused components
 */
 
-/* 1. Code Buffer - Bytecode generation and line info tracking */
+// 1. Code Buffer - Bytecode generation and line info tracking
 class CodeBuffer {
 private:
-  int pc;              /* Program counter (next instruction) */
-  int lasttarget;      /* Label of last 'jump label' */
-  int previousline;    /* Last line saved in lineinfo */
-  int numberOfAbsoluteLineInfo;    /* Number of absolute line info entries */
-  lu_byte instructionsSinceAbsoluteLineInfo;     /* Instructions since last absolute line info */
+  int pc;  // Program counter (next instruction)
+  int lasttarget;  // Label of last 'jump label'
+  int previousline;  // Last line saved in lineinfo
+  int numberOfAbsoluteLineInfo;  // Number of absolute line info entries
+  lu_byte instructionsSinceAbsoluteLineInfo;  // Instructions since last absolute line info
 
 public:
-  /* Inline accessors for reading */
+  // Inline accessors for reading
   int getPC() const noexcept { return pc; }
   int getLastTarget() const noexcept { return lasttarget; }
   int getPreviousLine() const noexcept { return previousline; }
   int getNumberOfAbsoluteLineInfo() const noexcept { return numberOfAbsoluteLineInfo; }
   lu_byte getInstructionsSinceAbsoluteLineInfo() const noexcept { return instructionsSinceAbsoluteLineInfo; }
 
-  /* Setters */
+  // Setters
   void setPC(int pc_) noexcept { pc = pc_; }
   void setLastTarget(int lasttarget_) noexcept { lasttarget = lasttarget_; }
   void setPreviousLine(int previousline_) noexcept { previousline = previousline_; }
   void setNumberOfAbsoluteLineInfo(int numberOfAbsoluteLineInfo_) noexcept { numberOfAbsoluteLineInfo = numberOfAbsoluteLineInfo_; }
   void setInstructionsSinceAbsoluteLineInfo(lu_byte instructionsSinceAbsoluteLineInfo_) noexcept { instructionsSinceAbsoluteLineInfo = instructionsSinceAbsoluteLineInfo_; }
 
-  /* Increment/decrement methods */
+  // Increment/decrement methods
   void incrementPC() noexcept { pc++; }
   void decrementPC() noexcept { pc--; }
   int postIncrementPC() noexcept { return pc++; }
@@ -336,7 +336,7 @@ public:
   lu_byte postIncrementInstructionsSinceAbsoluteLineInfo() noexcept { return instructionsSinceAbsoluteLineInfo++; }
   void decrementInstructionsSinceAbsoluteLineInfo() noexcept { instructionsSinceAbsoluteLineInfo--; }
 
-  /* Reference accessors for compound assignments */
+  // Reference accessors for compound assignments
   int& getPCRef() noexcept { return pc; }
   int& getLastTargetRef() noexcept { return lasttarget; }
   int& getPreviousLineRef() noexcept { return previousline; }
@@ -345,38 +345,38 @@ public:
 };
 
 
-/* 2. Constant Pool - Constant value management and deduplication */
+// 2. Constant Pool - Constant value management and deduplication
 class ConstantPool {
 private:
-  Table *cache;        /* Cache for constant deduplication */
-  int numberOfConstants;           /* Number of constants in proto */
+  Table *cache;  // Cache for constant deduplication
+  int numberOfConstants;  // Number of constants in proto
 
 public:
-  /* Inline accessors */
+  // Inline accessors
   Table* getCache() const noexcept { return cache; }
   int getNumberOfConstants() const noexcept { return numberOfConstants; }
 
   void setCache(Table* cache_) noexcept { cache = cache_; }
   void setNumberOfConstants(int numberOfConstants_) noexcept { numberOfConstants = numberOfConstants_; }
 
-  /* Increment */
+  // Increment
   void incrementNumberOfConstants() noexcept { numberOfConstants++; }
 
-  /* Reference accessor */
+  // Reference accessor
   int& getNumberOfConstantsRef() noexcept { return numberOfConstants; }
 };
 
 
-/* 3. Variable Scope - Local variable and label tracking */
+// 3. Variable Scope - Local variable and label tracking
 class VariableScope {
 private:
-  int firstlocal;              /* Index of first local in this function (Dyndata array) */
-  int firstlabel;              /* Index of first label in this function */
-  short numberOfDebugVariables;    /* Number of variables in f->locvars (debug info) */
-  short numberOfActiveVariables;   /* Number of active variable declarations */
+  int firstlocal;  // Index of first local in this function (Dyndata array)
+  int firstlabel;  // Index of first label in this function
+  short numberOfDebugVariables;  // Number of variables in f->locvars (debug info)
+  short numberOfActiveVariables;  // Number of active variable declarations
 
 public:
-  /* Inline accessors */
+  // Inline accessors
   int getFirstLocal() const noexcept { return firstlocal; }
   int getFirstLabel() const noexcept { return firstlabel; }
   short getNumDebugVars() const noexcept { return numberOfDebugVariables; }
@@ -387,91 +387,91 @@ public:
   void setNumDebugVars(short ndebugvars_) noexcept { numberOfDebugVariables = ndebugvars_; }
   void setNumActiveVars(short nactvar_) noexcept { numberOfActiveVariables = nactvar_; }
 
-  /* Increment */
+  // Increment
   short postIncrementNumDebugVars() noexcept { return numberOfDebugVariables++; }
 
-  /* Reference accessors */
+  // Reference accessors
   short& getNumDebugVarsRef() noexcept { return numberOfDebugVariables; }
   short& getNumActiveVarsRef() noexcept { return numberOfActiveVariables; }
 };
 
 
-/* 4. Register Allocator - Register allocation tracking */
+// 4. Register Allocator - Register allocation tracking
 class RegisterAllocator {
 private:
-  lu_byte firstFreeRegister;     /* First free register */
+  lu_byte firstFreeRegister;  // First free register
 
 public:
-  /* Inline accessors */
+  // Inline accessors
   lu_byte getFirstFreeRegister() const noexcept { return firstFreeRegister; }
   void setFirstFreeRegister(lu_byte firstFreeRegister_) noexcept { firstFreeRegister = firstFreeRegister_; }
 
-  /* Decrement */
+  // Decrement
   void decrementFirstFreeRegister() noexcept { firstFreeRegister--; }
 
-  /* Reference accessor */
+  // Reference accessor
   lu_byte& getFirstFreeRegisterRef() noexcept { return firstFreeRegister; }
 };
 
 
-/* 5. Upvalue Tracker - Upvalue management */
+// 5. Upvalue Tracker - Upvalue management
 class UpvalueTracker {
 private:
-  lu_byte numberOfUpvalues;        /* Number of upvalues */
-  lu_byte needsCloseUpvalues;   /* Function needs to close upvalues when returning */
+  lu_byte numberOfUpvalues;  // Number of upvalues
+  lu_byte needsCloseUpvalues;  // Function needs to close upvalues when returning
 
 public:
-  /* Inline accessors */
+  // Inline accessors
   lu_byte getNumUpvalues() const noexcept { return numberOfUpvalues; }
   lu_byte getNeedClose() const noexcept { return needsCloseUpvalues; }
 
   void setNumUpvalues(lu_byte numberOfUpvalues_) noexcept { numberOfUpvalues = numberOfUpvalues_; }
   void setNeedClose(lu_byte needsCloseUpvalues_) noexcept { needsCloseUpvalues = needsCloseUpvalues_; }
 
-  /* Reference accessors */
+  // Reference accessors
   lu_byte& getNumUpvaluesRef() noexcept { return numberOfUpvalues; }
   lu_byte& getNeedCloseRef() noexcept { return needsCloseUpvalues; }
 };
 
 
-/* state needed to generate code for a given function */
+// state needed to generate code for a given function
 class FuncState {
 private:
-  /* Core context (references for non-null, non-reassigned members) */
-  Proto& f;  /* current function header */
-  class FuncState *prev;  /* enclosing function (can be null) */
-  class LexState& ls;  /* lexical state */
-  struct BlockCnt *bl;  /* chain of current blocks (can be null, reassigned) */
-  int numberOfNestedPrototypes;  /* number of elements in 'p' (nested functions) */
+  // Core context (references for non-null, non-reassigned members)
+  Proto& f;  // current function header
+  class FuncState *prev;  // enclosing function (can be null)
+  class LexState& ls;  // lexical state
+  struct BlockCnt *bl;  // chain of current blocks (can be null, reassigned)
+  int numberOfNestedPrototypes;  // number of elements in 'p' (nested functions)
 
-  /* Subsystems (SRP refactoring) */
-  CodeBuffer codeBuffer;           /* Bytecode generation & line info */
-  ConstantPool constantPool;       /* Constant management */
-  VariableScope variableScope;     /* Local variables & labels */
-  RegisterAllocator registerAlloc; /* Register allocation */
-  UpvalueTracker upvalueTrack;     /* Upvalue tracking */
+  // Subsystems (SRP refactoring)
+  CodeBuffer codeBuffer;  // Bytecode generation & line info
+  ConstantPool constantPool;  // Constant management
+  VariableScope variableScope;  // Local variables & labels
+  RegisterAllocator registerAlloc;  // Register allocation
+  UpvalueTracker upvalueTrack;  // Upvalue tracking
 
 public:
-  /* Constructor (required for reference members) */
+  // Constructor (required for reference members)
   explicit FuncState(Proto& proto, class LexState& lexState) noexcept
     : f(proto), prev(nullptr), ls(lexState), bl(nullptr), numberOfNestedPrototypes(0),
       codeBuffer(), constantPool(), variableScope(), registerAlloc(), upvalueTrack() {}
 
-  /* Core context accessors (return references where appropriate) */
+  // Core context accessors (return references where appropriate)
   inline Proto& getProto() const noexcept { return f; }
   inline FuncState* getPrev() const noexcept { return prev; }
   inline class LexState& getLexState() const noexcept { return ls; }
   inline struct BlockCnt* getBlock() const noexcept { return bl; }
   inline int getNumberOfNestedPrototypes() const noexcept { return numberOfNestedPrototypes; }
 
-  /* Setters (Proto& and LexState& are set via constructor, not settable) */
+  // Setters (Proto& and LexState& are set via constructor, not settable)
   inline void setPrev(FuncState* prev_) noexcept { prev = prev_; }
   inline void setBlock(struct BlockCnt* bl_) noexcept { bl = bl_; }
   inline void setNumberOfNestedPrototypes(int numberOfNestedPrototypes_) noexcept { numberOfNestedPrototypes = numberOfNestedPrototypes_; }
   inline void incrementNumberOfNestedPrototypes() noexcept { numberOfNestedPrototypes++; }
   inline int& getNumberOfNestedPrototypesRef() noexcept { return numberOfNestedPrototypes; }
 
-  /* Subsystem access methods (for direct subsystem manipulation) */
+  // Subsystem access methods (for direct subsystem manipulation)
   inline CodeBuffer& getCodeBuffer() noexcept { return codeBuffer; }
   inline const CodeBuffer& getCodeBuffer() const noexcept { return codeBuffer; }
   inline ConstantPool& getConstantPool() noexcept { return constantPool; }
@@ -483,7 +483,7 @@ public:
   inline UpvalueTracker& getUpvalueTracker() noexcept { return upvalueTrack; }
   inline const UpvalueTracker& getUpvalueTracker() const noexcept { return upvalueTrack; }
 
-  /* Delegating accessors for CodeBuffer */
+  // Delegating accessors for CodeBuffer
   inline int getPC() const noexcept { return codeBuffer.getPC(); }
   inline int getLastTarget() const noexcept { return codeBuffer.getLastTarget(); }
   inline int getPreviousLine() const noexcept { return codeBuffer.getPreviousLine(); }
@@ -511,7 +511,7 @@ public:
   inline int& getNumberOfAbsoluteLineInfoRef() noexcept { return codeBuffer.getNumberOfAbsoluteLineInfoRef(); }
   inline lu_byte& getInstructionsSinceAbsoluteLineInfoRef() noexcept { return codeBuffer.getInstructionsSinceAbsoluteLineInfoRef(); }
 
-  /* Delegating accessors for ConstantPool */
+  // Delegating accessors for ConstantPool
   inline Table* getKCache() const noexcept { return constantPool.getCache(); }
   inline int getNumberOfConstants() const noexcept { return constantPool.getNumberOfConstants(); }
 
@@ -520,7 +520,7 @@ public:
   inline void incrementNumberOfConstants() noexcept { constantPool.incrementNumberOfConstants(); }
   inline int& getNumberOfConstantsRef() noexcept { return constantPool.getNumberOfConstantsRef(); }
 
-  /* Delegating accessors for VariableScope */
+  // Delegating accessors for VariableScope
   inline int getFirstLocal() const noexcept { return variableScope.getFirstLocal(); }
   inline int getFirstLabel() const noexcept { return variableScope.getFirstLabel(); }
   inline short getNumDebugVars() const noexcept { return variableScope.getNumDebugVars(); }
@@ -535,13 +535,13 @@ public:
   inline short& getNumDebugVarsRef() noexcept { return variableScope.getNumDebugVarsRef(); }
   inline short& getNumActiveVarsRef() noexcept { return variableScope.getNumActiveVarsRef(); }
 
-  /* Delegating accessors for RegisterAllocator */
+  // Delegating accessors for RegisterAllocator
   inline lu_byte getFirstFreeRegister() const noexcept { return registerAlloc.getFirstFreeRegister(); }
   inline void setFirstFreeRegister(lu_byte firstFreeRegister_) noexcept { registerAlloc.setFirstFreeRegister(firstFreeRegister_); }
   inline void decrementFirstFreeRegister() noexcept { registerAlloc.decrementFirstFreeRegister(); }
   inline lu_byte& getFirstFreeRegisterRef() noexcept { return registerAlloc.getFirstFreeRegisterRef(); }
 
-  /* Delegating accessors for UpvalueTracker */
+  // Delegating accessors for UpvalueTracker
   inline lu_byte getNumUpvalues() const noexcept { return upvalueTrack.getNumUpvalues(); }
   inline lu_byte getNeedClose() const noexcept { return upvalueTrack.getNeedClose(); }
   inline void setNumUpvalues(lu_byte nups_) noexcept { upvalueTrack.setNumUpvalues(nups_); }
@@ -695,8 +695,8 @@ private:
 */
 class Parser {
 private:
-  class LexState& ls;  /* lexical state (for tokens and shared data) */
-  class FuncState *fs;  /* current function state (reassigned for nested functions) */
+  class LexState& ls;  // lexical state (for tokens and shared data)
+  class FuncState *fs;  // current function state (reassigned for nested functions)
 
 public:
   // Constructor (LexState& required)
@@ -708,7 +708,7 @@ public:
   inline class FuncState* getFuncState() const noexcept { return fs; }
   inline class Dyndata* getDyndata() const noexcept { return ls.getDyndata(); }
 
-  /* Setters (LexState& is set via constructor, FuncState* can be reassigned) */
+  // Setters (LexState& is set via constructor, FuncState* can be reassigned)
   inline void setFuncState(class FuncState* funcState) noexcept { fs = funcState; }
 
   // Parser utility methods (extracted from LexState public API)
@@ -814,13 +814,13 @@ LUAI_FUNC LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
 inline constexpr int NO_JUMP = -1;
 
 
-/* true if operation is foldable (that is, it is arithmetic or bitwise) */
+// true if operation is foldable (that is, it is arithmetic or bitwise)
 inline constexpr bool foldbinop(BinOpr op) noexcept {
 	return op <= BinOpr::OPR_SHR;
 }
 
 
-/* get (pointer to) instruction of given 'ExpDesc' */
+// get (pointer to) instruction of given 'ExpDesc'
 inline Instruction& getinstruction(FuncState* fs, ExpDesc& e) noexcept {
 	return fs->getProto().getCode()[e.getInfo()];
 }

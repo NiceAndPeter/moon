@@ -62,32 +62,32 @@ class UpVal;
 */
 class LuaStack {
 private:
-  StkIdRel top;         /* first free slot in the stack */
-  StkIdRel stack_last;  /* end of stack (last element + 1) */
-  StkIdRel stack;       /* stack base */
-  StkIdRel tbclist;     /* list of to-be-closed variables */
+  StkIdRel top;  // first free slot in the stack
+  StkIdRel stack_last;  // end of stack (last element + 1)
+  StkIdRel stack;  // stack base
+  StkIdRel tbclist;  // list of to-be-closed variables
 
 public:
   /*
   ** Field accessors - return references to allow .p and .offset access
   */
 
-  /* Top pointer accessors */
+  // Top pointer accessors
   StkIdRel& getTop() noexcept { return top; }
   const StkIdRel& getTop() const noexcept { return top; }
   void setTop(StkIdRel t) noexcept { top = t; }
 
-  /* Stack base pointer accessors */
+  // Stack base pointer accessors
   StkIdRel& getStack() noexcept { return stack; }
   const StkIdRel& getStack() const noexcept { return stack; }
   void setStack(StkIdRel s) noexcept { stack = s; }
 
-  /* Stack limit pointer accessors */
+  // Stack limit pointer accessors
   StkIdRel& getStackLast() noexcept { return stack_last; }
   const StkIdRel& getStackLast() const noexcept { return stack_last; }
   void setStackLast(StkIdRel sl) noexcept { stack_last = sl; }
 
-  /* To-be-closed list pointer accessors */
+  // To-be-closed list pointer accessors
   StkIdRel& getTbclist() noexcept { return tbclist; }
   const StkIdRel& getTbclist() const noexcept { return tbclist; }
   void setTbclist(StkIdRel tbc) noexcept { tbclist = tbc; }
@@ -96,12 +96,12 @@ public:
   ** Computed properties
   */
 
-  /* Get current stack size (number of usable slots) */
+  // Get current stack size (number of usable slots)
   int getSize() const noexcept {
     return cast_int(stack_last.p - stack.p);
   }
 
-  /* Check if there is space for n more elements */
+  // Check if there is space for n more elements
   bool hasSpace(int n) const noexcept {
     return stack_last.p - top.p > n;
   }
@@ -113,14 +113,14 @@ public:
   ** to survive stack reallocation. Always use these before/after reallocating.
   */
 
-  /* Convert stack pointer to offset from base */
+  // Convert stack pointer to offset from base
   ptrdiff_t save(StkId pt) const noexcept {
-    return pt - stack.p;  /* direct pointer arithmetic, no char* round-trip */
+    return pt - stack.p;  // direct pointer arithmetic, no char* round-trip
   }
 
-  /* Convert offset to stack pointer */
+  // Convert offset to stack pointer
   StkId restore(ptrdiff_t n) const noexcept {
-    return stack.p + n;  /* direct pointer arithmetic, safe with LTO */
+    return stack.p + n;  // direct pointer arithmetic, safe with LTO
   }
 
   /*
@@ -131,32 +131,32 @@ public:
   ** has already been checked via ensureSpace().
   */
 
-  /* Push one slot (increment top) */
+  // Push one slot (increment top)
   void push() noexcept {
     top.p++;
   }
 
-  /* Pop one slot (decrement top) */
+  // Pop one slot (decrement top)
   void pop() noexcept {
     top.p--;
   }
 
-  /* Pop n slots from stack */
+  // Pop n slots from stack
   void popN(int n) noexcept {
     top.p -= n;
   }
 
-  /* Adjust top by n (positive or negative) */
+  // Adjust top by n (positive or negative)
   void adjust(int n) noexcept {
     top.p += n;
   }
 
-  /* Set top to specific pointer value */
+  // Set top to specific pointer value
   void setTopPtr(StkId ptr) noexcept {
     top.p = ptr;
   }
 
-  /* Set top to offset from stack base */
+  // Set top to offset from stack base
   void setTopOffset(int offset) noexcept {
     top.p = stack.p + offset;
   }
@@ -168,16 +168,16 @@ public:
   ** Operations used by the Lua C API with runtime assertions.
   */
 
-  /* Push with bounds check (replaces api_incr_top macro) */
+  // Push with bounds check (replaces api_incr_top macro)
   void pushChecked(StkId limit) noexcept {
     top.p++;
     lua_assert(top.p <= limit);
   }
 
-  /* Check if stack has at least n elements (replaces api_checknelems) */
+  // Check if stack has at least n elements (replaces api_checknelems)
   bool checkHasElements(CallInfo* ci, int n) const noexcept;
 
-  /* Check if n elements can be popped (replaces api_checkpop) */
+  // Check if n elements can be popped (replaces api_checkpop)
   bool checkCanPop(CallInfo* ci, int n) const noexcept;
 
   /*
@@ -189,10 +189,10 @@ public:
   ** Replaces index2value() and index2stack() from lapi.cpp.
   */
 
-  /* Convert API index to TValue* (replaces index2value) */
+  // Convert API index to TValue* (replaces index2value)
   TValue* indexToValue(lua_State* L, int idx);
 
-  /* Convert API index to StkId (replaces index2stack) */
+  // Convert API index to StkId (replaces index2stack)
   StkId indexToStack(lua_State* L, int idx);
 
   /*
@@ -203,7 +203,7 @@ public:
   ** Replaces luaD_checkstack() and checkstackp from ldo.h.
   */
 
-  /* Ensure space for n elements (replaces luaD_checkstack) */
+  // Ensure space for n elements (replaces luaD_checkstack)
   int ensureSpace(lua_State* L, int n) {
     if (l_unlikely(stack_last.p - top.p <= n)) {
       return grow(L, n, 1);
@@ -217,7 +217,7 @@ public:
     return 1;
   }
 
-  /* Ensure space preserving pointer (replaces checkstackp) */
+  // Ensure space preserving pointer (replaces checkstackp)
   template<typename T>
   T* ensureSpaceP(lua_State* L, int n, T* ptr) {
     if (l_unlikely(stack_last.p - top.p <= n)) {
@@ -243,13 +243,13 @@ public:
   ** Assign values to stack slots with GC-aware write barriers.
   */
 
-  /* Assign to stack slot from TValue */
+  // Assign to stack slot from TValue
   void setSlot(StackValue* dest, const TValue* src) noexcept;
 
-  /* Copy between stack slots */
+  // Copy between stack slots
   void copySlot(StackValue* dest, StackValue* src) noexcept;
 
-  /* Set slot to nil */
+  // Set slot to nil
   void setNil(StackValue* slot) noexcept;
 
   /*
@@ -259,20 +259,20 @@ public:
   ** Query stack state and dimensions.
   */
 
-  /* Available space before stack_last */
+  // Available space before stack_last
   int getAvailable() const noexcept {
     return cast_int(stack_last.p - top.p);
   }
 
-  /* Current depth (elements from base to top) */
+  // Current depth (elements from base to top)
   int getDepth() const noexcept {
     return cast_int(top.p - stack.p);
   }
 
-  /* Depth relative to function base */
+  // Depth relative to function base
   int getDepthFromFunc(CallInfo* ci) const noexcept;
 
-  /* Check if can fit n elements (alias for hasSpace) */
+  // Check if can fit n elements (alias for hasSpace)
   bool canFit(int n) const noexcept {
     return stack_last.p - top.p > n;
   }
@@ -284,19 +284,19 @@ public:
   ** Direct access to stack elements by index.
   */
 
-  /* Get TValue at absolute offset from stack base (0-indexed) */
+  // Get TValue at absolute offset from stack base (0-indexed)
   TValue* at(int offset) noexcept {
     lua_assert(offset >= 0 && stack.p + offset < top.p);
     return s2v(stack.p + offset);
   }
 
-  /* Get TValue at offset from top (-1 = top element) */
+  // Get TValue at offset from top (-1 = top element)
   TValue* fromTop(int offset) noexcept {
     lua_assert(offset <= 0 && top.p + offset >= stack.p);
     return s2v(top.p + offset);
   }
 
-  /* Get top-most TValue (top - 1) */
+  // Get top-most TValue (top - 1)
   TValue* topValue() noexcept {
     lua_assert(top.p > stack.p);
     return s2v(top.p - 1);
@@ -310,29 +310,29 @@ public:
   ** Implemented in lstack.cpp.
   */
 
-  /* Increment top with stack check */
+  // Increment top with stack check
   void incTop(lua_State* L);
 
-  /* Shrink stack to reasonable size */
+  // Shrink stack to reasonable size
   void shrink(lua_State* L);
 
-  /* Grow stack by at least n elements */
+  // Grow stack by at least n elements
   int grow(lua_State* L, int n, int raiseerror);
 
-  /* Reallocate stack to exact size */
+  // Reallocate stack to exact size
   int realloc(lua_State* L, int newsize, int raiseerror);
 
-  /* Calculate how much of the stack is currently in use */
+  // Calculate how much of the stack is currently in use
   int inUse(const lua_State* L) const;
 
   /*
   ** Stack initialization and cleanup
   */
 
-  /* Initialize a new stack (allocates memory) */
+  // Initialize a new stack (allocates memory)
   void init(lua_State* L);
 
-  /* Free stack memory */
+  // Free stack memory
   void free(lua_State* L);
 
   /*
@@ -340,10 +340,10 @@ public:
   ** These are called internally by realloc()
   */
 
-  /* Convert all stack pointers to offsets (before realloc) */
+  // Convert all stack pointers to offsets (before realloc)
   void relPointers(lua_State* L);
 
-  /* Convert all offsets back to pointers (after realloc) */
+  // Convert all offsets back to pointers (after realloc)
   void correctPointers(lua_State* L, StkId oldstack);
 };
 

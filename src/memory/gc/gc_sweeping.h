@@ -82,4 +82,4 @@ public:
     static void deletelist(lua_State* L, GCObject* p, GCObject* limit);
 };
 
-#endif /* gc_sweeping_h */
+#endif  // gc_sweeping_h

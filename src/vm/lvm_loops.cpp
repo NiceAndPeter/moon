@@ -36,21 +36,21 @@
 int lua_State::forLimit(lua_Integer init, const TValue *lim,
                         lua_Integer *p, lua_Integer step) {
   if (!getVM().tointeger(lim, p, (step < 0 ? F2Imod::F2Iceil : F2Imod::F2Ifloor))) {
-    /* not coercible to in integer */
-    lua_Number flim;  /* try to convert to float */
-    if (!tonumber(lim, &flim)) /* cannot convert to float? */
+    // not coercible to in integer
+    lua_Number flim;  // try to convert to float
+    if (!tonumber(lim, &flim))  // cannot convert to float?
       luaG_forerror(this, lim, "limit");
-    /* else 'flim' is a float out of integer bounds */
-    if (luai_numlt(0, flim)) {  /* if it is positive, it is too large */
-      if (step < 0) return 1;  /* initial value must be less than it */
+    // else 'flim' is a float out of integer bounds
+    if (luai_numlt(0, flim)) {  // if it is positive, it is too large
+      if (step < 0) return 1;  // initial value must be less than it
       *p = LUA_MAXINTEGER;  /* truncate */
     }
-    else {  /* it is less than min integer */
-      if (step > 0) return 1;  /* initial value must be greater than it */
+    else {  // it is less than min integer
+      if (step > 0) return 1;  // initial value must be greater than it
       *p = LUA_MININTEGER;  /* truncate */
     }
   }
-  return (step > 0 ? init > *p : init < *p);  /* not to run? */
+  return (step > 0 ? init > *p : init < *p);  // not to run?
 }
 
 
@@ -70,40 +70,40 @@ int lua_State::forPrep(StkId ra) {
   auto *pinit = s2v(ra);
   auto *plimit = s2v(ra + 1);
   auto *pstep = s2v(ra + 2);
-  if (ttisinteger(pinit) && ttisinteger(pstep)) { /* integer loop? */
+  if (ttisinteger(pinit) && ttisinteger(pstep)) {  // integer loop?
     auto init = ivalue(pinit);
     auto step = ivalue(pstep);
     lua_Integer limit;
     if (step == 0)
       luaG_runerror(this, "'for' step is zero");
     if (this->forLimit(init, plimit, &limit, step))
-      return 1;  /* skip the loop */
-    else {  /* prepare loop counter */
+      return 1;  // skip the loop
+    else {  // prepare loop counter
       lua_Unsigned count;
-      if (step > 0) {  /* ascending loop? */
+      if (step > 0) {  // ascending loop?
         count = l_castS2U(limit) - l_castS2U(init);
-        if (step != 1)  /* avoid division in the too common case */
+        if (step != 1)  // avoid division in the too common case
           count /= l_castS2U(step);
       }
-      else {  /* step < 0; descending loop */
+      else {  // step < 0; descending loop
         count = l_castS2U(init) - l_castS2U(limit);
-        /* Handle LUA_MININTEGER edge case explicitly */
+        // Handle LUA_MININTEGER edge case explicitly
         if (l_unlikely(step == LUA_MININTEGER)) {
-          /* For step == LUA_MININTEGER, count should be divided by max value */
+          // For step == LUA_MININTEGER, count should be divided by max value
           count /= l_castS2U(LUA_MAXINTEGER) + 1u;
         }
         else {
-          /* 'step+1' avoids negating 'mininteger' in normal case */
+          // 'step+1' avoids negating 'mininteger' in normal case
           count /= l_castS2U(-(step + 1)) + 1u;
         }
       }
-      /* use 'changeInt' for places that for sure had integers */
-      s2v(ra)->changeInt(l_castU2S(count));  /* change init to count */
-      s2v(ra + 1)->setInt(step);  /* change limit to step */
-      s2v(ra + 2)->changeInt(init);  /* change step to init */
+      // use 'changeInt' for places that for sure had integers
+      s2v(ra)->changeInt(l_castU2S(count));  // change init to count
+      s2v(ra + 1)->setInt(step);  // change limit to step
+      s2v(ra + 2)->changeInt(init);  // change step to init
     }
   }
-  else {  /* try making all values floats */
+  else {  // try making all values floats
     lua_Number init, limit, step;
     if (l_unlikely(!tonumber(plimit, &limit)))
       luaG_forerror(this, plimit, "limit");
@@ -115,12 +115,12 @@ int lua_State::forPrep(StkId ra) {
       luaG_runerror(this, "'for' step is zero");
     if (luai_numlt(0, step) ? luai_numlt(limit, init)
                             : luai_numlt(init, limit))
-      return 1;  /* skip the loop */
+      return 1;  // skip the loop
     else {
-      /* make sure all values are floats */
+      // make sure all values are floats
       s2v(ra)->setFloat(limit);
       s2v(ra + 1)->setFloat(step);
-      s2v(ra + 2)->setFloat(init);  /* control variable */
+      s2v(ra + 2)->setFloat(init);  // control variable
     }
   }
   return 0;
@@ -135,13 +135,13 @@ int lua_State::forPrep(StkId ra) {
 int lua_State::floatForLoop(StkId ra) {
   auto step = fltvalue(s2v(ra + 1));
   auto limit = fltvalue(s2v(ra));
-  auto idx = fltvalue(s2v(ra + 2));  /* control variable */
-  idx = luai_numadd(this, idx, step);  /* increment index */
+  auto idx = fltvalue(s2v(ra + 2));  // control variable
+  idx = luai_numadd(this, idx, step);  // increment index
   if (luai_numlt(0, step) ? luai_numle(idx, limit)
                           : luai_numle(limit, idx)) {
-    s2v(ra + 2)->changeFloat(idx);  /* update control variable */
-    return 1;  /* jump back */
+    s2v(ra + 2)->changeFloat(idx);  // update control variable
+    return 1;  // jump back
   }
   else
-    return 0;  /* finish the loop */
+    return 0;  // finish the loop
 }

@@ -39,9 +39,9 @@
 ** =======================================================
 */
 
-/* Note: maskcolors, makewhite, set2gray, set2black are now in lgc.h */
+// Note: maskcolors, makewhite, set2gray, set2black are now in lgc.h
 
-/* Note: clearkey is now in GCCore module */
+// Note: clearkey is now in GCCore module
 #include "gc_core.h"
 static inline void clearkey(Node* n) { GCCore::clearkey(n); }
 
@@ -52,13 +52,13 @@ static inline Node* gnodelast(Table* h) noexcept {
     return gnode(h, h->nodeSize());
 }
 
-/* Note: objsize is now in GCCore module */
+// Note: objsize is now in GCCore module
 static inline l_mem objsize(GCObject* o) { return GCCore::objsize(o); }
 
-/* Note: getgclist is now in GCCore module */
+// Note: getgclist is now in GCCore module
 static inline GCObject** getgclist(GCObject* o) { return GCCore::getgclist(o); }
 
-/* Note: linkgclist_ is now in GCCore module */
+// Note: linkgclist_ is now in GCCore module
 static inline void linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
     GCCore::linkgclist_(o, pnext, list);
 }
@@ -68,7 +68,7 @@ inline void linkobjgclist(T* o, GCObject*& p) {
 	linkgclist_(obj2gco(o), getgclist(o), &p);
 }
 
-/* Specialized versions for encapsulated types */
+// Specialized versions for encapsulated types
 static inline void linkgclistTable(Table* h, GCObject*& p) {
     linkgclist_(obj2gco(h), h->getGclistPtr(), &p);
 }
@@ -77,9 +77,9 @@ static inline void linkgclistThread(lua_State* th, GCObject*& p) {
     linkgclist_(obj2gco(th), th->getGclistPtr(), &p);
 }
 
-/* Note: gcvalueN is now in lgc.h */
+// Note: gcvalueN is now in lgc.h
 
-/* Access to collectable objects in table array part */
+// Access to collectable objects in table array part
 inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 	return iscollectable(*(t)->getArrayTag(i)) ? (t)->getArrayVal(i)->gc : nullptr;
 }
@@ -91,7 +91,7 @@ inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 ** =======================================================
 */
 
-/* Functions getmode, traverseweakvalue, traverseephemeron are in lgc.cpp */
+// Functions getmode, traverseweakvalue, traverseephemeron are in lgc.cpp
 
 /*
 ** Traverse a table (delegates to weak or strong traversal)
@@ -100,16 +100,16 @@ inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 l_mem GCMarking::traversetable(GlobalState& g, Table* h) {
     markobjectN(g, h->getMetatable());
     switch (GCWeak::getmode(g, h)) {
-        case 0:  /* not weak */
+        case 0:  // not weak
             traversestrongtable(g, h);
             break;
-        case 1:  /* weak values */
+        case 1:  // weak values
             traverseweakvalue(g, h);
             break;
-        case 2:  /* weak keys (ephemeron) */
+        case 2:  // weak keys (ephemeron)
             GCWeak::traverseephemeron(g, h, 0);
             break;
-        case 3:  /* all weak; nothing to traverse */
+        case 3:  // all weak; nothing to traverse
             if (g.getGCState() == GCState::Propagate)
                 linkgclistTable(h, *g.getGrayAgainPtr());
             else
@@ -181,7 +181,7 @@ l_mem GCMarking::traversethread(GlobalState& g, lua_State* th) {
     if (isold(th) || g.getGCState() == GCState::Propagate)
         linkgclistThread(th, *g.getGrayAgainPtr());
     if (o == nullptr)
-        return 0;  /* stack not completely built yet */
+        return 0;  // stack not completely built yet
     lua_assert(g.getGCState() == GCState::Atomic ||
                th->getOpenUpval() == nullptr || th->isInTwups());
     for (; o < th->getTop().p; o++)
@@ -217,15 +217,15 @@ void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
     switch (static_cast<int>(o->getType())) {
         case static_cast<int>(ctb(LuaT::SHRSTR)):
         case static_cast<int>(ctb(LuaT::LNGSTR)): {
-            set2black(o);  /* strings have no children */
+            set2black(o);  // strings have no children
             break;
         }
         case static_cast<int>(ctb(LuaT::UPVAL)): {
             UpVal* uv = gco2upv(o);
             if (uv->isOpen())
-                set2gray(uv);  /* open upvalues kept gray */
+                set2gray(uv);  // open upvalues kept gray
             else
-                set2black(uv);  /* closed upvalues visited here */
+                set2black(uv);  // closed upvalues visited here
             markvalue(g, uv->getVP());
             break;
         }
@@ -236,14 +236,14 @@ void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
                 set2black(u);
                 break;
             }
-            /* else fall through to add to gray list */
-        } /* FALLTHROUGH */
+            // else fall through to add to gray list
+        }  // FALLTHROUGH
         case static_cast<int>(ctb(LuaT::LCL)):
         case static_cast<int>(ctb(LuaT::CCL)):
         case static_cast<int>(ctb(LuaT::TABLE)):
         case static_cast<int>(ctb(LuaT::THREAD)):
         case static_cast<int>(ctb(LuaT::PROTO)): {
-            linkobjgclist(o, *g.getGrayPtr());  /* to be visited later */
+            linkobjgclist(o, *g.getGrayPtr());  // to be visited later
             break;
         }
         default:
@@ -259,7 +259,7 @@ void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
 l_mem GCMarking::propagatemark(GlobalState& g) {
     GCObject* o = g.getGray();
     nw2black(o);
-    g.setGray(*getgclist(o));  /* remove from 'gray' list */
+    g.setGray(*getgclist(o));  // remove from 'gray' list
     switch (static_cast<int>(o->getType())) {
         case static_cast<int>(ctb(LuaT::TABLE)):
             return traversetable(g, gco2t(o));
@@ -326,7 +326,7 @@ void GCMarking::remarkupvals(GlobalState& g) {
             UpVal* uv;
             lua_assert(!isold(thread) || thread->getOpenUpval() == nullptr);
             *p = thread->getTwups();
-            thread->setTwups(thread);  /* mark out of list */
+            thread->setTwups(thread);  // mark out of list
             for (uv = thread->getOpenUpval(); uv != nullptr; uv = uv->getOpenNext()) {
                 lua_assert(getage(uv) <= getage(thread));
                 if (!iswhite(uv)) {
@@ -343,12 +343,12 @@ void GCMarking::remarkupvals(GlobalState& g) {
 ** Initializes GCmarked to count total live bytes during cycle.
 */
 void GCMarking::restartcollection(GlobalState& g) {
-    g.clearGrayLists();  /* Use the new method */
+    g.clearGrayLists();  // Use the new method
     g.setGCMarked(0);
     markobject(g, mainthread(&g));
     markvalue(g, g.getRegistry());
     markmt(g);
-    markbeingfnz(g);  /* mark any finalizing object left from previous cycle */
+    markbeingfnz(g);  // mark any finalizing object left from previous cycle
 }
 
 /*
@@ -360,7 +360,7 @@ void GCMarking::markold(GlobalState& g, GCObject* from, GCObject* to) {
     for (p = from; p != to; p = p->getNext()) {
         if (getage(p) == GCAge::Old1) {
             lua_assert(!iswhite(p));
-            setage(p, GCAge::Old);  /* now they are old */
+            setage(p, GCAge::Old);  // now they are old
             if (isblack(p))
                 reallymarkobject(g, p);
         }
@@ -373,11 +373,11 @@ void GCMarking::markold(GlobalState& g, GCObject* from, GCObject* to) {
 */
 void GCMarking::genlink(GlobalState& g, GCObject* o) {
     lua_assert(isblack(o));
-    if (getage(o) == GCAge::Touched1) {  /* touched in this cycle? */
-        linkobjgclist(o, *g.getGrayAgainPtr());  /* link it back in 'grayagain' */
-    }  /* everything else does not need to be linked back */
+    if (getage(o) == GCAge::Touched1) {  // touched in this cycle?
+        linkobjgclist(o, *g.getGrayAgainPtr());  // link it back in 'grayagain'
+    }  // everything else does not need to be linked back
     else if (getage(o) == GCAge::Touched2)
-        setage(o, GCAge::Old);  /* advance age */
+        setage(o, GCAge::Old);  // advance age
 }
 
 /*
@@ -386,7 +386,7 @@ void GCMarking::genlink(GlobalState& g, GCObject* o) {
 */
 int GCMarking::traversearray(GlobalState& g, Table* h) {
     unsigned asize = h->arraySize();
-    int marked = 0;  /* true if some object is marked in this traversal */
+    int marked = 0;  // true if some object is marked in this traversal
     unsigned i;
     for (i = 0; i < asize; i++) {
         GCObject* o = gcvalarr(h, i);
@@ -406,9 +406,9 @@ void GCMarking::traversestrongtable(GlobalState& g, Table* h) {
     Node* n;
     Node* limit = gnodelast(h);
     traversearray(g, h);
-    for (n = gnode(h, 0); n < limit; n++) {  /* traverse hash part */
-        if (isempty(gval(n)))  /* entry is empty? */
-            clearkey(n);  /* clear its key */
+    for (n = gnode(h, 0); n < limit; n++) {  // traverse hash part
+        if (isempty(gval(n)))  // entry is empty?
+            clearkey(n);  // clear its key
         else {
             lua_assert(!n->isKeyNil());
             markkey(g, n);
