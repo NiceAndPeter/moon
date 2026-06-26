@@ -32,7 +32,6 @@ inline constexpr int TAB_RW = TAB_R | TAB_W;  // read/write
 /* Forward declaration for aux_getn */
 static void checktab(lua_State *L, int arg, int what);
 
-/* Phase 126.2: Convert aux_getn macro to inline function */
 inline lua_Integer aux_getn(lua_State* L, int n, int w) {
 	checktab(L, n, w | TAB_L);
 	return luaL_len(L, n);
@@ -260,7 +259,6 @@ inline void seti(lua_State* L, int idt, IdxT idx) noexcept {
 ** good choice.)
 */
 #if !defined(l_randomizePivot)
-/* Phase 127: Convert l_randomizePivot macro to inline function */
 inline unsigned int l_randomizePivot(lua_State* L) {
 	return luaL_makeseed(L);
 }

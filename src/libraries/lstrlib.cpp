@@ -664,7 +664,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
 
 
 
-// Phase 115.1: std::span-based string search
+// std::span-based string search
 static const char *lmemfind (std::span<const char> haystack,
                                std::span<const char> needle) {
   size_t l1 = haystack.size();
@@ -743,7 +743,6 @@ static int push_captures (MatchState *ms, const char *s, const char *e) {
 
 
 /* check whether pattern has no special characters */
-// Phase 115.1: Updated to use std::span
 static bool nospecials (std::span<const char> pattern) {
   const char *p = pattern.data();
   size_t l = pattern.size();
@@ -757,7 +756,6 @@ static bool nospecials (std::span<const char> pattern) {
 }
 
 
-// Phase 115.1: Updated to use std::span
 static void prepstate (MatchState *ms, lua_State *L,
                        std::span<const char> source, std::span<const char> pattern) {
   ms->L = L;

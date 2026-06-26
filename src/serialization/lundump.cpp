@@ -82,8 +82,7 @@ static const void *getaddr_ (LoadState *S, size_t size) {
   return block;
 }
 
-/* Phase 126.2: Convert getaddr macro to template function
-** Note: Returns non-const pointer for compatibility with existing code
+/* Note: Returns non-const pointer for compatibility with existing code
 ** that stores pointers to fixed buffer data. The buffer is read-only but
 ** the type system doesn't enforce this for historical reasons.
 */
@@ -198,7 +197,7 @@ static void loadString (LoadState *S, Proto& p, TString **sl) {
 }
 
 
-// Phase 115.2: Use span accessors
+// Use span accessors
 static void loadCode (LoadState *S, Proto& f) {
   int n = loadInt(S);
   loadAlign(S, sizeof(Instruction));
@@ -218,7 +217,7 @@ static void loadCode (LoadState *S, Proto& f) {
 static void loadFunction(LoadState *S, Proto& f);
 
 
-// Phase 115.2: Use span accessors
+// Use span accessors
 static void loadConstants (LoadState *S, Proto& f) {
   int n = loadInt(S);
   f.setConstants(luaM_newvectorchecked<TValue>(S->L, n));
@@ -282,7 +281,7 @@ static void loadProtos (LoadState *S, Proto& f) {
 ** the creation of the error message can call an emergency collection;
 ** in that case all prototypes must be consistent for the GC.
 */
-// Phase 115.2: Use span accessors
+// Use span accessors
 static void loadUpvalues (LoadState *S, Proto& f) {
   int n = loadInt(S);
   f.setUpvalues(luaM_newvectorchecked<Upvaldesc>(S->L, n));
@@ -300,7 +299,7 @@ static void loadUpvalues (LoadState *S, Proto& f) {
 }
 
 
-// Phase 115.2: Use span accessors
+// Use span accessors
 static void loadDebug (LoadState *S, Proto& f) {
   int n = loadInt(S);
   if (S->fixed) {
@@ -432,11 +431,11 @@ LClosure *luaU_undump (lua_State *L, ZIO *Z, const char *name, int fixed) {
   checkHeader(&S);
   cl = LClosure::create(L, loadByte(&S));
   setclLvalue2s(L, L->getTop().p, cl);
-  L->inctop();  /* Phase 25e */
+  L->inctop();
   S.h = Table::create(L);  /* create list of saved strings */
   S.nstr = 0;
   sethvalue2s(L, L->getTop().p, S.h);  /* anchor it */
-  L->inctop();  /* Phase 25e */
+  L->inctop();
   cl->setProto(luaF_newproto(L));
   luaC_objbarrier(L, cl, cl->getProto());
   loadFunction(&S, *cl->getProto());

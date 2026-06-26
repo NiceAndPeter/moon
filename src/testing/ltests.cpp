@@ -860,7 +860,7 @@ static int listlocals (lua_State *L) {
   luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1),
                  1, "Lua function expected");
   p = getproto(obj_at(L, 1));
-  while ((name = p->getLocalName(++i, pc)) != nullptr)  /* Phase 25b */
+  while ((name = p->getLocalName(++i, pc)) != nullptr)
     lua_pushstring(L, name);
   return i-1;
 }

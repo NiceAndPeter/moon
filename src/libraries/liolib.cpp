@@ -152,7 +152,6 @@ inline constexpr const char* IO_OUTPUT = IO_PREFIX "output";
 typedef luaL_Stream LStream;
 
 
-/* Phase 127: Convert tolstream and isclosed macros to inline functions */
 inline LStream* tolstream(lua_State* L) {
 	return static_cast<LStream*>(luaL_checkudata(L, 1, LUA_FILEHANDLE));
 }

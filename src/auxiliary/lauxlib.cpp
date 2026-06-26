@@ -595,7 +595,7 @@ LUALIB_API char *luaL_prepbuffsize (luaL_Buffer *B, size_t sz) {
 }
 
 
-// Phase 115.1: std::span-based implementation
+// std::span-based implementation
 LUALIB_API void luaL_addlstring (luaL_Buffer *B, std::span<const char> s) {
   size_t l = s.size();
   if (l > 0) {  /* avoid 'std::copy_n' when 's' can be nullptr */
@@ -1148,8 +1148,7 @@ inline constexpr size_t BUFSEEDB = sizeof(void*) + sizeof(time_t);
 /* Size for the buffer in int's, rounded up */
 inline constexpr size_t BUFSEED = (BUFSEEDB + sizeof(int) - 1) / sizeof(int);
 
-/* Phase 126.2: Convert addbuff macro to inline template function
-** Copy the contents of variable 'v' into the buffer pointed by 'b'.
+/* Copy the contents of variable 'v' into the buffer pointed by 'b'.
 ** (The '&b[0]' disguises 'b' to fix an absurd warning from clang.)
 */
 template<typename T>
