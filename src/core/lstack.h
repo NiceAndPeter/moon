@@ -304,7 +304,7 @@ public:
 
   /*
   ** ============================================================
-  ** LEGACY STACK OPERATIONS (Pre-Phase 94)
+  ** LEGACY STACK OPERATIONS
   ** ============================================================
   ** These methods predate the aggressive centralization.
   ** Implemented in lstack.cpp.

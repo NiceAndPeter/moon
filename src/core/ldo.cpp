@@ -58,7 +58,7 @@ inline constexpr bool errorstatus(int s) noexcept {
 */
 
 /*
-** Phase 31: Pure C++ exception handling
+** Pure C++ exception handling
 **
 ** MODERNIZATION: Replaced C-style setjmp/longjmp with proper C++ exceptions:
 ** - Removed jmp_buf from lua_longjmp struct
@@ -206,7 +206,7 @@ l_noret lua_State::throwBaseLevel(TStatus errcode) {
 **
 ** ENCAPSULATION NOTE:
 ** This is now a lua_State method rather than a free function, following
-** the C++ modernization (Phase 31). All state manipulation uses accessor
+** the C++ modernization. All state manipulation uses accessor
 ** methods (getNumberOfCCalls, setErrorJmp, etc.) rather than direct field access.
 */
 TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
@@ -1070,7 +1070,7 @@ static void f_parser (lua_State *L, void *ud) {
     cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);
   }
   lua_assert(cl->getNumUpvalues() == cl->getProto()->getUpvaluesSize());
-  cl->initUpvals(L);  /* Phase 25d */
+  cl->initUpvals(L);
 }
 
 

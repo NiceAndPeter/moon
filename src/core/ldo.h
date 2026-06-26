@@ -15,7 +15,7 @@
 
 /*
 ** ============================================================
-** STACK CHECKING (Phase 94.4)
+** STACK CHECKING
 ** ============================================================
 ** Inline functions and macros for ensuring sufficient stack space.
 ** Now delegates to LuaStack::ensureSpace() and ensureSpaceP().

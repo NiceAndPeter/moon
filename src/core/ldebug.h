@@ -10,15 +10,6 @@
 #include "lstate.h"
 
 
-/* Phase 44.5: CallInfo and Proto macros replaced with methods:
-** - pcRel(pc, p) → p->getPCRelative(pc)
-** - ci_func(ci) → ci->getFunc()
-*/
-
-/* Phase 44.4: resethookcount macro replaced with lua_State method:
-** - resethookcount(L) → L->resetHookCount()
-*/
-
 /*
 ** mark for entries in 'lineinfo' array that has absolute information in
 ** 'abslineinfo' array

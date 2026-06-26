@@ -40,7 +40,6 @@ const char lua_ident[] =
 /*
 ** NOTE: index2value() and index2stack() moved to LuaStack class (lstack.cpp)
 ** as indexToValue() and indexToStack() methods.
-** See Phase 94.1 for details.
 */
 
 
@@ -53,7 +52,7 @@ LUA_API int lua_checkstack (lua_State *L, int n) {
   if (L->getStackLast().p - L->getTop().p > n)  /* stack large enough? */
     res = 1;  /* yes; check is OK */
   else  /* need to grow stack */
-    res = L->growStack(n, 0);  /* Phase 25e */
+    res = L->growStack(n, 0);
   if (res && ci->topRef().p < L->getTop().p + n)
     ci->topRef().p = L->getTop().p + n;  /* adjust frame top */
   lua_unlock(L);
@@ -894,16 +893,14 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
       hvalue(obj)->setMetatable(mt);
       if (mt) {
         luaC_objbarrier(L, gcvalue(obj), mt);
-        gcvalue(obj)->checkFinalizer(L, mt);  /* Phase 25c */
-      }
+        gcvalue(obj)->checkFinalizer(L, mt);      }
       break;
     }
     case LUA_TUSERDATA: {
       uvalue(obj)->setMetatable(mt);
       if (mt) {
         luaC_objbarrier(L, uvalue(obj), mt);
-        gcvalue(obj)->checkFinalizer(L, mt);  /* Phase 25c */
-      }
+        gcvalue(obj)->checkFinalizer(L, mt);      }
       break;
     }
     default: {
@@ -942,7 +939,6 @@ LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
 */
 
 
-/* Phase 126.2: Convert checkresults macro to inline function */
 inline void checkresults(lua_State* L, int na, int nr) {
 	api_check(L, (nr) == LUA_MULTRET
 	          || (L->getCI()->topRef().p - L->getTop().p >= (nr) - (na)),

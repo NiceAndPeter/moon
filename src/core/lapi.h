@@ -22,7 +22,7 @@
 
 /*
 ** ============================================================
-** API STACK OPERATIONS (Phase 94.3)
+** API STACK OPERATIONS
 ** ============================================================
 ** Inline functions replacing former macros, now using LuaStack methods.
 */
@@ -79,7 +79,6 @@ inline constexpr bool isupvalue(int i) noexcept {
 ** If a call returns too many multiple returns, the callee may not have
 ** stack space to accommodate all results. In this case, this function
 ** increases its stack space ('L->getCI()->getTop().p').
-** Phase 88: Converted from macro to inline function
 */
 inline void adjustresults(lua_State* L, int nres) noexcept {
 	if (nres <= LUA_MULTRET && L->getCI()->topRef().p < L->getTop().p) {

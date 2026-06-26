@@ -367,7 +367,7 @@ public:
   int getNRes() const noexcept { return u2.numberOfResults; }
   void setNRes(int n) noexcept { u2.numberOfResults = n; }
 
-  // Phase 44.5: Additional CallInfo helper methods
+  // Additional CallInfo helper methods
 
   // Get Lua closure from CallInfo
   LClosure* getFunc() const noexcept {
@@ -380,7 +380,6 @@ public:
   }
 };
 
-/* Phase 44.5: get_nresults macro replaced with CallInfo::getNResults() method */
 
 /*
 ** Field CIST_RECST stores the "recover status", used to keep the error
@@ -395,10 +394,10 @@ public:
 */
 struct lua_State : public GCBase<lua_State> {
 private:
-  // Stack subsystem (SRP refactoring - Phase 93)
+  // Stack subsystem (SRP refactoring)
   LuaStack stack_;  /* stack management subsystem */
 
-  // VM operations subsystem (Phase 122)
+  // VM operations subsystem
   VirtualMachine* vm_;  /* VM operations encapsulation (pointer to break circular dependency) */
 
   // CallInfo fields (encapsulated)
@@ -482,7 +481,7 @@ public:
     numberOfCCalls = 0;
   }
 
-  // VM subsystem accessor (Phase 122)
+  // VM subsystem accessor
   inline VirtualMachine& getVM() noexcept { return *vm_; }
   inline const VirtualMachine& getVM() const noexcept { return *vm_; }
 
@@ -589,7 +588,7 @@ public:
   void incrementNonYieldable() noexcept { numberOfCCalls += 0x10000; }
   void decrementNonYieldable() noexcept { numberOfCCalls -= 0x10000; }
 
-  // Phase 44.4: Additional lua_State helper methods
+  // Additional lua_State helper methods
 
   // Thread with upvalues list check
   bool isInTwups() const noexcept {
@@ -601,7 +600,7 @@ public:
     hookcount = basehookcount;
   }
 
-  // VM lifecycle management (Phase 122)
+  // VM lifecycle management
   void initVM();    // Allocate VirtualMachine (implemented in lstate.cpp)
   void closeVM();   // Deallocate VirtualMachine (implemented in lstate.cpp)
 
@@ -1226,7 +1225,7 @@ inline global_State* G(const lua_State& L) noexcept { return L.getGlobalState();
 inline lua_State* mainthread(global_State* g) noexcept { return &g->getMainThread()->l; }
 inline const lua_State* mainthread(const global_State* g) noexcept { return &g->getMainThread()->l; }
 
-// Phase 88: Define gfasttm() and fasttm() inline functions (declared in ltm.h)
+// Define gfasttm() and fasttm() inline functions (declared in ltm.h)
 // Must be defined here after global_State is fully defined
 inline const TValue* gfasttm(global_State* g, const Table* mt, TMS e) noexcept {
 	return checknoTM(mt, e) ? nullptr : luaT_gettm(mt, e, g->getTMName(static_cast<int>(e)));

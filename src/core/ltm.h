@@ -53,7 +53,6 @@ enum class TMS {
 */
 inline constexpr lu_byte maskflags = cast_byte(~(~0u << (static_cast<int>(TMS::TM_EQ) + 1)));
 
-// Phase 19: Convert invalidateTMcache macro to inline function
 inline void invalidateTMcache(Table* t) noexcept {
   t->clearFlagBits(maskflags);
 }
@@ -70,7 +69,6 @@ inline bool checknoTM(const Table* mt, TMS e) noexcept {
 	return mt == nullptr || (mt->getFlags() & (1u << static_cast<int>(e)));
 }
 
-// Phase 88: Convert gfasttm and fasttm macros to inline functions
 // Forward declarations - definitions provided after full types are available
 class global_State;
 struct lua_State;

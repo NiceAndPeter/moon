@@ -61,7 +61,7 @@ static int currentpc (CallInfo *ci) {
 ** value for MAXIWTHABS or smaller. (Previous releases use a little
 ** smaller value.)
 */
-// Phase 115.2: Use span accessors from Phase 112
+// Use span accessors
 static int getbaseline (const Proto *f, int pc, int *basepc) {
   auto absLineInfoSpan = f->getDebugInfo().getAbsLineInfoSpan();
   if (absLineInfoSpan.empty() || pc < absLineInfoSpan[0].getPC()) {
@@ -88,7 +88,7 @@ static int getbaseline (const Proto *f, int pc, int *basepc) {
 ** first gets a base line and from there does the increments until
 ** the desired instruction.
 */
-// Phase 115.2: Use span accessors
+// Use span accessors
 int luaG_getfuncline (const Proto *f, int pc) {
   auto lineInfoSpan = f->getDebugInfo().getLineInfoSpan();
   if (lineInfoSpan.empty())  /* no debug information? */
@@ -212,8 +212,7 @@ const char *lua_State::findLocal(CallInfo *ci_arg, int n, StkId *pos) {
     if (n < 0)  /* access to vararg values? */
       return findvararg(ci_arg, n, pos);
     else
-      name = ci_arg->getFunc()->getProto()->getLocalName(n, currentpc(ci_arg));  /* Phase 25b */
-  }
+      name = ci_arg->getFunc()->getProto()->getLocalName(n, currentpc(ci_arg));  }
   if (name == nullptr) {  /* no 'standard' name? */
     StkId limit = (ci_arg == getCI()) ? getTop().p : ci_arg->getNext()->funcRef().p;
     if (limit - base >= n && n > 0) {  /* is 'n' inside 'ci' stack? */
@@ -240,8 +239,7 @@ LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
     if (!isLfunction(s2v(L->getTop().p - 1)))  /* not a Lua function? */
       name = nullptr;
     else  /* consider live variables at function start (parameters) */
-      name = clLvalue(s2v(L->getTop().p - 1))->getProto()->getLocalName(n, 0);  /* Phase 25b */
-  }
+      name = clLvalue(s2v(L->getTop().p - 1))->getProto()->getLocalName(n, 0);  }
   else {  /* active function; get information through 'ar' */
     StkId pos = nullptr;  /* to avoid warnings */
     name = luaG_findlocal(L, ar->i_ci, n, &pos);
@@ -294,7 +292,7 @@ static void funcinfo (lua_Debug *ar, Closure *cl) {
 }
 
 
-// Phase 115.2: Use span accessors
+// Use span accessors
 static int nextline (const Proto *p, int currentline, size_t pc) {
   auto lineInfoSpan = p->getDebugInfo().getLineInfoSpan();
   if (lineInfoSpan[pc] != ABSLINEINFO)
@@ -521,8 +519,7 @@ static const char *kname (const Proto *p, int index, const char **name) {
 static const char *basicgetobjname (const Proto *p, int *ppc, int reg,
                                     const char **name) {
   int pc = *ppc;
-  *name = p->getLocalName(reg + 1, pc);  /* Phase 25b */
-  if (*name)  /* is a local? */
+  *name = p->getLocalName(reg + 1, pc);  if (*name)  /* is a local? */
     return strlocal;
   /* else try symbolic execution */
   *ppc = pc = findsetreg(p, pc, reg);
@@ -943,7 +940,7 @@ l_noret luaG_runerror (lua_State *L, const char *fmt, ...) {
 ** too far apart, there is a good chance of a ABSLINEINFO in the way,
 ** so it goes directly to 'luaG_getfuncline'.
 */
-// Phase 115.2: Use span accessors
+// Use span accessors
 static int changedline (const Proto *p, int oldpc, int newpc) {
   auto lineInfoSpan = p->getDebugInfo().getLineInfoSpan();
   if (lineInfoSpan.empty())  /* no debug information? */

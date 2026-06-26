@@ -69,9 +69,7 @@ inline constexpr int STACKERRSPACE = 200;
 #endif
 
 
-/* Phase 126.2: Convert condmovestack macro to inline function
-** Conditional stack movement for debugging
-*/
+/* Conditional stack movement for debugging */
 #if !defined(HARDSTACKTESTS)
 template<typename Pre, typename Pos>
 inline void condmovestack(lua_State* L, Pre&& pre, Pos&& pos) noexcept {
@@ -378,7 +376,7 @@ void LuaStack::incTop(lua_State* L) {
 
 /*
 ** ==================================================================
-** INDEX CONVERSION OPERATIONS (Phase 94.1)
+** INDEX CONVERSION OPERATIONS
 ** ==================================================================
 ** Convert Lua API indices to internal stack pointers.
 ** Moved from index2value() and index2stack() in lapi.cpp.
@@ -444,7 +442,7 @@ StkId LuaStack::indexToStack(lua_State* L, int idx) {
 
 /*
 ** ==================================================================
-** API OPERATION HELPERS (Phase 94.1)
+** API OPERATION HELPERS
 ** ==================================================================
 ** Helper methods for Lua C API validation.
 */
@@ -469,7 +467,7 @@ bool LuaStack::checkCanPop(CallInfo* ci, int n) const noexcept {
 
 /*
 ** ==================================================================
-** STACK QUERY HELPERS (Phase 94.1)
+** STACK QUERY HELPERS
 ** ==================================================================
 */
 
@@ -483,7 +481,7 @@ int LuaStack::getDepthFromFunc(CallInfo* ci) const noexcept {
 
 /*
 ** ==================================================================
-** ASSIGNMENT OPERATIONS (Phase 94.1)
+** ASSIGNMENT OPERATIONS
 ** ==================================================================
 ** Assign values to stack slots with GC awareness.
 */
