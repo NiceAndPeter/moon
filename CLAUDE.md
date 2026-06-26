@@ -218,11 +218,13 @@ cmake -B build -DCMAKE_BUILD_TYPE=Debug -DLUA_ENABLE_ASAN=ON -DLUA_ENABLE_UBSAN=
 ## Process Rules ⚠️
 
 **NEVER**:
-1. Batch processing - Use Edit tool for EACH change
-2. sed/awk/perl for bulk edits
-3. Skip testing/benchmarking after changes
-4. Accept >3% performance regression
-5. Break public C API (lua.h, lauxlib.h, lualib.h)
+1. Skip testing/benchmarking after changes
+2. Accept >3% performance regression
+3. Break public C API (lua.h, lauxlib.h, lualib.h)
+
+**Note**: Scripted bulk edits (sed/awk/perl/python) are fine for mechanical,
+behavior-preserving transforms (comment style, identifier renames) — always
+verify with a full build + `testes/all.lua` afterward.
 
 **ALWAYS**:
 1. Test after every phase
