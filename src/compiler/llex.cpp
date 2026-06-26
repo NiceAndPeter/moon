@@ -443,6 +443,21 @@ void LexState::readString(int del, SemInfo *seminfo) {
 }
 
 
+// Read an identifier or reserved word, returning the corresponding token.
+int LexState::readName(SemInfo *seminfo) {
+  do {
+    saveAndNext();
+  } while (lislalnum(getCurrentChar()));
+  // find or create string
+  TString *tstring = TString::create(getLuaState(), luaZ_buffer(getBuffer()),
+                                     luaZ_bufflen(getBuffer()));
+  if (isreserved(tstring))  // reserved word?
+    return tstring->getExtra() - 1 + FIRST_RESERVED;
+  seminfo->tstring = anchorStr(tstring);
+  return static_cast<int>(RESERVED::TK_NAME);
+}
+
+
 int LexState::lex(SemInfo *seminfo) {
   luaZ_resetbuffer(getBuffer());
   for (;;) {
@@ -538,21 +553,8 @@ int LexState::lex(SemInfo *seminfo) {
         return static_cast<int>(RESERVED::TK_EOS);
       }
       default: {
-        if (lislalpha(getCurrentChar())) {  // identifier or reserved word?
-          TString *tstring;
-          do {
-            saveAndNext();
-          } while (lislalnum(getCurrentChar()));
-          // find or create string
-          tstring = TString::create(getLuaState(), luaZ_buffer(getBuffer()),
-                                   luaZ_bufflen(getBuffer()));
-          if (isreserved(tstring))  // reserved word?
-            return tstring->getExtra() - 1 + FIRST_RESERVED;
-          else {
-            seminfo->tstring = anchorStr(tstring);
-            return static_cast<int>(RESERVED::TK_NAME);
-          }
-        }
+        if (lislalpha(getCurrentChar()))  // identifier or reserved word?
+          return readName(seminfo);
         else {  // single-char tokens ('+', '*', '%', '{', '}', ...)
           int c = getCurrentChar();
           next();

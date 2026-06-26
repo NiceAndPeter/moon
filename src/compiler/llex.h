@@ -267,6 +267,7 @@ private:
   // Batch 4: Complex functions
   void readLongString(SemInfo *seminfo, size_t sep);
   void readString(int del, SemInfo *seminfo);
+  int readName(SemInfo *seminfo);  // identifier or reserved word
   int lex(SemInfo *seminfo);
 };
 
