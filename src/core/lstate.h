@@ -110,10 +110,10 @@ inline constexpr unsigned int nyci = (0x10000 | 1);
 
 
 /*
-** lua_longjmp now defined in ldo.cpp (no longer uses jmp_buf)
+** LuaLongJmp now defined in ldo.cpp (no longer uses jmp_buf)
 ** Forward declaration for error handler chain
 */
-struct lua_longjmp;
+struct LuaLongJmp;
 
 
 /*
@@ -412,7 +412,7 @@ private:
 
   // Step 4: Status and error handling fields (encapsulated)
   TStatus status;
-  struct lua_longjmp *errorJmp;  /* current error recover point */
+  struct LuaLongJmp *errorJmp;  /* current error recover point */
   ptrdiff_t errfunc;  /* current error handling function (stack index) */
 
   // Step 5: Hook and debug fields (encapsulated)
@@ -543,10 +543,10 @@ public:
   TStatus getStatus() const noexcept { return status; }
   void setStatus(TStatus s) noexcept { status = s; }
 
-  lua_longjmp* getErrorJmp() noexcept { return errorJmp; }
-  const lua_longjmp* getErrorJmp() const noexcept { return errorJmp; }
-  void setErrorJmp(lua_longjmp* ej) noexcept { errorJmp = ej; }
-  lua_longjmp** getErrorJmpPtr() noexcept { return &errorJmp; }
+  LuaLongJmp* getErrorJmp() noexcept { return errorJmp; }
+  const LuaLongJmp* getErrorJmp() const noexcept { return errorJmp; }
+  void setErrorJmp(LuaLongJmp* ej) noexcept { errorJmp = ej; }
+  LuaLongJmp** getErrorJmpPtr() noexcept { return &errorJmp; }
 
   ptrdiff_t getErrFunc() const noexcept { return errfunc; }
   void setErrFunc(ptrdiff_t ef) noexcept { errfunc = ef; }

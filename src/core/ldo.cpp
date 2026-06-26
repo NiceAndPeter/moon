@@ -61,7 +61,7 @@ inline constexpr bool errorstatus(int s) noexcept {
 ** Pure C++ exception handling
 **
 ** MODERNIZATION: Replaced C-style setjmp/longjmp with proper C++ exceptions:
-** - Removed jmp_buf from lua_longjmp struct
+** - Removed jmp_buf from LuaLongJmp struct
 ** - Removed LUAI_THROW/LUAI_TRY macros
 ** - Removed conditional compilation for POSIX/ISO C variants
 ** - Removed #include <setjmp.h>
@@ -85,19 +85,19 @@ inline constexpr bool errorstatus(int s) noexcept {
 class LuaException {
 private:
   TStatus status_;
-  struct lua_longjmp *handler_;  /* for chain compatibility */
+  struct LuaLongJmp *handler_;  /* for chain compatibility */
 
 public:
-  explicit LuaException(TStatus status, struct lua_longjmp *handler = nullptr) noexcept
+  explicit LuaException(TStatus status, struct LuaLongJmp *handler = nullptr) noexcept
     : status_(status), handler_(handler) {}
 
   TStatus status() const noexcept { return status_; }
-  struct lua_longjmp* handler() const noexcept { return handler_; }
+  struct LuaLongJmp* handler() const noexcept { return handler_; }
 };
 
 /* Error handler chain node (simplified from old longjmp version) */
-struct lua_longjmp {
-  struct lua_longjmp *previous;
+struct LuaLongJmp {
+  struct LuaLongJmp *previous;
   TStatus status;  /* error code */
 };
 
@@ -189,7 +189,7 @@ l_noret lua_State::throwBaseLevel(TStatus errcode) {
 ** - Error code (LUA_ERRRUN, LUA_ERRMEM, etc.) if an error was thrown
 **
 ** MECHANISM:
-** 1. Set up a new error handler (lua_longjmp) in a chain
+** 1. Set up a new error handler (LuaLongJmp) in a chain
 ** 2. Execute function f() inside a try block
 ** 3. Catch LuaException and extract error code
 ** 4. Restore previous error handler from chain
@@ -211,7 +211,7 @@ l_noret lua_State::throwBaseLevel(TStatus errcode) {
 */
 TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
   l_uint32 oldnCcalls = getNumberOfCCalls();
-  lua_longjmp lj;
+  LuaLongJmp lj;
   lj.status = LUA_OK;
   lj.previous = getErrorJmp();  /* chain new error handler */
   setErrorJmp(&lj);
