@@ -585,7 +585,16 @@ The codebase inherits **valid but fragile patterns** from original Lua C impleme
 
 ### High Priority Issues
 
-#### 5.1 Stack Pointer Arithmetic Round-Trip - HIGH 🔶
+> **UPDATE (2026):** §5.1 is **already fixed** — `LuaStack::save`/`restore`
+> (`src/core/lstack.h`) now use direct pointer arithmetic (`pt - stack.p` /
+> `stack.p + n`), no `char*` round-trip. The LTO crash actually observed is **not**
+> this UB: it is a **GCC 15.2 LTO miscompilation** of the GC liveness/marking path
+> (the registry root fails `checkliveness` on any full collection). **clang+LTO and
+> UBSan are both clean** on the same source, so it is a GCC IPA bug, not portable
+> UB. Worked around by compiling the GC translation units without IPO on GCC (see
+> `CMakeLists.txt` LTO block and `docs/CMAKE_BUILD.md`).
+
+#### 5.1 Stack Pointer Arithmetic Round-Trip - HIGH 🔶 (ALREADY FIXED)
 
 - **File**: `src/core/lstack.h:118-125`
 - **Function**: `LuaStack::restore()`
@@ -702,7 +711,8 @@ struct NodeAllocation {
 | Condition | Risk Level | Affected Patterns |
 |-----------|-----------|-------------------|
 | Current (GCC/Clang -O3) | **LOW** | All work correctly |
-| With LTO enabled | **HIGH** | #5.1, #5.2 (stack, NodeArray) |
+| With LTO enabled (clang) | **LOW** | Clean (all.lua + UBSan pass) |
+| With LTO enabled (GCC 15) | **compiler bug** | GCC IPA miscompiles GC marking; GC TUs built `-fno-lto` (not a code UB) |
 | Aggressive optimization | **MEDIUM** | #5.3, #5.4 (unions, GC) |
 | Whole-program optimization | **MEDIUM** | Multiple patterns |
 

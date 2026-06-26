@@ -131,8 +131,27 @@ if(LUA_ENABLE_LTO)
     # so we need to disable strict aliasing optimization to ensure correctness
     add_compile_options(-fno-strict-aliasing)
     add_link_options(-fno-strict-aliasing)
-    # Use fat LTO objects to avoid some LTO bugs
-    add_compile_options(-ffat-lto-objects)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # Fat LTO objects: GCC-only flag (clang rejects it, fatal under -Werror).
+        add_compile_options(-ffat-lto-objects)
+        # GCC 15's whole-program IPA miscompiles the GC liveness/marking path:
+        # the registry root fails checkliveness on any full collection. clang+LTO
+        # and UBSan are both clean, so this is a GCC LTO bug, not portable UB.
+        # The bad cross-TU optimization spans the whole GC subsystem (excluding
+        # only one or two of these files does NOT fix it — verified), so the GC
+        # translation units are taken out of interprocedural optimization as a
+        # unit. This keeps LTO for the rest of the codebase (incl. the VM hot
+        # path); the GC is not the perf-critical inner loop.
+        set_source_files_properties(
+            src/memory/lgc.cpp
+            src/memory/gc/gc_core.cpp
+            src/memory/gc/gc_marking.cpp
+            src/memory/gc/gc_sweeping.cpp
+            src/memory/gc/gc_finalizer.cpp
+            src/memory/gc/gc_weak.cpp
+            src/memory/gc/gc_collector.cpp
+            PROPERTIES COMPILE_OPTIONS "-fno-lto")
+    endif()
 endif()
 
 # Source files organized by subdirectory
