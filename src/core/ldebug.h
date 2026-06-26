@@ -27,7 +27,7 @@ inline constexpr int MAXIWTHABS = 128;
 
 
 LUAI_FUNC int luaG_getfuncline (const Proto *f, int pc);
-LUAI_FUNC const char *luaG_findlocal (lua_State *L, CallInfo *ci, int n,
+LUAI_FUNC const char *luaG_findlocal (lua_State *L, CallInfo *callInfo, int n,
                                                     StkId *pos);
 LUAI_FUNC l_noret luaG_typeerror (lua_State *L, const TValue *o,
                                                 const char *opname);

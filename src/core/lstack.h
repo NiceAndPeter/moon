@@ -175,10 +175,10 @@ public:
   }
 
   // Check if stack has at least n elements (replaces api_checknelems)
-  bool checkHasElements(CallInfo* ci, int n) const noexcept;
+  bool checkHasElements(CallInfo* callInfo, int n) const noexcept;
 
   // Check if n elements can be popped (replaces api_checkpop)
-  bool checkCanPop(CallInfo* ci, int n) const noexcept;
+  bool checkCanPop(CallInfo* callInfo, int n) const noexcept;
 
   /*
   ** ============================================================
@@ -270,7 +270,7 @@ public:
   }
 
   // Depth relative to function base
-  int getDepthFromFunc(CallInfo* ci) const noexcept;
+  int getDepthFromFunc(CallInfo* callInfo) const noexcept;
 
   // Check if can fit n elements (alias for hasSpace)
   bool canFit(int n) const noexcept {

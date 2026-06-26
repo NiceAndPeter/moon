@@ -336,9 +336,9 @@ void lua_State::callHook(int event, int line,
                               int ftransfer, int ntransfer) {
   lua_Hook hook_func = getHook();
   if (hook_func && getAllowHook()) {  // make sure there is a hook
-    CallInfo *ci_local = ci;
+    CallInfo *ci_local = callInfo;
     ptrdiff_t top_saved = this->saveStack(getTop().p);  // preserve original 'top'
-    ptrdiff_t ci_top = this->saveStack(ci_local->topRef().p);  // idem for 'ci->getTop()'
+    ptrdiff_t ci_top = this->saveStack(ci_local->topRef().p);  // idem for 'callInfo->getTop()'
     lua_Debug ar;
     ar.event = event;
     ar.currentline = line;
@@ -481,13 +481,13 @@ void lua_State::moveResults(StkId res, int nres,
     default: {  // two/more results and/or to-be-closed variables
       int wanted = CallInfo::getNResults(fwanted);
       if (fwanted & CIST_TBC) {  // to-be-closed variables?
-        ci->setNRes(nres);
-        ci->callStatusRef() |= CIST_CLSRET;  // in case of yields
+        callInfo->setNRes(nres);
+        callInfo->callStatusRef() |= CIST_CLSRET;  // in case of yields
         res = luaF_close(this, res, CLOSEKTOP, 1);
-        ci->callStatusRef() &= ~CIST_CLSRET;
+        callInfo->callStatusRef() &= ~CIST_CLSRET;
         if (hookmask) {  // if needed, call hook after '__close's
           ptrdiff_t savedres = this->saveStack(res);
-          retHook(ci, nres);
+          retHook(callInfo, nres);
           res = this->restoreStack(savedres);  // hook can move stack
         }
         if (wanted == LUA_MULTRET)
@@ -842,28 +842,28 @@ static int resume_error (lua_State *L, const char *msg, int narg) {
 static void resume (lua_State *L, void *ud) {
   int n = *static_cast<int*>(ud);  // number of arguments
   StkId firstArg = L->getTop().p - n;  // first argument
-  CallInfo *ci = L->getCI();
+  CallInfo *callInfo = L->getCI();
   if (L->getStatus() == LUA_OK)  // starting a coroutine?
     L->cCall( firstArg - 1, LUA_MULTRET, 0);  // just call its body
   else {  // resuming from previous yield
     lua_assert(L->getStatus() == LUA_YIELD);
     L->setStatus(LUA_OK);  // mark that it is running (again)
-    if (ci->isLua()) {  // yielded inside a hook?
+    if (callInfo->isLua()) {  // yielded inside a hook?
       /* undo increment made by 'luaG_traceexec': instruction was not
          executed yet */
-      lua_assert(ci->getCallStatus() & CIST_HOOKYIELD);
-      (*ci->getSavedPCPtr())--;
+      lua_assert(callInfo->getCallStatus() & CIST_HOOKYIELD);
+      (*callInfo->getSavedPCPtr())--;
       L->getStackSubsystem().setTopPtr(firstArg);  // discard arguments
-      L->getVM().execute(ci);  // just continue running Lua code
+      L->getVM().execute(callInfo);  // just continue running Lua code
     }
     else {  // 'common' yield
-      if (ci->getK() != nullptr) {  // does it have a continuation function?
+      if (callInfo->getK() != nullptr) {  // does it have a continuation function?
         lua_unlock(L);
-        n = (*ci->getK())(L, LUA_YIELD, ci->getCtx());  // call continuation
+        n = (*callInfo->getK())(L, LUA_YIELD, callInfo->getCtx());  // call continuation
         lua_lock(L);
         api_checknelems(L, n);
       }
-      L->postCall( ci, n);  // finish 'luaD_call'
+      L->postCall( callInfo, n);  // finish 'luaD_call'
     }
     L->unrollContinuation( nullptr);  // run continuation
   }
@@ -879,10 +879,10 @@ static void resume (lua_State *L, void *ud) {
 ** find a recover point).
 */
 static TStatus precover (lua_State *L, TStatus status) {
-  CallInfo *ci;
-  while (errorstatus(status) && (ci = L->findPCall()) != nullptr) {
-    L->setCI(ci);  // go down to recovery functions
-    ci->setRecoverStatus(status);  // status to finish 'pcall'
+  CallInfo *callInfo;
+  while (errorstatus(status) && (callInfo = L->findPCall()) != nullptr) {
+    L->setCI(callInfo);  // go down to recovery functions
+    callInfo->setRecoverStatus(status);  // status to finish 'pcall'
     status = L->rawRunProtected( unroll, nullptr);
   }
   return status;
@@ -931,10 +931,10 @@ LUA_API int lua_isyieldable (lua_State *L) {
 
 LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
                         lua_KFunction k) {
-  CallInfo *ci;
+  CallInfo *callInfo;
   luai_userstateyield(L, nresults);
   lua_lock(L);
-  ci = L->getCI();
+  callInfo = L->getCI();
   api_checkpop(L, nresults);
   if (l_unlikely(!yieldable(L))) {
     if (L != mainthread(G(L)))
@@ -943,18 +943,18 @@ LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
       luaG_runerror(L, "attempt to yield from outside a coroutine");
   }
   L->setStatus(LUA_YIELD);
-  ci->setNYield(nresults);  // save number of results
-  if (ci->isLua()) {  // inside a hook?
-    lua_assert(!ci->isLuaCode());
+  callInfo->setNYield(nresults);  // save number of results
+  if (callInfo->isLua()) {  // inside a hook?
+    lua_assert(!callInfo->isLuaCode());
     api_check(L, nresults == 0, "hooks cannot yield values");
     api_check(L, k == nullptr, "hooks cannot continue after yielding");
   }
   else {
-    if ((ci->setK(k), k) != nullptr)  // is there a continuation?
-      ci->setCtx(ctx);  // save context
+    if ((callInfo->setK(k), k) != nullptr)  // is there a continuation?
+      callInfo->setCtx(ctx);  // save context
     L->doThrow( LUA_YIELD);
   }
-  lua_assert(ci->getCallStatus() & CIST_HOOKED);  // must be inside a hook
+  lua_assert(callInfo->getCallStatus() & CIST_HOOKED);  // must be inside a hook
   lua_unlock(L);
   return 0;  // return to 'luaD_hook'
 }

@@ -91,7 +91,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 
 // === EXECUTION ===
 
-void VirtualMachine::execute(CallInfo *ci) {
+void VirtualMachine::execute(CallInfo *callInfo) {
   LClosure *currentClosure;
   TValue *constants;
   StkId stackFrameBase;
@@ -222,23 +222,23 @@ void VirtualMachine::execute(CallInfo *ci) {
 
   // Exception handling lambdas
   auto protectCall = [&](auto&& expr) {
-    saveInterpreterState(L, ci);
+    saveInterpreterState(L, callInfo);
     expr();
-    updateTrap(ci);
+    updateTrap(callInfo);
   };
   auto protectCallNoTop = [&](auto&& expr) {
-    saveProgramCounter(ci);
+    saveProgramCounter(callInfo);
     expr();
-    updateTrap(ci);
+    updateTrap(callInfo);
   };
   auto halfProtectedCall = [&](auto&& expr) {
-    saveInterpreterState(L, ci);
+    saveInterpreterState(L, callInfo);
     expr();
   };
 
   /*
   ** Check if garbage collection is needed and yield thread if necessary.
-  ** 'c_val' is the limit of live values in the stack (typically L->top or ci->top)
+  ** 'c_val' is the limit of live values in the stack (typically L->top or callInfo->top)
   **
   ** PERFORMANCE: GC is expensive, so we only check conditionally (luaC_condGC).
   ** The GC uses a debt-based system to determine when collection is needed.
@@ -251,8 +251,8 @@ void VirtualMachine::execute(CallInfo *ci) {
   */
   auto checkGC = [&](lua_State* L_arg, StkId c_val) {
     luaC_condGC(L_arg,
-                [&](){ saveProgramCounter(ci); L_arg->getStackSubsystem().setTopPtr(c_val); },
-                [&](){ updateTrap(ci); });
+                [&](){ saveProgramCounter(callInfo); L_arg->getStackSubsystem().setTopPtr(c_val); },
+                [&](){ updateTrap(callInfo); });
     luai_threadyield(L_arg);
   };
 
@@ -357,7 +357,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       cond = cmp(ra, rb);  // Use comparator function object
     else
       protectCall([&]() { cond = other(L, ra, rb); });
-    performConditionalJump(cond, ci, i);
+    performConditionalJump(cond, callInfo, i);
   };
 
   // Lambda: Order operations with immediate operand
@@ -376,7 +376,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       int isf = InstructionView(i).c();
       protectCall([&]() { cond = luaT_callorderiTM(L, ra, im, inv, isf, metamethodEvent); });
     }
-    performConditionalJump(cond, ci, i);
+    performConditionalJump(cond, callInfo, i);
   };
 
   // Comparator function objects for op_order (operators cannot be passed as template params)
@@ -394,12 +394,12 @@ void VirtualMachine::execute(CallInfo *ci) {
  startfunc:
   hooksEnabled = L->getHookMask();
  returning:  // hooksEnabled already set
-  currentClosure = ci->getFunc();
+  currentClosure = callInfo->getFunc();
   constants = currentClosure->getProto()->getConstants();
-  programCounter = ci->getSavedPC();
+  programCounter = callInfo->getSavedPC();
   if (l_unlikely(hooksEnabled))
     hooksEnabled = luaG_tracecall(L);
-  stackFrameBase = ci->funcRef().p + 1;
+  stackFrameBase = callInfo->funcRef().p + 1;
 
   Instruction i;  // instruction being executed (moved outside loop for lambda capture)
 
@@ -407,7 +407,7 @@ void VirtualMachine::execute(CallInfo *ci) {
   auto vmfetch = [&]() {
     if (l_unlikely(hooksEnabled)) {  // stack reallocation or hooks?
       hooksEnabled = luaG_traceexec(L, programCounter);  // handle hooks
-      updateStackBase(ci);  // correct stack
+      updateStackBase(callInfo);  // correct stack
     }
     i = *(programCounter++);
   };
@@ -415,7 +415,7 @@ void VirtualMachine::execute(CallInfo *ci) {
   // main loop of interpreter
   for (;;) {
     vmfetch();
-    lua_assert(stackFrameBase == ci->funcRef().p + 1);
+    lua_assert(stackFrameBase == callInfo->funcRef().p + 1);
     lua_assert(stackFrameBase <= L->getTop().p && L->getTop().p <= L->getStackLast().p);
     // for tests, invalidate top for instructions not expecting it
     lua_assert(luaP_isIT(i) || (cast_void(L->getStackSubsystem().setTopPtr(stackFrameBase)), 1));
@@ -639,7 +639,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_MODK: {
-        saveInterpreterState(L, ci);  // in case of division by 0
+        saveInterpreterState(L, callInfo);  // in case of division by 0
         op_arithK([this](lua_State*, lua_Integer a, lua_Integer b) { return mod(a, b); },
                   [this](lua_State*, lua_Number a, lua_Number b) { return modf(a, b); }, i);
         break;
@@ -653,7 +653,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_IDIVK: {
-        saveInterpreterState(L, ci);  // in case of division by 0
+        saveInterpreterState(L, callInfo);  // in case of division by 0
         op_arithK([this](lua_State*, lua_Integer a, lua_Integer b) { return idiv(a, b); }, luai_numidiv, i);
         break;
       }
@@ -702,7 +702,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_MOD: {
-        saveInterpreterState(L, ci);  // in case of division by 0
+        saveInterpreterState(L, callInfo);  // in case of division by 0
         op_arith([this](lua_State*, lua_Integer a, lua_Integer b) { return mod(a, b); },
                  [this](lua_State*, lua_Number a, lua_Number b) { return modf(a, b); }, i);
         break;
@@ -716,7 +716,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_IDIV: {  // floor division
-        saveInterpreterState(L, ci);  // in case of division by 0
+        saveInterpreterState(L, callInfo);  // in case of division by 0
         op_arith([this](lua_State*, lua_Integer a, lua_Integer b) { return idiv(a, b); }, luai_numidiv, i);
         break;
       }
@@ -831,7 +831,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         break;
       }
       case OP_JMP: {
-        performJump(ci, i, 0);
+        performJump(callInfo, i, 0);
         break;
       }
       case OP_EQ: {
@@ -839,7 +839,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto *rb = getValueB(i);
         int cond;
         protectCall([&]() { cond = equalObj(s2v(ra), rb); });
-        performConditionalJump(cond, ci, i);
+        performConditionalJump(cond, callInfo, i);
         break;
       }
       case OP_LT: {
@@ -855,7 +855,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto *rb = getConstantB(i);
         // basic types do not use '__eq'; we can use raw equality
         auto cond = (*s2v(ra) == *rb);  // Use operator== for cleaner syntax
-        performConditionalJump(cond, ci, i);
+        performConditionalJump(cond, callInfo, i);
         break;
       }
       case OP_EQI: {
@@ -868,7 +868,7 @@ void VirtualMachine::execute(CallInfo *ci) {
           cond = luai_numeq(fltvalue(s2v(ra)), cast_num(im));
         else
           cond = 0;  // other types cannot be equal to a number
-        performConditionalJump(cond, ci, i);
+        performConditionalJump(cond, callInfo, i);
         break;
       }
       case OP_LTI: {
@@ -890,7 +890,7 @@ void VirtualMachine::execute(CallInfo *ci) {
       case OP_TEST: {
         auto ra = getRegisterA(i);
         auto cond = !l_isfalse(s2v(ra));
-        performConditionalJump(cond, ci, i);
+        performConditionalJump(cond, callInfo, i);
         break;
       }
       case OP_TESTSET: {
@@ -900,7 +900,7 @@ void VirtualMachine::execute(CallInfo *ci) {
           programCounter++;
         else {
           L->getStackSubsystem().setSlot(ra, rb);
-          performNextJump(ci);
+          performNextJump(callInfo);
         }
         break;
       }
@@ -911,12 +911,12 @@ void VirtualMachine::execute(CallInfo *ci) {
         if (b != 0)  // fixed number of arguments?
           L->getStackSubsystem().setTopPtr(ra + b);  // top signals number of arguments
         // else previous instruction set top
-        saveProgramCounter(ci);  // in case of errors
+        saveProgramCounter(callInfo);  // in case of errors
         CallInfo *newci;
         if ((newci = L->preCall( ra, nresults)) == nullptr)
-          updateTrap(ci);  // C call; nothing else to be done
+          updateTrap(callInfo);  // C call; nothing else to be done
         else {  // Lua call: run function in this same C frame
-          ci = newci;
+          callInfo = newci;
           goto startfunc;
         }
         break;
@@ -926,24 +926,24 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto b = InstructionView(i).b();  // number of arguments + 1 (function)
         auto nparams1 = InstructionView(i).c();
         // delta is virtual 'func' - real 'func' (vararg functions)
-        auto delta = (nparams1) ? ci->getExtraArgs() + nparams1 : 0;
+        auto delta = (nparams1) ? callInfo->getExtraArgs() + nparams1 : 0;
         if (b != 0)
           L->getStackSubsystem().setTopPtr(ra + b);
         else  // previous instruction set top
           b = cast_int(L->getTop().p - ra);
-        saveProgramCounter(ci);  // several calls here can raise errors
+        saveProgramCounter(callInfo);  // several calls here can raise errors
         if (InstructionView(i).testk()) {
           luaF_closeupval(L, stackFrameBase);  // close upvalues from current call
           lua_assert(L->getTbclist().p < stackFrameBase);  // no pending tbc variables
-          lua_assert(stackFrameBase == ci->funcRef().p + 1);
+          lua_assert(stackFrameBase == callInfo->funcRef().p + 1);
         }
         int n;  // number of results when calling a C function
-        if ((n = L->preTailCall( ci, ra, b, delta)) < 0)  // Lua function?
+        if ((n = L->preTailCall( callInfo, ra, b, delta)) < 0)  // Lua function?
           goto startfunc;  // execute the callee
         else {  // C function?
-          ci->funcRef().p -= delta;  // restore 'func' (if vararg)
-          L->postCall( ci, n);  // finish caller
-          updateTrap(ci);  // 'luaD_poscall' can change hooks
+          callInfo->funcRef().p -= delta;  // restore 'func' (if vararg)
+          L->postCall( callInfo, n);  // finish caller
+          updateTrap(callInfo);  // 'luaD_poscall' can change hooks
           goto ret;  // caller returns after the tail call
         }
       }
@@ -953,33 +953,33 @@ void VirtualMachine::execute(CallInfo *ci) {
         auto nparams1 = InstructionView(i).c();
         if (n < 0)  // not fixed?
           n = cast_int(L->getTop().p - ra);  // get what is available
-        saveProgramCounter(ci);
+        saveProgramCounter(callInfo);
         if (InstructionView(i).testk()) {  // may there be open upvalues?
-          ci->setNRes(n);  // save number of returns
-          if (L->getTop().p < ci->topRef().p)
-            L->getStackSubsystem().setTopPtr(ci->topRef().p);
+          callInfo->setNRes(n);  // save number of returns
+          if (L->getTop().p < callInfo->topRef().p)
+            L->getStackSubsystem().setTopPtr(callInfo->topRef().p);
           stackFrameBase = luaF_close(L, stackFrameBase, CLOSEKTOP, 1);
-          updateTrap(ci);
-          updateStackAfterRealloc(ra, ci, i);
+          updateTrap(callInfo);
+          updateStackAfterRealloc(ra, callInfo, i);
         }
         if (nparams1)  // vararg function?
-          ci->funcRef().p -= ci->getExtraArgs() + nparams1;
+          callInfo->funcRef().p -= callInfo->getExtraArgs() + nparams1;
         L->getStackSubsystem().setTopPtr(ra + n);  // set call for 'luaD_poscall'
-        L->postCall( ci, n);
-        updateTrap(ci);  // 'luaD_poscall' can change hooks
+        L->postCall( callInfo, n);
+        updateTrap(callInfo);  // 'luaD_poscall' can change hooks
         goto ret;
       }
       case OP_RETURN0: {
         if (l_unlikely(L->getHookMask())) {
           auto ra = getRegisterA(i);
           L->getStackSubsystem().setTopPtr(ra);
-          saveProgramCounter(ci);
-          L->postCall( ci, 0);  // no hurry...
+          saveProgramCounter(callInfo);
+          L->postCall( callInfo, 0);  // no hurry...
           hooksEnabled = 1;
         }
         else {  // do the 'poscall' here
-          auto nres = CallInfo::getNResults(ci->getCallStatus());
-          L->setCI(ci->getPrevious());  // back to caller
+          auto nres = CallInfo::getNResults(callInfo->getCallStatus());
+          L->setCI(callInfo->getPrevious());  // back to caller
           L->getStackSubsystem().setTopPtr(stackFrameBase - 1);
           for (; l_unlikely(nres > 0); nres--) {
             setnilvalue(s2v(L->getTop().p));
@@ -992,13 +992,13 @@ void VirtualMachine::execute(CallInfo *ci) {
         if (l_unlikely(L->getHookMask())) {
           auto ra = getRegisterA(i);
           L->getStackSubsystem().setTopPtr(ra + 1);
-          saveProgramCounter(ci);
-          L->postCall( ci, 1);  // no hurry...
+          saveProgramCounter(callInfo);
+          L->postCall( callInfo, 1);  // no hurry...
           hooksEnabled = 1;
         }
         else {  // do the 'poscall' here
-          auto nres = CallInfo::getNResults(ci->getCallStatus());
-          L->setCI(ci->getPrevious());  // back to caller
+          auto nres = CallInfo::getNResults(callInfo->getCallStatus());
+          L->setCI(callInfo->getPrevious());  // back to caller
           if (nres == 0)
             L->getStackSubsystem().setTopPtr(stackFrameBase - 1);  // asked for no results
           else {
@@ -1012,10 +1012,10 @@ void VirtualMachine::execute(CallInfo *ci) {
           }
         }
        ret:  // return from a Lua function
-        if (ci->getCallStatus() & CIST_FRESH)
+        if (callInfo->getCallStatus() & CIST_FRESH)
           return;  // end this frame
         else {
-          ci = ci->getPrevious();
+          callInfo = callInfo->getPrevious();
           goto returning;  // continue running caller in this frame
         }
       }
@@ -1034,12 +1034,12 @@ void VirtualMachine::execute(CallInfo *ci) {
         }
         else if (L->floatForLoop(ra))  // float loop
           programCounter -= InstructionView(i).bx();  // jump back
-        updateTrap(ci);  // allows a signal to break the loop
+        updateTrap(callInfo);  // allows a signal to break the loop
         break;
       }
       case OP_FORPREP: {
         auto ra = getRegisterA(i);
-        saveInterpreterState(L, ci);  // in case of errors
+        saveInterpreterState(L, callInfo);  // in case of errors
         if (L->forPrep(ra))
           programCounter += InstructionView(i).bx() + 1;  // skip the loop
         break;
@@ -1077,7 +1077,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         *s2v(ra + 3) = *s2v(ra);  /* copy function (operator=) */
         L->getStackSubsystem().setTopPtr(ra + 3 + 3);
         protectCallNoTop([&]() { L->call( ra + 3, InstructionView(i).c()); });  // do the call
-        updateStackAfterRealloc(ra, ci, i);  // stack may have changed
+        updateStackAfterRealloc(ra, callInfo, i);  // stack may have changed
         i = *(programCounter++);  // go to next instruction
         lua_assert(InstructionView(i).opcode() == OP_TFORLOOP && ra == getRegisterA(i));
         goto l_tforloop;
@@ -1097,7 +1097,7 @@ void VirtualMachine::execute(CallInfo *ci) {
         if (n == 0)
           n = cast_uint(L->getTop().p - ra) - 1;  // get up to the top
         else
-          L->getStackSubsystem().setTopPtr(ci->topRef().p);  // correct top in case of emergency GC
+          L->getStackSubsystem().setTopPtr(callInfo->topRef().p);  // correct top in case of emergency GC
         last += n;
         if (InstructionView(i).testk()) {
           last += cast_uint(InstructionView(*programCounter).ax()) * (MAXARG_vC + 1);
@@ -1127,16 +1127,16 @@ void VirtualMachine::execute(CallInfo *ci) {
       case OP_VARARG: {
         auto ra = getRegisterA(i);
         auto n = InstructionView(i).c() - 1;  // required results
-        protectCall([&]() { luaT_getvarargs(L, ci, ra, n); });
+        protectCall([&]() { luaT_getvarargs(L, callInfo, ra, n); });
         break;
       }
       case OP_VARARGPREP: {
-        protectCallNoTop([&]() { luaT_adjustvarargs(L, InstructionView(i).a(), ci, currentClosure->getProto()); });
+        protectCallNoTop([&]() { luaT_adjustvarargs(L, InstructionView(i).a(), callInfo, currentClosure->getProto()); });
         if (l_unlikely(hooksEnabled)) {  // previous "Protect" updated hooksEnabled
-          L->hookCall( ci);
+          L->hookCall( callInfo);
           L->setOldPC(1);  // next opcode will be seen as a "new" line
         }
-        updateStackBase(ci);  // function has new base after adjustment
+        updateStackBase(callInfo);  // function has new base after adjustment
         break;
       }
       case OP_EXTRAARG: {
@@ -1148,13 +1148,13 @@ void VirtualMachine::execute(CallInfo *ci) {
 }
 
 void VirtualMachine::finishOp() {
-  CallInfo *ci = L->getCI();
-  StkId base = ci->funcRef().p + 1;
-  Instruction inst = *(ci->getSavedPC() - 1);  // interrupted instruction
+  CallInfo *callInfo = L->getCI();
+  StkId base = callInfo->funcRef().p + 1;
+  Instruction inst = *(callInfo->getSavedPC() - 1);  // interrupted instruction
   OpCode op = static_cast<OpCode>(InstructionView(inst).opcode());
   switch (op) {  // finish its execution
     case OP_MMBIN: case OP_MMBINI: case OP_MMBINK: {
-      *s2v(base + InstructionView(*(ci->getSavedPC() - 2)).a()) = *s2v(--L->getTop().p);
+      *s2v(base + InstructionView(*(callInfo->getSavedPC() - 2)).a()) = *s2v(--L->getTop().p);
       break;
     }
     case OP_UNM: case OP_BNOT: case OP_LEN:
@@ -1170,9 +1170,9 @@ void VirtualMachine::finishOp() {
       lua_assert(L->getTop().p > L->getStack().p);  // ensure stack not empty
       int res = !l_isfalse(s2v(L->getTop().p - 1));
       L->getStackSubsystem().pop();
-      lua_assert(InstructionView(*ci->getSavedPC()).opcode() == OP_JMP);
+      lua_assert(InstructionView(*callInfo->getSavedPC()).opcode() == OP_JMP);
       if (res != InstructionView(inst).k())  // condition failed?
-        ci->setSavedPC(ci->getSavedPC() + 1);  // skip jump instruction
+        callInfo->setSavedPC(callInfo->getSavedPC() + 1);  // skip jump instruction
       break;
     }
     case OP_CONCAT: {
@@ -1187,16 +1187,16 @@ void VirtualMachine::finishOp() {
       break;
     }
     case OP_CLOSE: {  // yielded closing variables
-      ci->setSavedPC(ci->getSavedPC() - 1);  // repeat instruction to close other vars.
+      callInfo->setSavedPC(callInfo->getSavedPC() - 1);  // repeat instruction to close other vars.
       break;
     }
     case OP_RETURN: {  // yielded closing variables
       StkId ra = base + InstructionView(inst).a();
       /* adjust top to signal correct number of returns, in case the
          return is "up to top" ('isIT') */
-      L->getStackSubsystem().setTopPtr(ra + ci->getNRes());
+      L->getStackSubsystem().setTopPtr(ra + callInfo->getNRes());
       // repeat instruction to close other vars. and complete the return
-      ci->setSavedPC(ci->getSavedPC() - 1);
+      callInfo->setSavedPC(callInfo->getSavedPC() - 1);
       break;
     }
     default: {
@@ -1425,7 +1425,7 @@ LuaT VirtualMachine::finishGet(const TValue *t, TValue *key, StkId val, LuaT tag
       tag = luaT_callTMres(L, metamethod, t, key, val);  // call it
       return tag;  // return tag of the result
     }
-    t = metamethod;  // else try to access 'tm[key]'
+    t = metamethod;  // else try to access 'metamethod[key]'
     tag = fastget(t, key, s2v(val), [](Table* tbl, const TValue* k, TValue* res) { return tbl->get(k, res); });
     if (!tagisempty(tag))
       return tag;  // done
@@ -1462,7 +1462,7 @@ void VirtualMachine::finishSet(const TValue *t, TValue *key, TValue *val, int hr
       luaT_callTM(L, metamethod, t, key, val);
       return;
     }
-    t = metamethod;  // else repeat assignment over 'tm'
+    t = metamethod;  // else repeat assignment over 'metamethod'
     hres = fastset(t, key, val, [](Table* tbl, const TValue* k, TValue* v) { return tbl->pset(k, v); });
     if (hres == HOK) {
       finishfastset(t, val);

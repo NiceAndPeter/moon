@@ -42,7 +42,7 @@ public:
     VirtualMachine& operator=(VirtualMachine&&) noexcept = default;
 
     // === EXECUTION === (lvm.cpp)
-    void execute(CallInfo *ci);
+    void execute(CallInfo *callInfo);
     void finishOp();
 
     // === TYPE CONVERSIONS === (lvm_conversion.cpp)

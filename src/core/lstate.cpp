@@ -78,18 +78,18 @@ void luaE_setdebt (GlobalState *g, l_mem debt) {
 
 
 CallInfo *luaE_extendCI (lua_State *L) {
-  CallInfo *ci;
+  CallInfo *callInfo;
   lua_assert(L->getCI()->getNext() == nullptr);
   // Use placement new to call constructor (initializes all 9 fields)
-  ci = new (luaM_malloc_(L, sizeof(CallInfo), 0)) CallInfo();
+  callInfo = new (luaM_malloc_(L, sizeof(CallInfo), 0)) CallInfo();
   lua_assert(L->getCI()->getNext() == nullptr);
-  L->getCI()->setNext(ci);
-  ci->setPrevious(L->getCI());
-  ci->setNext(nullptr);
+  L->getCI()->setNext(callInfo);
+  callInfo->setPrevious(L->getCI());
+  callInfo->setNext(nullptr);
   // trap already initialized to 0 in constructor, but keep this for clarity
-  ci->getTrap() = 0;
+  callInfo->getTrap() = 0;
   L->getNumberOfCallInfosRef()++;
-  return ci;
+  return callInfo;
 }
 
 
@@ -97,12 +97,12 @@ CallInfo *luaE_extendCI (lua_State *L) {
 ** free all CallInfo structures not in use by a thread
 */
 static void freeCI (lua_State *L) {
-  CallInfo *ci = L->getCI();
-  CallInfo *next = ci->getNext();
-  ci->setNext(nullptr);
-  while ((ci = next) != nullptr) {
-    next = ci->getNext();
-    luaM_free(L, ci);
+  CallInfo *callInfo = L->getCI();
+  CallInfo *next = callInfo->getNext();
+  callInfo->setNext(nullptr);
+  while ((callInfo = next) != nullptr) {
+    next = callInfo->getNext();
+    luaM_free(L, callInfo);
     L->getNumberOfCallInfosRef()--;
   }
 }
@@ -113,20 +113,20 @@ static void freeCI (lua_State *L) {
 ** keeping the first one.
 */
 void luaE_shrinkCI (lua_State *L) {
-  CallInfo *ci = L->getCI()->getNext();  // first free CallInfo
+  CallInfo *callInfo = L->getCI()->getNext();  // first free CallInfo
   CallInfo *next;
-  if (ci == nullptr)
+  if (callInfo == nullptr)
     return;  // no extra elements
-  while ((next = ci->getNext()) != nullptr) {  // two extra elements?
+  while ((next = callInfo->getNext()) != nullptr) {  // two extra elements?
     CallInfo *next2 = next->getNext();  // next's next
-    ci->setNext(next2);  // remove next from the list
+    callInfo->setNext(next2);  // remove next from the list
     L->getNumberOfCallInfosRef()--;
     luaM_free(L, next);  // free next
     if (next2 == nullptr)
       break;  // no more elements
     else {
-      next2->setPrevious(ci);
-      ci = next2;  // continue
+      next2->setPrevious(callInfo);
+      callInfo = next2;  // continue
     }
   }
 }
@@ -155,12 +155,12 @@ LUAI_FUNC void luaE_incCstack (lua_State *L) {
 
 
 static void resetCI (lua_State *L) {
-  CallInfo *ci = L->setCI(L->getBaseCI());
-  ci->funcRef().p = L->getStack().p;
-  setnilvalue(s2v(ci->funcRef().p));  // 'function' entry for basic 'ci'
-  ci->topRef().p = ci->funcRef().p + 1 + LUA_MINSTACK;  // +1 for 'function' entry
-  ci->setK(nullptr);
-  ci->setCallStatus(CIST_C);
+  CallInfo *callInfo = L->setCI(L->getBaseCI());
+  callInfo->funcRef().p = L->getStack().p;
+  setnilvalue(s2v(callInfo->funcRef().p));  // 'function' entry for basic 'callInfo'
+  callInfo->topRef().p = callInfo->funcRef().p + 1 + LUA_MINSTACK;  // +1 for 'function' entry
+  callInfo->setK(nullptr);
+  callInfo->setCallStatus(CIST_C);
   L->setStatus(LUA_OK);
   L->setErrFunc(0);  // stack unwind can "throw away" the error function
 }
@@ -169,14 +169,14 @@ static void resetCI (lua_State *L) {
 static void stack_init (lua_State *L1, lua_State *L) {
   // initialize stack array via LuaStack subsystem
   L1->getStackSubsystem().init(L);
-  // initialize first ci
+  // initialize first callInfo
   resetCI(L1);
   L1->getStackSubsystem().setTopPtr(L1->getStack().p + 1);  // +1 for 'function' entry
 }
 
 
 static void freestack (lua_State *L) {
-  L->setCI(L->getBaseCI());  // free the entire 'ci' list
+  L->setCI(L->getBaseCI());  // free the entire 'callInfo' list
   freeCI(L);
   lua_assert(L->getNumberOfCallInfos() == 0);
   // free stack via LuaStack subsystem

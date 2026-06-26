@@ -401,7 +401,7 @@ private:
   VirtualMachine* vm_;  // VM operations encapsulation (pointer to break circular dependency)
 
   // CallInfo fields (encapsulated)
-  CallInfo *ci;  // call info for current function
+  CallInfo *callInfo;  // call info for current function
   CallInfo base_ci;  // CallInfo for first level (C host)
 
   // Step 3: GC and state management fields (encapsulated)
@@ -429,7 +429,7 @@ private:
 
   // Step 6: Call counter fields (encapsulated)
   l_uint32 numberOfCCalls;  // number of nested non-yieldable or C calls
-  int numberOfCallInfos;  // number of items in 'ci' list
+  int numberOfCallInfos;  // number of items in 'callInfo' list
 
 public:
   // Initialize lua_State fields (GC base fields must already be set by caller)
@@ -450,7 +450,7 @@ public:
     stack_.getTop().p = nullptr;
 
     // CallInfo fields
-    ci = nullptr;
+    callInfo = nullptr;
     numberOfCallInfos = 0;
     // base_ci initialized via placement new to call its constructor
     new (&base_ci) CallInfo();
@@ -510,10 +510,10 @@ public:
   inline int getStackSize() const noexcept { return stack_.getSize(); }
 
   // Step 2: CallInfo field accessors
-  CallInfo* getCI() noexcept { return ci; }
-  const CallInfo* getCI() const noexcept { return ci; }
-  CallInfo* setCI(CallInfo* c) noexcept { ci = c; return ci; }  // Returns value for chaining
-  CallInfo** getCIPtr() noexcept { return &ci; }
+  CallInfo* getCI() noexcept { return callInfo; }
+  const CallInfo* getCI() const noexcept { return callInfo; }
+  CallInfo* setCI(CallInfo* c) noexcept { callInfo = c; return callInfo; }  // Returns value for chaining
+  CallInfo** getCIPtr() noexcept { return &callInfo; }
 
   CallInfo* getBaseCI() noexcept { return &base_ci; }
   const CallInfo* getBaseCI() const noexcept { return &base_ci; }
@@ -614,7 +614,7 @@ public:
   }
 
   // Existing accessors (kept for compatibility)
-  CallInfo* getCallInfo() const noexcept { return ci; }  // Alias for getCI()
+  CallInfo* getCallInfo() const noexcept { return callInfo; }  // Alias for getCI()
 
   // Stack operation methods - delegate to stack_ subsystem
   inline void inctop() { stack_.incTop(this); }
@@ -630,12 +630,12 @@ public:
 
   // Hook/debugging methods (implemented in ldo.cpp)
   void callHook(int event, int line, int fTransfer, int nTransfer);
-  void hookCall(CallInfo *ci);
+  void hookCall(CallInfo *callInfo);
 
   // Call operation methods (implemented in ldo.cpp)
   [[nodiscard]] CallInfo* preCall(StkId func, int nResults);
-  void postCall(CallInfo *ci, int nres);
-  [[nodiscard]] int preTailCall(CallInfo *ci, StkId func, int narg1, int delta);
+  void postCall(CallInfo *callInfo, int nres);
+  [[nodiscard]] int preTailCall(CallInfo *callInfo, StkId func, int narg1, int delta);
   void call(StkId func, int nResults);
   void callNoYield(StkId func, int nResults);
 
@@ -648,12 +648,12 @@ public:
   // Internal helper methods (used by Pfunc callbacks in ldo.cpp)
   void cCall(StkId func, int nResults, l_uint32 inc);
   void unrollContinuation(void *ud);
-  [[nodiscard]] TStatus finishPCallK(CallInfo *ci);
-  void finishCCall(CallInfo *ci);
+  [[nodiscard]] TStatus finishPCallK(CallInfo *callInfo);
+  void finishCCall(CallInfo *callInfo);
   [[nodiscard]] CallInfo* findPCall();
 
   // Error and debug methods (implemented in ldebug.cpp)
-  const char* findLocal(CallInfo *ci, int n, StkId *pos);
+  const char* findLocal(CallInfo *callInfo, int n, StkId *pos);
   l_noret typeError(const TValue *o, const char *opname);
   l_noret callError(const TValue *o);
   l_noret forError(const TValue *o, const char *what);
@@ -702,7 +702,7 @@ private:
   int stackInUse();
 
   // Call/hook helpers
-  void retHook(CallInfo *ci, int nres);
+  void retHook(CallInfo *callInfo, int nres);
   unsigned tryFuncTM(StkId func, unsigned status);
   void genMoveResults(StkId res, int nres, int wanted);
   void moveResults(StkId res, int nres, l_uint32 fwanted);

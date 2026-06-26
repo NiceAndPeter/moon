@@ -225,38 +225,38 @@ int luaT_callorderiTM (lua_State *L, const TValue *p1, int v2,
 }
 
 
-void luaT_adjustvarargs (lua_State *L, int nfixparams, CallInfo *ci,
+void luaT_adjustvarargs (lua_State *L, int nfixparams, CallInfo *callInfo,
                          const Proto *p) {
   int i;
-  int actual = cast_int(L->getTop().p - ci->funcRef().p) - 1;  // number of arguments
+  int actual = cast_int(L->getTop().p - callInfo->funcRef().p) - 1;  // number of arguments
   int nextra = actual - nfixparams;  // number of extra arguments
-  ci->setExtraArgs(nextra);
+  callInfo->setExtraArgs(nextra);
   luaD_checkstack(L, p->getMaxStackSize() + 1);
   // copy function to the top of the stack
-  *s2v(L->getTop().p) = *s2v(ci->funcRef().p);  /* use operator= */
+  *s2v(L->getTop().p) = *s2v(callInfo->funcRef().p);  /* use operator= */
   L->getStackSubsystem().push();
   // move fixed parameters to the top of the stack
   for (i = 1; i <= nfixparams; i++) {
-    *s2v(L->getTop().p) = *s2v(ci->funcRef().p + i);  /* use operator= */
+    *s2v(L->getTop().p) = *s2v(callInfo->funcRef().p + i);  /* use operator= */
     L->getStackSubsystem().push();
-    setnilvalue(s2v(ci->funcRef().p + i));  // erase original parameter (for GC)
+    setnilvalue(s2v(callInfo->funcRef().p + i));  // erase original parameter (for GC)
   }
-  ci->funcRef().p += actual + 1;
-  ci->topRef().p += actual + 1;
-  lua_assert(L->getTop().p <= ci->topRef().p && ci->topRef().p <= L->getStackLast().p);
+  callInfo->funcRef().p += actual + 1;
+  callInfo->topRef().p += actual + 1;
+  lua_assert(L->getTop().p <= callInfo->topRef().p && callInfo->topRef().p <= L->getStackLast().p);
 }
 
 
-void luaT_getvarargs (lua_State *L, CallInfo *ci, StkId where, int wanted) {
+void luaT_getvarargs (lua_State *L, CallInfo *callInfo, StkId where, int wanted) {
   int i;
-  int nextra = ci->getExtraArgs();
+  int nextra = callInfo->getExtraArgs();
   if (wanted < 0) {
     wanted = nextra;  // get all extra arguments available
     checkstackp(L, nextra, where);  // ensure stack space
     L->getStackSubsystem().setTopPtr(where + nextra);  // next instruction will need top
   }
   for (i = 0; i < wanted && i < nextra; i++)
-    *s2v(where + i) = *s2v(ci->funcRef().p - nextra + i);  /* use operator= */
+    *s2v(where + i) = *s2v(callInfo->funcRef().p - nextra + i);  /* use operator= */
   for (; i < wanted; i++)  // complete required results with nil
     setnilvalue(s2v(where + i));
 }

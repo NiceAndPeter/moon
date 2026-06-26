@@ -45,16 +45,16 @@ const char lua_ident[] =
 
 LUA_API int lua_checkstack (lua_State *L, int n) {
   int res;
-  CallInfo *ci;
+  CallInfo *callInfo;
   lua_lock(L);
-  ci = L->getCI();
+  callInfo = L->getCI();
   api_check(L, n >= 0, "negative 'n'");
   if (L->getStackLast().p - L->getTop().p > n)  // stack large enough?
     res = 1;  // yes; check is OK
   else  // need to grow stack
     res = L->growStack(n, 0);
-  if (res && ci->topRef().p < L->getTop().p + n)
-    ci->topRef().p = L->getTop().p + n;  // adjust frame top
+  if (res && callInfo->topRef().p < L->getTop().p + n)
+    callInfo->topRef().p = L->getTop().p + n;  // adjust frame top
   lua_unlock(L);
   return res;
 }
@@ -114,11 +114,11 @@ LUA_API int lua_gettop (lua_State *L) {
 
 LUA_API void lua_settop (lua_State *L, int idx) {
   lua_lock(L);
-  CallInfo *ci = L->getCI();
-  auto func = ci->funcRef().p;
+  CallInfo *callInfo = L->getCI();
+  auto func = callInfo->funcRef().p;
   ptrdiff_t diff;  // difference for new top
   if (idx >= 0) {
-    api_check(L, idx <= ci->topRef().p - (func + 1), "new top too large");
+    api_check(L, idx <= callInfo->topRef().p - (func + 1), "new top too large");
     diff = ((func + 1) + idx) - L->getTop().p;
     for (; diff > 0; diff--) {
       setnilvalue(s2v(L->getTop().p));  // clear new slot
@@ -131,7 +131,7 @@ LUA_API void lua_settop (lua_State *L, int idx) {
   }
   StkId newtop = L->getTop().p + diff;
   if (diff < 0 && L->getTbclist().p >= newtop) {
-    lua_assert(ci->callStatusRef() & CIST_TBC);
+    lua_assert(callInfo->callStatusRef() & CIST_TBC);
     newtop = luaF_close(L, newtop, CLOSEKTOP, 0);
   }
   L->getStackSubsystem().setTopPtr(newtop);  // correct top only after closing any upvalue
@@ -1011,18 +1011,18 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
     status = L->pCall( f_call, &c, L->saveStack(c.func), func);
   }
   else {  // prepare continuation (call is already protected by 'resume')
-    CallInfo *ci = L->getCI();
-    ci->setK(k);  // save continuation
-    ci->setCtx(ctx);  // save context
+    CallInfo *callInfo = L->getCI();
+    callInfo->setK(k);  // save continuation
+    callInfo->setCtx(ctx);  // save context
     // save information for error recovery
-    ci->setFuncIdx(cast_int(L->saveStack(c.func)));
-    ci->setOldErrFunc(L->getErrFunc());
+    callInfo->setFuncIdx(cast_int(L->saveStack(c.func)));
+    callInfo->setOldErrFunc(L->getErrFunc());
     L->setErrFunc(func);
-    ci->setOAH(L->getAllowHook());  // save value of 'allowhook'
-    ci->callStatusRef() |= CIST_YPCALL;  // function can do error recovery
+    callInfo->setOAH(L->getAllowHook());  // save value of 'allowhook'
+    callInfo->callStatusRef() |= CIST_YPCALL;  // function can do error recovery
     L->call( c.func, nresults);  // do the call
-    ci->callStatusRef() &= ~CIST_YPCALL;
-    L->setErrFunc(ci->getOldErrFunc());
+    callInfo->callStatusRef() &= ~CIST_YPCALL;
+    L->setErrFunc(callInfo->getOldErrFunc());
     status = LUA_OK;  // if it is here, there were no errors
   }
   adjustresults(L, nresults);

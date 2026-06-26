@@ -480,13 +480,13 @@ static void checkLclosure (GlobalState *g, LClosure *cl) {
 }
 
 
-static int lua_checkpc (CallInfo *ci) {
-  if (!ci->isLua()) return 1;
+static int lua_checkpc (CallInfo *callInfo) {
+  if (!callInfo->isLua()) return 1;
   else {
-    StkId f = ci->funcRef().p;
+    StkId f = callInfo->funcRef().p;
     Proto *p = clLvalue(s2v(f))->getProto();
     auto codeSpan = p->getCodeSpan();
-    const Instruction* savedPC = ci->getSavedPC();
+    const Instruction* savedPC = callInfo->getSavedPC();
     return codeSpan.data() <= savedPC &&
            savedPC <= codeSpan.data() + codeSpan.size();
   }
@@ -495,7 +495,7 @@ static int lua_checkpc (CallInfo *ci) {
 
 static void check_stack (GlobalState *g, lua_State *L1) {
   StkId o;
-  CallInfo *ci;
+  CallInfo *callInfo;
   UpVal *uv;
   assert(!isdead(g, L1));
   if (L1->getStack().p == nullptr) {  // incomplete thread?
@@ -506,9 +506,9 @@ static void check_stack (GlobalState *g, lua_State *L1) {
     assert(uv->isOpen());  // must be open
   assert(L1->getTop().p <= L1->getStackLast().p);
   assert(L1->getTbclist().p <= L1->getTop().p);
-  for (ci = L1->getCI(); ci != nullptr; ci = ci->getPrevious()) {
-    assert(ci->topRef().p <= L1->getStackLast().p);
-    assert(lua_checkpc(ci));
+  for (callInfo = L1->getCI(); callInfo != nullptr; callInfo = callInfo->getPrevious()) {
+    assert(callInfo->topRef().p <= L1->getStackLast().p);
+    assert(lua_checkpc(callInfo));
   }
   for (o = L1->getStack().p; o < L1->getStackLast().p; o++)
     checkliveness(L1, s2v(o));  // entire stack must have valid values
@@ -885,15 +885,15 @@ void lua_printstack (lua_State *L) {
 int lua_printallstack (lua_State *L) {
   StkId p;
   int i = 1;
-  CallInfo *ci = L->getBaseCI();
+  CallInfo *callInfo = L->getBaseCI();
   printf("stack: >>\n");
   for (p = L->getStack().p; p < L->getTop().p; p++) {
-    if (ci != nullptr && p == ci->funcRef().p) {
+    if (callInfo != nullptr && p == callInfo->funcRef().p) {
       printf("  ---\n");
-      if (ci == L->getCI())
-        ci = nullptr;  // printed last frame
+      if (callInfo == L->getCI())
+        callInfo = nullptr;  // printed last frame
       else
-        ci = ci->getNext();
+        callInfo = callInfo->getNext();
     }
     printf("%3d: ", i++);
     lua_printvalue(s2v(p));
