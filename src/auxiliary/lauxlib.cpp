@@ -481,7 +481,7 @@ typedef struct UBox {
 ** final size that is equal to the one set when the buffer was created.)
 */
 static void *resizebox (lua_State *L, int idx, size_t newsize) {
-  UBox *box = (UBox *)lua_touserdata(L, idx);
+  UBox *box = static_cast<UBox *>(lua_touserdata(L, idx));
   if (box->bsize == newsize)  /* not changing size? */
     return box->box;  /* keep the buffer */
   else {
@@ -513,7 +513,7 @@ static const luaL_Reg boxmt[] = {  /* box metamethods */
 
 
 static void newbox (lua_State *L) {
-  UBox *box = (UBox *)lua_newuserdatauv(L, sizeof(UBox), 0);
+  UBox *box = static_cast<UBox *>(lua_newuserdatauv(L, sizeof(UBox), 0));
   box->box = nullptr;
   box->bsize = 0;
   if (luaL_newmetatable(L, "_UBOX*"))  /* creating metatable? */
@@ -537,7 +537,7 @@ inline bool buffonstack(const luaL_Buffer* B) noexcept {
 */
 #define checkbufferlevel(B,idx)  \
   lua_assert(buffonstack(B) ? lua_touserdata(B->L, idx) != nullptr  \
-                            : lua_touserdata(B->L, idx) == (void*)B)
+                            : lua_touserdata(B->L, idx) == static_cast<void*>(B))
 
 
 /*
@@ -572,13 +572,13 @@ static char *prepbuffsize (luaL_Buffer *B, size_t sz, int boxidx) {
     size_t newsize = newbuffsize(B, sz);
     /* create larger buffer */
     if (buffonstack(B))  /* buffer already has a box? */
-      newbuff = (char *)resizebox(L, boxidx, newsize);  /* resize it */
+      newbuff = static_cast<char *>(resizebox(L, boxidx, newsize));  /* resize it */
     else {  /* no box yet */
       lua_remove(L, boxidx);  /* remove placeholder */
       newbox(L);  /* create a new box */
       lua_insert(L, boxidx);  /* move box to its intended position */
       lua_toclose(L, boxidx);
-      newbuff = (char *)resizebox(L, boxidx, newsize);
+      newbuff = static_cast<char *>(resizebox(L, boxidx, newsize));
       std::copy_n(B->b, B->n, newbuff);  /* copy original content */
     }
     B->b = newbuff;
@@ -617,13 +617,13 @@ LUALIB_API void luaL_pushresult (luaL_Buffer *B) {
   if (!buffonstack(B))  /* using static buffer? */
     lua_pushlstring(L, B->b, B->n);  /* save result as regular string */
   else {  /* reuse buffer already allocated */
-    UBox *box = (UBox *)lua_touserdata(L, -1);
+    UBox *box = static_cast<UBox *>(lua_touserdata(L, -1));
     void *ud;
     lua_Alloc allocf = lua_getallocf(L, &ud);  /* function to free buffer */
     size_t len = B->n;  /* final string length */
     char *s;
     resizebox(L, -1, len + 1);  /* adjust box size to content size */
-    s = (char*)box->box;  /* final buffer address */
+    s = static_cast<char*>(box->box);  /* final buffer address */
     s[len] = '\0';  /* add ending zero */
     /* clear box, as Lua will take control of the buffer */
     box->bsize = 0;  box->box = nullptr;
@@ -666,7 +666,7 @@ LUALIB_API void luaL_buffinit (lua_State *L, luaL_Buffer *B) {
   B->b = B->init.b;
   B->n = 0;
   B->size = LUAL_BUFFERSIZE;
-  lua_pushlightuserdata(L, (void*)B);  /* push placeholder */
+  lua_pushlightuserdata(L, static_cast<void*>(B));  /* push placeholder */
 }
 
 
@@ -744,7 +744,7 @@ typedef struct LoadF {
 
 
 static const char *getF (lua_State *L, void *ud, size_t *size) {
-  LoadF *lf = (LoadF *)ud;
+  LoadF *lf = static_cast<LoadF *>(ud);
   (void)L;  /* not used */
   if (lf->n > 0) {  /* are there pre-read characters to be read? */
     *size = lf->n;  /* return them (chars already in buffer) */
@@ -858,7 +858,7 @@ typedef struct LoadS {
 
 
 static const char *getS (lua_State *L, void *ud, size_t *size) {
-  LoadS *ls = (LoadS *)ud;
+  LoadS *ls = static_cast<LoadS *>(ud);
   (void)L;  /* not used */
   if (ls->size == 0) return nullptr;
   *size = ls->size;
@@ -1103,7 +1103,7 @@ static int checkcontrol (lua_State *L, const char *message, int tocont) {
 
 
 static void warnfoff (void *ud, const char *message, int tocont) {
-  checkcontrol((lua_State *)ud, message, tocont);
+  checkcontrol(static_cast<lua_State *>(ud), message, tocont);
 }
 
 
@@ -1112,7 +1112,7 @@ static void warnfoff (void *ud, const char *message, int tocont) {
 ** if needed and setting the next warn function.
 */
 static void warnfcont (void *ud, const char *message, int tocont) {
-  lua_State *L = (lua_State *)ud;
+  lua_State *L = static_cast<lua_State *>(ud);
   lua_writestringerror("%s", message);  /* write message */
   if (tocont)  /* not the last part? */
     lua_setwarnf(L, warnfcont, L);  /* to be continued */
@@ -1124,7 +1124,7 @@ static void warnfcont (void *ud, const char *message, int tocont) {
 
 
 static void warnfon (void *ud, const char *message, int tocont) {
-  if (checkcontrol((lua_State *)ud, message, tocont))  /* control message? */
+  if (checkcontrol(static_cast<lua_State *>(ud), message, tocont))  /* control message? */
     return;  /* nothing else to be done */
   lua_writestringerror("%s", "Lua warning: ");  /* start a new warning */
   warnfcont(ud, message, tocont);  /* finish processing */
@@ -1163,7 +1163,7 @@ static unsigned int luai_makeseed (void) {
   unsigned int res;
   unsigned int i;
   time_t t = time(nullptr);
-  char *b = (char*)buff;
+  char *b = reinterpret_cast<char*>(buff);
   addbuff(b, b);  /* local variable's address */
   addbuff(b, t);  /* time */
   /* fill (rare but possible) remain of the buffer with zeros */

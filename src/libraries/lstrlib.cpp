@@ -208,7 +208,7 @@ struct str_Writer {
 
 
 static int writer (lua_State *L, const void *b, size_t size, void *ud) {
-  struct str_Writer *state = (struct str_Writer *)ud;
+  struct str_Writer *state = static_cast<struct str_Writer *>(ud);
   if (!state->init) {
     state->init = 1;
     luaL_buffinit(L, &state->B);
@@ -218,7 +218,7 @@ static int writer (lua_State *L, const void *b, size_t size, void *ud) {
     lua_replace(L, 1);  /* move it to reserved slot */
   }
   else
-    luaL_addlstring(&state->B, (const char *)b, size);
+    luaL_addlstring(&state->B, static_cast<const char *>(b), size);
   return 0;
 }
 
@@ -677,7 +677,7 @@ static const char *lmemfind (std::span<const char> haystack,
     const char *init;  /* to search for a '*s2' inside 's1' */
     l2--;  /* 1st char will be checked by 'memchr' */
     l1 = l1-l2;  /* 's2' cannot be found after that */
-    while (l1 > 0 && (init = (const char *)memchr(s1, *s2, l1)) != nullptr) {
+    while (l1 > 0 && (init = static_cast<const char *>(memchr(s1, *s2, l1))) != nullptr) {
       init++;   /* 1st char is already checked */
       if (memcmp(init, s2+1, l2) == 0)
         return init-1;
@@ -838,7 +838,7 @@ typedef struct GMatchState {
 
 
 static int gmatch_aux (lua_State *L) {
-  GMatchState *gm = (GMatchState *)lua_touserdata(L, lua_upvalueindex(3));
+  GMatchState *gm = static_cast<GMatchState *>(lua_touserdata(L, lua_upvalueindex(3)));
   const char *src;
   gm->ms.L = L;
   for (src = gm->src; src <= gm->ms.src_end; src++) {
@@ -860,7 +860,7 @@ static int gmatch (lua_State *L) {
   size_t init = posrelatI(luaL_optinteger(L, 3, 1), ls) - 1;
   GMatchState *gm;
   lua_settop(L, 2);  /* keep strings on closure to avoid being collected */
-  gm = (GMatchState *)lua_newuserdatauv(L, sizeof(GMatchState), 0);
+  gm = static_cast<GMatchState *>(lua_newuserdatauv(L, sizeof(GMatchState), 0));
   if (init > ls)  /* start after string's end? */
     init = ls + 1;  /* avoid overflows in 's + init' */
   prepstate(&gm->ms, L, std::span(s, ls), std::span(p, lp));
@@ -876,7 +876,7 @@ static void add_s (MatchState *ms, luaL_Buffer *b, const char *s,
   lua_State *L = ms->L;
   const char *news = lua_tolstring(L, 3, &l);
   const char *p;
-  while ((p = (char *)memchr(news, L_ESC, l)) != nullptr) {
+  while ((p = static_cast<const char *>(memchr(news, L_ESC, l))) != nullptr) {
     luaL_addlstring(b, news, ct_diff2sz(p - news));
     p++;  /* skip ESC */
     if (*p == L_ESC)  /* '%%' */
@@ -1267,7 +1267,7 @@ static void addlenmod (char *form, const char *lenmod) {
   size_t l = strlen(form);
   size_t lm = strlen(lenmod);
   char spec = form[l - 1];
-  strcpy(form + l - 1, lenmod);
+  std::copy_n(lenmod, lm, form + l - 1);  /* overwrite spec with length modifier */
   form[l + lm - 1] = spec;
   form[l + lm] = '\0';
 }

@@ -73,7 +73,7 @@ static int l_checkmode (const char *mode) {
 #define l_popen(L,c,m)  \
 	  ((void)c, (void)m, \
 	  luaL_error(L, "'popen' not supported"), \
-	  (FILE*)0)
+	  static_cast<FILE*>(nullptr))
 #define l_pclose(L,file)		((void)L, (void)file, -1)
 
 #endif				/* } */
@@ -164,7 +164,7 @@ inline bool isclosed(const LStream* p) noexcept {
 static int io_type (lua_State *L) {
   LStream *p;
   luaL_checkany(L, 1);
-  p = (LStream *)luaL_testudata(L, 1, LUA_FILEHANDLE);
+  p = static_cast<LStream *>(luaL_testudata(L, 1, LUA_FILEHANDLE));
   if (p == nullptr)
     luaL_pushfail(L);  /* not a file */
   else if (isclosed(p))
@@ -200,7 +200,7 @@ static FILE *tofile (lua_State *L) {
 ** handle is in a consistent state.
 */
 static LStream *newprefile (lua_State *L) {
-  LStream *p = (LStream *)lua_newuserdatauv(L, sizeof(LStream), 0);
+  LStream *p = static_cast<LStream *>(lua_newuserdatauv(L, sizeof(LStream), 0));
   p->closef = nullptr;  /* mark file handle as 'closed' */
   luaL_setmetatable(L, LUA_FILEHANDLE);
   return p;
@@ -312,7 +312,7 @@ static int io_tmpfile (lua_State *L) {
 static FILE *getiofile (lua_State *L, const char *findex) {
   LStream *p;
   lua_getfield(L, LUA_REGISTRYINDEX, findex);
-  p = (LStream *)lua_touserdata(L, -1);
+  p = static_cast<LStream *>(lua_touserdata(L, -1));
   if (l_unlikely(isclosed(p)))
     luaL_error(L, "default %s file is closed", findex + IOPREF_LEN);
   return p->f;
@@ -632,7 +632,7 @@ static int f_read (lua_State *L) {
 ** Iteration function for 'lines'.
 */
 static int io_readline (lua_State *L) {
-  LStream *p = (LStream *)lua_touserdata(L, lua_upvalueindex(1));
+  LStream *p = static_cast<LStream *>(lua_touserdata(L, lua_upvalueindex(1)));
   int i;
   int n = (int)lua_tointeger(L, lua_upvalueindex(2));
   if (isclosed(p))  /* file is already closed? */
