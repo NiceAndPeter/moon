@@ -3,19 +3,25 @@
 **Plan Date**: 2025-12-03
 **Last Updated**: 2026-06-26
 
-> **STATUS (2026-06-26): LARGELY SUPERSEDED.** Phases 131/133/134 (StringInterner
-> members, expdesc fields, compiler expression vars, VM dispatch lambdas) are
-> COMPLETE. The remaining identifier work in this doc (Phases 132, 135-143) was
-> re-scoped into the codebase-wide **cleanup pass** on branch
-> `fix/gc-tail-padding-and-cleanup` (see `~/.claude/plans/analyse-the-codebase-an-vivid-badger.md`).
-> That pass concluded — after a focused increment — that the **bulk single-letter
-> rename work here is diminishing-returns**: most such locals are idiomatic and
-> readable in their small scopes, cannot be batch-replaced safely, and the
-> hot-path renames (Phases 138/142/143) carry real perf risk for marginal gain.
-> **Recommendation: do NOT pursue Part 2 (Phases 137-143) wholesale.** Treat any
-> future identifier work as a *specific, bounded target* (e.g. one file's cryptic
-> locals), not a sweep. Part 1 quick wins are done; the rest is deferred by choice,
-> not by oversight.
+> **STATUS (2026-06-26): MOSTLY COMPLETE.** Phases 131/133/134 (StringInterner
+> members, expdesc fields, compiler expression vars, VM dispatch lambdas) done.
+> The **convention abbreviations** (Part 2, Phase 137) were then carried out on
+> branch `fix/gc-tail-padding-and-cleanup` via scripted whole-word renames, each
+> verified by a full build + `testes/all.lua` and (for hot-path files) a 5-run
+> benchmark showing **no regression** (~2.33s throughout):
+>   - `fs` -> `funcState`, `ls` -> `lexState` (compiler)
+>   - `tm` -> `metamethod` (was already largely done)
+>   - `ci` -> `callInfo` (incl. the `lua_State` member; VM hot path, benchmarked)
+>   - `uv` -> `upvalue` (after disambiguating Udata user-values:
+>     `UValue::uv`->`value`, `Udata::uv[]`->`userValues[]`)
+>   - `ts` -> `tstring` (loslib's C `struct tm ts` correctly excluded)
+>
+> **STILL DEFERRED (diminishing-returns / real risk):** VM register operands
+> `ra/rb/rc` (Phase 138, matches bytecode spec), bulk single-letter loop/temp
+> locals (Phases 139/142 — idiomatic in small scopes, can't be safely
+> word-boundary-replaced, marginal value), `size_t` migration (Phase 140,
+> underflow risk), and register strong types (Phase 141, very invasive). Treat any
+> of these as a *specific bounded target*, not a sweep.
 
 ---
 

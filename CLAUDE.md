@@ -121,9 +121,16 @@ Converting Lua 5.5 from C to modern C++23:
   `lstrlib addlenmod()` → `std::copy_n`. Scalar casts left (sanctioned `cast_*`).
 - **Wave 4**: internal type renames to PascalCase (`StringTable`, `ExpDesc`,
   `GlobalState`, `LuaLongJmp`). `lua_State` kept (public opaque typedef).
-- **Deferred** (diminishing-returns): Wave 1 (comment style), rest of Wave 2 (bulk
-  identifier renames — see `docs/IDENTIFIER_MODERNIZATION_PLAN.md` status banner),
-  Wave 5 (refactors), Wave 6 (Doxygen).
+- **Wave 1**: normalized single-line `/* */` comments to `//` across all 80
+  internal files (~5087 lines; multi-line doc blocks and mid-expression inline
+  comments left intact).
+- **Wave 2** (convention abbreviations → full words, each verified + benchmarked):
+  `fs`→`funcState`, `ls`→`lexState`, `ci`→`callInfo`, `tm`→`metamethod`,
+  `uv`→`upvalue` (after disambiguating Udata user-values: `UValue::uv`→`value`,
+  `Udata::uv[]`→`userValues[]`), `ts`→`tstring`. See
+  `docs/IDENTIFIER_MODERNIZATION_PLAN.md`.
+- **Deferred** (diminishing-returns / real risk): VM register operands `ra/rb/rc`,
+  bulk single-letter loop/temp locals, Wave 5 (refactors), Wave 6 (Doxygen).
 - **Result**: ~2.33s avg (build + `testes/all.lua` green), zero perf regression.
 
 ---
