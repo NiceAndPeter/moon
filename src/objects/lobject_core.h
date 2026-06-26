@@ -15,7 +15,7 @@
 // Forward declarations
 enum class GCAge : lu_byte;
 class Table;
-class lua_State;
+struct lua_State;
 
 /*
 ** Extra types for collectable non-values

@@ -11,7 +11,7 @@
 #include "lobject_core.h"  // GCBase, TValue, GCObject
 
 // Forward declarations
-class lua_State;
+struct lua_State;
 class TString;
 typedef union StackValue *StkId;
 

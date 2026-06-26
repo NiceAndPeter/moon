@@ -11,7 +11,7 @@
 #include "lproto.h"  // Proto
 
 // Forward declarations
-class lua_State;
+struct lua_State;
 class TString;
 typedef union StackValue *StkId;
 
