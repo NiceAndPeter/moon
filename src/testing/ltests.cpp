@@ -321,7 +321,7 @@ static bool testobjref1 (GlobalState *g, GCObject *f, GCObject *t) {
 
 static void printobj (GlobalState *g, GCObject *o) {
   printf("||%s(%p)-%c%c(%02X)||",
-           ttypename(novariant(o->getType())), (void *)o,
+           ttypename(novariant(o->getType())), static_cast<void *>(o),
            isdead(g,o) ? 'd' : isblack(o) ? 'b' : iswhite(o) ? 'w' : 'g',
            "ns01oTt"[static_cast<size_t>(getage(o))], o->getMarked());
   if (o->getType() == ctb(LuaT::SHRSTR) || o->getType() == ctb(LuaT::LNGSTR))
@@ -1403,7 +1403,7 @@ static int panicback (lua_State *L) {
   struct Aux *b;
   lua_checkstack(L, 1);  /* open space for 'Aux' struct */
   lua_getfield(L, LUA_REGISTRYINDEX, "_jmpbuf");  /* get 'Aux' struct */
-  b = (struct Aux *)lua_touserdata(L, -1);
+  b = static_cast<struct Aux *>(lua_touserdata(L, -1));
   lua_pop(L, 1);  /* remove 'Aux' struct */
   runC(b->L, L, b->paniccode);  /* run optional panic code */
   longjmp(b->jb, 1);

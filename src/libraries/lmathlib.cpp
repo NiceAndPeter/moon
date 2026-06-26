@@ -583,7 +583,7 @@ static lua_Unsigned project (lua_Unsigned ran, lua_Unsigned n,
 static int math_random (lua_State *L) {
   lua_Integer low, up;
   lua_Unsigned p;
-  RanState *state = (RanState *)lua_touserdata(L, lua_upvalueindex(1));
+  RanState *state = static_cast<RanState *>(lua_touserdata(L, lua_upvalueindex(1)));
   Rand64 rv = nextrand(state->s);  /* next pseudo-random value */
   switch (lua_gettop(L)) {  /* check number of arguments */
     case 0: {  /* no arguments */
@@ -630,7 +630,7 @@ static void setseed (lua_State *L, Rand64 *state,
 
 
 static int math_randomseed (lua_State *L) {
-  RanState *state = (RanState *)lua_touserdata(L, lua_upvalueindex(1));
+  RanState *state = static_cast<RanState *>(lua_touserdata(L, lua_upvalueindex(1)));
   lua_Unsigned n1, n2;
   if (lua_isnone(L, 1)) {
     n1 = luaL_makeseed(L);  /* "random" seed */
@@ -656,7 +656,7 @@ static const luaL_Reg randfuncs[] = {
 ** Register the random functions and initialize their state.
 */
 static void setrandfunc (lua_State *L) {
-  RanState *state = (RanState *)lua_newuserdatauv(L, sizeof(RanState), 0);
+  RanState *state = static_cast<RanState *>(lua_newuserdatauv(L, sizeof(RanState), 0));
   setseed(L, state->s, luaL_makeseed(L), 0);  /* initialize with random seed */
   lua_pop(L, 2);  /* remove pushed seeds */
   luaL_setfuncs(L, randfuncs, 1);

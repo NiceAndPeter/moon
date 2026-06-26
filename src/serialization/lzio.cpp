@@ -63,7 +63,7 @@ size_t luaZ_read (ZIO *z, void *b, size_t n) {
     memcpy(b, z->p, m);
     z->n -= m;
     z->p += m;
-    b = (char *)b + m;
+    b = static_cast<char *>(b) + m;
     n -= m;
   }
   return 0;
