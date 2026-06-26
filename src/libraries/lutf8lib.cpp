@@ -64,7 +64,7 @@ static const char *utf8_decode (const char *s, l_uint32 *val, int strict) {
     int count = 0;  // to count number of continuation bytes
     for (; c & 0x40; c <<= 1) {  // while it needs continuation bytes...
       unsigned int cc = (unsigned char)s[++count];  // read next byte
-      if (!iscont(cc))  // not a continuation byte?
+      if (!iscont(static_cast<int>(cc)))  // not a continuation byte?
         return nullptr;  // invalid byte sequence
       res = (res << 6) | (cc & 0x3F);  // add lower 6 bits from cont. byte
     }

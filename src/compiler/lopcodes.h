@@ -552,7 +552,7 @@ using OpModesArray = std::array<lu_byte, NUM_OPCODES>;
 LUAI_DDEC(const OpModesArray luaP_opmodes;)
 
 inline OpMode getOpMode(int m) noexcept {
-	return static_cast<OpMode>(luaP_opmodes[m] & 7);
+	return static_cast<OpMode>(luaP_opmodes[static_cast<size_t>(m)] & 7);
 }
 
 inline bool testAMode(int m) noexcept {

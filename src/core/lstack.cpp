@@ -265,7 +265,7 @@ int LuaStack::realloc(lua_State* L, int newsize, int raiseerror) {
   G(L)->setGCStopEm(1);  // stop emergency collection
 
   newstack = luaM_reallocvector<StackValue>(L, oldstack, oldsize + EXTRA_STACK,
-                                   newsize + EXTRA_STACK);
+                                   static_cast<size_t>(newsize + EXTRA_STACK));
 
   G(L)->setGCStopEm(oldgcstop);  // restore emergency collection
 

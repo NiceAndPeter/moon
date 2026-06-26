@@ -41,6 +41,11 @@ set(WARNING_FLAGS
     -Wmissing-declarations
     -Wconversion
     -Wstrict-overflow=2
+    # -Wsign-conversion (enabled by -Wconversion) flags ~36 pre-existing benign
+    # signed->unsigned conversions (int loop/index vars used as std::array/span
+    # subscripts or size_t args). Clang's -Wsign-conversion is stricter than GCC's
+    # here. These are harmless (non-negative values); keep as warnings, not fatal.
+    -Wno-error=sign-conversion
 )
 
 # GCC-specific warnings

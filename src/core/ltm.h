@@ -80,7 +80,7 @@ using TypeNamesArray = std::array<const char*, LUA_TOTALTYPES>;
 LUAI_DDEC(const TypeNamesArray luaT_typenames_;)
 
 inline const char* ttypename(int x) noexcept {
-	return luaT_typenames_[x + 1];
+	return luaT_typenames_[static_cast<size_t>(x + 1)];
 }
 
 

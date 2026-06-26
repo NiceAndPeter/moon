@@ -202,7 +202,7 @@ static void loadCode (LoadState *S, Proto& f) {
   int n = loadInt(S);
   loadAlign(S, sizeof(Instruction));
   if (S->fixed) {
-    f.setCode(getaddr<Instruction>(S, n));
+    f.setCode(getaddr<Instruction>(S, static_cast<size_t>(n)));
     f.setCodeSize(n);
   }
   else {
