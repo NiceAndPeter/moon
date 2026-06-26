@@ -53,6 +53,14 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release -DLUA_ENABLE_LTO=ON
 cmake --build build
 ```
 
+> **LTO note:** Works on both GCC and clang. GCC 15's whole-program IPA
+> miscompiles the GC liveness/marking path (the registry root fails
+> `checkliveness` on any full collection); clang+LTO and UBSan are both clean, so
+> it's a GCC LTO bug rather than portable UB. The build therefore compiles the GC
+> translation units (`src/memory/lgc.cpp` + `src/memory/gc/*.cpp`) **without
+> interprocedural optimization on GCC** (`-fno-lto`), keeping LTO for the rest of
+> the codebase. Excluding only a subset of the GC files does not fix it.
+
 **Production:**
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DLUA_BUILD_TESTS=OFF -DLUA_BUILD_SHARED=ON
