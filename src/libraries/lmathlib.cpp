@@ -232,9 +232,8 @@ static int math_ldexp (lua_State *L) {
 static int math_min (lua_State *L) {
   int n = lua_gettop(L);  // number of arguments
   int imin = 1;  // index of current minimum value
-  int i;
   luaL_argcheck(L, n >= 1, 1, "value expected");
-  for (i = 2; i <= n; i++) {
+  for (int i = 2; i <= n; i++) {
     if (lua_compare(L, i, imin, LUA_OPLT))
       imin = i;
   }
@@ -246,9 +245,8 @@ static int math_min (lua_State *L) {
 static int math_max (lua_State *L) {
   int n = lua_gettop(L);  // number of arguments
   int imax = 1;  // index of current maximum value
-  int i;
   luaL_argcheck(L, n >= 1, 1, "value expected");
-  for (i = 2; i <= n; i++) {
+  for (int i = 2; i <= n; i++) {
     if (lua_compare(L, imax, i, LUA_OPLT))
       imax = i;
   }
@@ -582,7 +580,6 @@ static lua_Unsigned project (lua_Unsigned ran, lua_Unsigned n,
 
 static int math_random (lua_State *L) {
   lua_Integer low, up;
-  lua_Unsigned p;
   RanState *state = static_cast<RanState *>(lua_touserdata(L, lua_upvalueindex(1)));
   Rand64 rv = nextrand(state->s);  // next pseudo-random value
   switch (lua_gettop(L)) {  // check number of arguments
@@ -609,7 +606,7 @@ static int math_random (lua_State *L) {
   // random integer in the interval [low, up]
   luaL_argcheck(L, low <= up, 1, "interval is empty");
   // project random integer into the interval [0, up - low]
-  p = project(I2UInt(rv), l_castS2U(up) - l_castS2U(low), state);
+  const lua_Unsigned p = project(I2UInt(rv), l_castS2U(up) - l_castS2U(low), state);
   lua_pushinteger(L, l_castU2S(p + l_castS2U(low)));
   return 1;
 }
@@ -617,12 +614,11 @@ static int math_random (lua_State *L) {
 
 static void setseed (lua_State *L, Rand64 *state,
                      lua_Unsigned n1, lua_Unsigned n2) {
-  int i;
   state[0] = Int2I(n1);
   state[1] = Int2I(0xff);  // avoid a zero state
   state[2] = Int2I(n2);
   state[3] = Int2I(0);
-  for (i = 0; i < 16; i++)
+  for (int i = 0; i < 16; i++)
     nextrand(state);  // discard initial values to "spread" seed
   lua_pushinteger(L, l_castU2S(n1));
   lua_pushinteger(L, l_castU2S(n2));
