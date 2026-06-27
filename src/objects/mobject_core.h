@@ -7,6 +7,7 @@
 #define lobject_core_h
 
 #include <cstdarg>
+#include <cstdint>
 
 #include "mlimits.h"
 #include "moon.h"
@@ -191,18 +192,27 @@ protected:
   MoonT tt;  // Type tag (immutable)
   mutable lu_byte marked;  // GC mark bits (mutable for GC bookkeeping)
   /*
-  ** Reserve the remaining bytes of this 16-byte aligned header so that derived
-  ** GC types cannot reuse GCObject's tail padding for their own members.
+  ** Reserve the bytes between 'marked' and 'refcount' so that derived GC types
+  ** cannot reuse GCObject's interior/tail padding for their own members.
   **
   ** This is REQUIRED for correctness, not cosmetic. GC objects are allocated by
-  ** moonC_newobjdt(), which sets 'tt' and 'marked' BEFORE the derived type's
+  ** moonC_newobjdt(), which sets the header fields BEFORE the derived type's
   ** constructor runs (placement new). If a derived type (e.g. Proto) places its
-  ** first members in this tail padding, the compiler may initialise them with a
-  ** store to the enclosing aligned word, clobbering 'tt'/'marked' that were just
+  ** first members in this padding, the compiler may initialise them with a
+  ** store to the enclosing aligned word, clobbering header fields that were just
   ** set by the allocator. The corrupted type tag then trips the GC marker.
   ** Reserving the padding forces derived members past the header (offset 16).
   */
-  lu_byte gcHeaderReserved_[sizeof(GCObject*) - 2 * sizeof(lu_byte)];
+  lu_byte gcHeaderReserved_[sizeof(GCObject*) - 2 * sizeof(lu_byte)
+                            - sizeof(std::uint32_t)];
+  /*
+  ** ARC (automatic reference counting) reference count. Phase 0 of the moon
+  ** fork: this field is DORMANT — it is initialised to 1 at allocation but no
+  ** retain/release traffic exists yet (the tracing GC is neutered, so nothing is
+  ** freed). Phase 1 wires retain/release and deterministic frees. Carved out of
+  ** the header's reserved padding so the object header stays exactly two words.
+  */
+  mutable std::uint32_t refcount;
 
 public:
   // Inline accessors
@@ -230,6 +240,12 @@ public:
 
   // Marked field bit manipulation helpers (for backward compatibility)
   lu_byte& getMarkedRef() const noexcept { return marked; }  // const - marked is mutable
+
+  // ARC reference count (dormant in Phase 0; see field declaration above).
+  std::uint32_t getRefcount() const noexcept { return refcount; }
+  void setRefcount(std::uint32_t rc) const noexcept { refcount = rc; }
+  void retain() const noexcept { ++refcount; }            // increment (not yet wired)
+  std::uint32_t release() const noexcept { return --refcount; }  // decrement (not yet wired)
 
   // GC color and age methods (defined in lgc.h after constants are available)
   inline bool isWhite() const noexcept;

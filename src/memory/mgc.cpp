@@ -209,6 +209,7 @@ GCObject *moonC_newobjdt (moon_State& L, MoonT tt, size_t sz, size_t offset) {
   GCObject *o = reinterpret_cast<GCObject*>(p + offset);
   o->setMarked(g->getWhite());
   o->setType(tt);
+  o->setRefcount(1);  // ARC: born with one owning reference (dormant in Phase 0)
   o->setNext(g->getAllGC());
   g->setAllGC(o);
   return o;
@@ -760,6 +761,14 @@ static void incstep (moon_State& L, GlobalState& g) {
 ** at every single check.)
 */
 void moonC_step (moon_State& L) {
+  // === moon fork, Phase 0: tracing collector NEUTERED ===
+  // ARC (reference counting) will replace the tracing GC. For now the collector
+  // never marks/sweeps/frees; objects leak by design (acyclic frees arrive in
+  // Phase 1). Push the debt far out so the per-allocation condGC check does not
+  // call us on every allocation.
+  moonE_setdebt(G(L), 1000000);
+  return;
+  // ---- original tracing step below is unreachable in Phase 0 ----
   GlobalState *g = G(L);
   moon_assert(!g->getGCEmergency());
   if (!g->isGCRunning()) {  // not running?
@@ -796,6 +805,11 @@ static void fullinc (moon_State& L, GlobalState& g) {
 ** unexpected ways (running finalizers and shrinking some structures).
 */
 void moonC_fullgc (moon_State& L, int isemergency) {
+  // === moon fork, Phase 0: tracing collector NEUTERED (see moonC_step) ===
+  // A full collection is now a no-op. collectgarbage() therefore reclaims
+  // nothing; objects live until the state is closed (moonC_freeallobjects).
+  return;
+  // ---- original full collection below is unreachable in Phase 0 ----
   GlobalState *g = G(L);
   moon_assert(!g->getGCEmergency());
   g->setGCEmergency(cast_byte(isemergency));  // set flag
