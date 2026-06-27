@@ -12,12 +12,12 @@
 /*
 ** Forward declarations
 */
-struct lua_State;
+struct moon_State;
 struct CallInfo;
 class UpVal;
 
 /*
-** LuaStack - Stack management subsystem for lua_State
+** MoonStack - Stack management subsystem for moon_State
 **
 ** RESPONSIBILITY:
 ** This class encapsulates all stack-related operations for a Lua thread.
@@ -27,7 +27,7 @@ class UpVal;
 ** - Single Responsibility: Handles ONLY stack management
 ** - Zero-cost abstraction: All accessors are inline
 ** - Private fields: Full encapsulation with accessor methods
-** - Owned by lua_State: lua_State delegates stack operations to this subsystem
+** - Owned by moon_State: moon_State delegates stack operations to this subsystem
 **
 ** STACK STRUCTURE:
 ** The Lua stack is a dynamically-sized array of StackValue slots:
@@ -60,7 +60,7 @@ class UpVal;
 ** The tbclist field tracks variables that need cleanup (__close metamethod)
 ** when they go out of scope.
 */
-class LuaStack {
+class MoonStack {
 private:
   StkIdRel top;  // first free slot in the stack
   StkIdRel stack_last;  // end of stack (last element + 1)
@@ -171,7 +171,7 @@ public:
   // Push with bounds check (replaces api_incr_top macro)
   void pushChecked(StkId limit) noexcept {
     top.p++;
-    lua_assert(top.p <= limit);
+    moon_assert(top.p <= limit);
   }
 
   // Check if stack has at least n elements (replaces api_checknelems)
@@ -190,21 +190,21 @@ public:
   */
 
   // Convert API index to TValue* (replaces index2value)
-  TValue* indexToValue(lua_State* L, int idx);
+  TValue* indexToValue(moon_State* L, int idx);
 
   // Convert API index to StkId (replaces index2stack)
-  StkId indexToStack(lua_State* L, int idx);
+  StkId indexToStack(moon_State* L, int idx);
 
   /*
   ** ============================================================
   ** SPACE CHECKING
   ** ============================================================
   ** Ensure the stack has enough space, growing if necessary.
-  ** Replaces luaD_checkstack() and checkstackp from ldo.h.
+  ** Replaces moonD_checkstack() and checkstackp from ldo.h.
   */
 
-  // Ensure space for n elements (replaces luaD_checkstack)
-  int ensureSpace(lua_State* L, int n) {
+  // Ensure space for n elements (replaces moonD_checkstack)
+  int ensureSpace(moon_State* L, int n) {
     if (l_unlikely(stack_last.p - top.p <= n)) {
       return grow(L, n, 1);
     }
@@ -219,7 +219,7 @@ public:
 
   // Ensure space preserving pointer (replaces checkstackp)
   template<typename T>
-  T* ensureSpaceP(lua_State* L, int n, T* ptr) {
+  T* ensureSpaceP(moon_State* L, int n, T* ptr) {
     if (l_unlikely(stack_last.p - top.p <= n)) {
       ptrdiff_t offset = save(reinterpret_cast<StkId>(ptr));
       grow(L, n, 1);
@@ -286,19 +286,19 @@ public:
 
   // Get TValue at absolute offset from stack base (0-indexed)
   TValue* at(int offset) noexcept {
-    lua_assert(offset >= 0 && stack.p + offset < top.p);
+    moon_assert(offset >= 0 && stack.p + offset < top.p);
     return s2v(stack.p + offset);
   }
 
   // Get TValue at offset from top (-1 = top element)
   TValue* fromTop(int offset) noexcept {
-    lua_assert(offset <= 0 && top.p + offset >= stack.p);
+    moon_assert(offset <= 0 && top.p + offset >= stack.p);
     return s2v(top.p + offset);
   }
 
   // Get top-most TValue (top - 1)
   TValue* topValue() noexcept {
-    lua_assert(top.p > stack.p);
+    moon_assert(top.p > stack.p);
     return s2v(top.p - 1);
   }
 
@@ -311,29 +311,29 @@ public:
   */
 
   // Increment top with stack check
-  void incTop(lua_State* L);
+  void incTop(moon_State* L);
 
   // Shrink stack to reasonable size
-  void shrink(lua_State* L);
+  void shrink(moon_State* L);
 
   // Grow stack by at least n elements
-  int grow(lua_State* L, int n, int raiseerror);
+  int grow(moon_State* L, int n, int raiseerror);
 
   // Reallocate stack to exact size
-  int realloc(lua_State* L, int newsize, int raiseerror);
+  int realloc(moon_State* L, int newsize, int raiseerror);
 
   // Calculate how much of the stack is currently in use
-  int inUse(const lua_State* L) const;
+  int inUse(const moon_State* L) const;
 
   /*
   ** Stack initialization and cleanup
   */
 
   // Initialize a new stack (allocates memory)
-  void init(lua_State* L);
+  void init(moon_State* L);
 
   // Free stack memory
-  void free(lua_State* L);
+  void free(moon_State* L);
 
   /*
   ** Pointer adjustment for reallocation
@@ -341,10 +341,10 @@ public:
   */
 
   // Convert all stack pointers to offsets (before realloc)
-  void relPointers(lua_State* L);
+  void relPointers(moon_State* L);
 
   // Convert all offsets back to pointers (after realloc)
-  void correctPointers(lua_State* L, StkId oldstack);
+  void correctPointers(moon_State* L, StkId oldstack);
 };
 
 

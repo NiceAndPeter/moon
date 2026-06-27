@@ -5,8 +5,8 @@
 */
 
 
-#ifndef luaconf_h
-#define luaconf_h
+#ifndef moonconf_h
+#define moonconf_h
 
 #include <limits.h>
 #include <stddef.h>
@@ -37,65 +37,65 @@
 */
 
 /*
-@@ LUA_USE_C89 controls the use of non-ISO-C89 features.
+@@ MOON_USE_C89 controls the use of non-ISO-C89 features.
 ** Define it if you want Lua to avoid the use of a few C99 features
 ** or Windows-specific features on Windows.
 */
-/* #define LUA_USE_C89 */
+/* #define MOON_USE_C89 */
 
 
 /*
 ** By default, Lua on Windows use (some) specific Windows features
 */
-#if !defined(LUA_USE_C89) && defined(_WIN32) && !defined(_WIN32_WCE)
-#define LUA_USE_WINDOWS  /* enable goodies for regular Windows */
+#if !defined(MOON_USE_C89) && defined(_WIN32) && !defined(_WIN32_WCE)
+#define MOON_USE_WINDOWS  /* enable goodies for regular Windows */
 #endif
 
 
-#if defined(LUA_USE_WINDOWS)
-#define LUA_DL_DLL	/* enable support for DLL */
-#define LUA_USE_C89	/* broadly, Windows is C89 */
+#if defined(MOON_USE_WINDOWS)
+#define MOON_DL_DLL	/* enable support for DLL */
+#define MOON_USE_C89	/* broadly, Windows is C89 */
 #endif
 
 
 /*
-** When POSIX DLL ('LUA_USE_DLOPEN') is enabled, the Lua stand-alone
+** When POSIX DLL ('MOON_USE_DLOPEN') is enabled, the Lua stand-alone
 ** application will try to dynamically link a 'readline' facility
-** for its REPL.  In that case, LUA_READLINELIB is the name of the
+** for its REPL.  In that case, MOON_READLINELIB is the name of the
 ** library it will look for those facilities.  If lua.c cannot open
 ** the specified library, it will generate a warning and then run
 ** without 'readline'.  If that macro is not defined, lua.c will not
 ** use 'readline'.
 */
-#if defined(LUA_USE_LINUX)
-#define LUA_USE_POSIX
-#define LUA_USE_DLOPEN		/* needs an extra library: -ldl */
-#define LUA_READLINELIB		"libreadline.so"
+#if defined(MOON_USE_LINUX)
+#define MOON_USE_POSIX
+#define MOON_USE_DLOPEN		/* needs an extra library: -ldl */
+#define MOON_READLINELIB		"libreadline.so"
 #endif
 
 
-#if defined(LUA_USE_MACOSX)
-#define LUA_USE_POSIX
-#define LUA_USE_DLOPEN		/* macOS does not need -ldl */
-#define LUA_READLINELIB		"libedit.dylib"
+#if defined(MOON_USE_MACOSX)
+#define MOON_USE_POSIX
+#define MOON_USE_DLOPEN		/* macOS does not need -ldl */
+#define MOON_READLINELIB		"libedit.dylib"
 #endif
 
 
-#if defined(LUA_USE_IOS)
-#define LUA_USE_POSIX
-#define LUA_USE_DLOPEN
+#if defined(MOON_USE_IOS)
+#define MOON_USE_POSIX
+#define MOON_USE_DLOPEN
 #endif
 
 
-#if defined(LUA_USE_C89) && defined(LUA_USE_POSIX)
+#if defined(MOON_USE_C89) && defined(MOON_USE_POSIX)
 #error "POSIX is not compatible with C89"
 #endif
 
 
 /*
-@@ LUAI_IS32INT is true iff 'int' has (at least) 32 bits.
+@@ MOONI_IS32INT is true iff 'int' has (at least) 32 bits.
 */
-#define LUAI_IS32INT	((UINT_MAX >> 30) >= 3)
+#define MOONI_IS32INT	((UINT_MAX >> 30) >= 3)
 
 /* }================================================================== */
 
@@ -110,8 +110,8 @@
 */
 
 /*
-@@ LUA_INT_TYPE defines the type for Lua integers.
-@@ LUA_FLOAT_TYPE defines the type for Lua floats.
+@@ MOON_INT_TYPE defines the type for Lua integers.
+@@ MOON_FLOAT_TYPE defines the type for Lua floats.
 ** Lua should work fine with any mix of these options supported
 ** by your C compiler. The usual configurations are 64-bit integers
 ** and 'double' (the default), 32-bit integers and 'float' (for
@@ -119,63 +119,63 @@
 ** compliant with C99, which may not have support for 'long long').
 */
 
-/* predefined options for LUA_INT_TYPE */
-#define LUA_INT_INT		1
-#define LUA_INT_LONG		2
-#define LUA_INT_LONGLONG	3
+/* predefined options for MOON_INT_TYPE */
+#define MOON_INT_INT		1
+#define MOON_INT_LONG		2
+#define MOON_INT_LONGLONG	3
 
-/* predefined options for LUA_FLOAT_TYPE */
-#define LUA_FLOAT_FLOAT		1
-#define LUA_FLOAT_DOUBLE	2
-#define LUA_FLOAT_LONGDOUBLE	3
+/* predefined options for MOON_FLOAT_TYPE */
+#define MOON_FLOAT_FLOAT		1
+#define MOON_FLOAT_DOUBLE	2
+#define MOON_FLOAT_LONGDOUBLE	3
 
 
 /* Default configuration ('long long' and 'double', for 64-bit Lua) */
-#define LUA_INT_DEFAULT		LUA_INT_LONGLONG
-#define LUA_FLOAT_DEFAULT	LUA_FLOAT_DOUBLE
+#define MOON_INT_DEFAULT		MOON_INT_LONGLONG
+#define MOON_FLOAT_DEFAULT	MOON_FLOAT_DOUBLE
 
 
 /*
-@@ LUA_32BITS enables Lua with 32-bit integers and 32-bit floats.
+@@ MOON_32BITS enables Lua with 32-bit integers and 32-bit floats.
 */
-/* #define LUA_32BITS */
+/* #define MOON_32BITS */
 
 
 /*
-@@ LUA_C89_NUMBERS ensures that Lua uses the largest types available for
+@@ MOON_C89_NUMBERS ensures that Lua uses the largest types available for
 ** C89 ('long' and 'double'); Windows always has '__int64', so it does
 ** not need to use this case.
 */
-#if defined(LUA_USE_C89) && !defined(LUA_USE_WINDOWS)
-#define LUA_C89_NUMBERS		1
+#if defined(MOON_USE_C89) && !defined(MOON_USE_WINDOWS)
+#define MOON_C89_NUMBERS		1
 #else
-#define LUA_C89_NUMBERS		0
+#define MOON_C89_NUMBERS		0
 #endif
 
 
-#if defined(LUA_32BITS)	/* { */
+#if defined(MOON_32BITS)	/* { */
 /*
 ** 32-bit integers and 'float'
 */
-#if LUAI_IS32INT  /* use 'int' if big enough */
-#define LUA_INT_TYPE	LUA_INT_INT
+#if MOONI_IS32INT  /* use 'int' if big enough */
+#define MOON_INT_TYPE	MOON_INT_INT
 #else  /* otherwise use 'long' */
-#define LUA_INT_TYPE	LUA_INT_LONG
+#define MOON_INT_TYPE	MOON_INT_LONG
 #endif
-#define LUA_FLOAT_TYPE	LUA_FLOAT_FLOAT
+#define MOON_FLOAT_TYPE	MOON_FLOAT_FLOAT
 
-#elif LUA_C89_NUMBERS	/* }{ */
+#elif MOON_C89_NUMBERS	/* }{ */
 /*
 ** largest types available for C89 ('long' and 'double')
 */
-#define LUA_INT_TYPE	LUA_INT_LONG
-#define LUA_FLOAT_TYPE	LUA_FLOAT_DOUBLE
+#define MOON_INT_TYPE	MOON_INT_LONG
+#define MOON_FLOAT_TYPE	MOON_FLOAT_DOUBLE
 
 #else		/* }{ */
 /* use defaults */
 
-#define LUA_INT_TYPE	LUA_INT_DEFAULT
-#define LUA_FLOAT_TYPE	LUA_FLOAT_DEFAULT
+#define MOON_INT_TYPE	MOON_INT_DEFAULT
+#define MOON_FLOAT_TYPE	MOON_FLOAT_DEFAULT
 
 #endif				/* } */
 
@@ -191,96 +191,96 @@
 */
 
 /*
-** LUA_PATH_SEP is the character that separates templates in a path.
-** LUA_PATH_MARK is the string that marks the substitution points in a
+** MOON_PATH_SEP is the character that separates templates in a path.
+** MOON_PATH_MARK is the string that marks the substitution points in a
 ** template.
-** LUA_EXEC_DIR in a Windows path is replaced by the executable's
+** MOON_EXEC_DIR in a Windows path is replaced by the executable's
 ** directory.
 */
-#define LUA_PATH_SEP            ";"
-#define LUA_PATH_MARK           "?"
-#define LUA_EXEC_DIR            "!"
+#define MOON_PATH_SEP            ";"
+#define MOON_PATH_MARK           "?"
+#define MOON_EXEC_DIR            "!"
 
 
 /*
-@@ LUA_PATH_DEFAULT is the default path that Lua uses to look for
+@@ MOON_PATH_DEFAULT is the default path that Lua uses to look for
 ** Lua libraries.
-@@ LUA_CPATH_DEFAULT is the default path that Lua uses to look for
+@@ MOON_CPATH_DEFAULT is the default path that Lua uses to look for
 ** C libraries.
 ** CHANGE them if your machine has a non-conventional directory
 ** hierarchy or if you want to install your libraries in
 ** non-conventional directories.
 */
 
-#define LUA_VDIR	LUA_VERSION_MAJOR "." LUA_VERSION_MINOR
+#define MOON_VDIR	MOON_VERSION_MAJOR "." MOON_VERSION_MINOR
 #if defined(_WIN32)	/* { */
 /*
 ** In Windows, any exclamation mark ('!') in the path is replaced by the
 ** path of the directory of the executable file of the current process.
 */
-#define LUA_LDIR	"!\\lua\\"
-#define LUA_CDIR	"!\\"
-#define LUA_SHRDIR	"!\\..\\share\\lua\\" LUA_VDIR "\\"
+#define MOON_LDIR	"!\\lua\\"
+#define MOON_CDIR	"!\\"
+#define MOON_SHRDIR	"!\\..\\share\\lua\\" MOON_VDIR "\\"
 
-#if !defined(LUA_PATH_DEFAULT)
-#define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?\\init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
-		LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
-		".\\?.lua;" ".\\?\\init.lua"
+#if !defined(MOON_PATH_DEFAULT)
+#define MOON_PATH_DEFAULT  \
+		MOON_LDIR"?.mn;"  MOON_LDIR"?\\init.mn;" \
+		MOON_CDIR"?.mn;"  MOON_CDIR"?\\init.mn;" \
+		MOON_SHRDIR"?.mn;" MOON_SHRDIR"?\\init.mn;" \
+		".\\?.mn;" ".\\?\\init.mn"
 #endif
 
-#if !defined(LUA_CPATH_DEFAULT)
-#define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.dll;" \
-		LUA_CDIR"..\\lib\\lua\\" LUA_VDIR "\\?.dll;" \
-		LUA_CDIR"loadall.dll;" ".\\?.dll"
+#if !defined(MOON_CPATH_DEFAULT)
+#define MOON_CPATH_DEFAULT \
+		MOON_CDIR"?.dll;" \
+		MOON_CDIR"..\\lib\\lua\\" MOON_VDIR "\\?.dll;" \
+		MOON_CDIR"loadall.dll;" ".\\?.dll"
 #endif
 
 #else			/* }{ */
 
-#define LUA_ROOT	"/usr/local/"
-#define LUA_LDIR	LUA_ROOT "share/lua/" LUA_VDIR "/"
-#define LUA_CDIR	LUA_ROOT "lib/lua/" LUA_VDIR "/"
+#define MOON_ROOT	"/usr/local/"
+#define MOON_LDIR	MOON_ROOT "share/lua/" MOON_VDIR "/"
+#define MOON_CDIR	MOON_ROOT "lib/lua/" MOON_VDIR "/"
 
-#if !defined(LUA_PATH_DEFAULT)
-#define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
-		"./?.lua;" "./?/init.lua"
+#if !defined(MOON_PATH_DEFAULT)
+#define MOON_PATH_DEFAULT  \
+		MOON_LDIR"?.mn;"  MOON_LDIR"?/init.mn;" \
+		MOON_CDIR"?.mn;"  MOON_CDIR"?/init.mn;" \
+		"./?.mn;" "./?/init.mn"
 #endif
 
-#if !defined(LUA_CPATH_DEFAULT)
-#define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so"
+#if !defined(MOON_CPATH_DEFAULT)
+#define MOON_CPATH_DEFAULT \
+		MOON_CDIR"?.so;" MOON_CDIR"loadall.so;" "./?.so"
 #endif
 
 #endif			/* } */
 
 
 /*
-@@ LUA_DIRSEP is the directory separator (for submodules).
+@@ MOON_DIRSEP is the directory separator (for submodules).
 ** CHANGE it if your machine does not use "/" as the directory separator
 ** and is not Windows. (On Windows Lua automatically uses "\".)
 */
-#if !defined(LUA_DIRSEP)
+#if !defined(MOON_DIRSEP)
 
 #if defined(_WIN32)
-#define LUA_DIRSEP	"\\"
+#define MOON_DIRSEP	"\\"
 #else
-#define LUA_DIRSEP	"/"
+#define MOON_DIRSEP	"/"
 #endif
 
 #endif
 
 
 /*
-** LUA_IGMARK is a mark to ignore all after it when building the
-** module name (e.g., used to build the luaopen_ function name).
+** MOON_IGMARK is a mark to ignore all after it when building the
+** module name (e.g., used to build the moonopen_ function name).
 ** Typically, the suffix after the mark is the module version,
 ** as in "mod-v1.2.so".
 */
-#define LUA_IGMARK		"-"
+#define MOON_IGMARK		"-"
 
 /* }================================================================== */
 
@@ -292,25 +292,25 @@
 */
 
 /*
-@@ LUA_API is a mark for all core API functions.
-@@ LUALIB_API is a mark for all auxiliary library functions.
-@@ LUAMOD_API is a mark for all standard library opening functions.
+@@ MOON_API is a mark for all core API functions.
+@@ MOONLIB_API is a mark for all auxiliary library functions.
+@@ MOONMOD_API is a mark for all standard library opening functions.
 ** CHANGE them if you need to define those functions in some special way.
 ** For instance, if you want to create one Windows DLL with the core and
 ** the libraries, you may want to use the following definition (define
-** LUA_BUILD_AS_DLL to get it).
+** MOON_BUILD_AS_DLL to get it).
 */
-#if defined(LUA_BUILD_AS_DLL)	/* { */
+#if defined(MOON_BUILD_AS_DLL)	/* { */
 
-#if defined(LUA_CORE) || defined(LUA_LIB)	/* { */
-#define LUA_API __declspec(dllexport)
+#if defined(MOON_CORE) || defined(MOON_LIB)	/* { */
+#define MOON_API __declspec(dllexport)
 #else						/* }{ */
-#define LUA_API __declspec(dllimport)
+#define MOON_API __declspec(dllimport)
 #endif						/* } */
 
 #else				/* }{ */
 
-#define LUA_API		extern
+#define MOON_API		extern
 
 #endif				/* } */
 
@@ -318,13 +318,13 @@
 /*
 ** More often than not the libs go together with the core.
 */
-#define LUALIB_API	LUA_API
+#define MOONLIB_API	MOON_API
 
 #if defined(__cplusplus)
 /* Lua uses the "C name" when calling open functions */
-#define LUAMOD_API	extern "C"
+#define MOONMOD_API	extern "C"
 #else
-#define LUAMOD_API	LUA_API
+#define MOONMOD_API	MOON_API
 #endif
 
 /* }================================================================== */
@@ -337,18 +337,18 @@
 */
 
 /*
-@@ LUA_COMPAT_GLOBAL avoids 'global' being a reserved word
+@@ MOON_COMPAT_GLOBAL avoids 'global' being a reserved word
 */
-#define LUA_COMPAT_GLOBAL
+#define MOON_COMPAT_GLOBAL
 
 
 /*
-@@ LUA_COMPAT_MATHLIB controls the presence of several deprecated
+@@ MOON_COMPAT_MATHLIB controls the presence of several deprecated
 ** functions in the mathematical library.
 ** (These functions were already officially removed in 5.3;
 ** nevertheless they are still available here.)
 */
-/* #define LUA_COMPAT_MATHLIB */
+/* #define MOON_COMPAT_MATHLIB */
 
 
 /*
@@ -358,12 +358,12 @@
 ** (Once more, these macros were officially removed in 5.3, but they are
 ** still available here.)
 */
-#define lua_strlen(L,i)		lua_rawlen(L, (i))
+#define moon_strlen(L,i)		moon_rawlen(L, (i))
 
-#define lua_objlen(L,i)		lua_rawlen(L, (i))
+#define moon_objlen(L,i)		moon_rawlen(L, (i))
 
-#define lua_equal(L,idx1,idx2)		lua_compare(L,(idx1),(idx2),LUA_OPEQ)
-#define lua_lessthan(L,idx1,idx2)	lua_compare(L,(idx1),(idx2),LUA_OPLT)
+#define moon_equal(L,idx1,idx2)		moon_compare(L,(idx1),(idx2),MOON_OPEQ)
+#define moon_lessthan(L,idx1,idx2)	moon_compare(L,(idx1),(idx2),MOON_OPLT)
 
 /* }================================================================== */
 
@@ -372,27 +372,27 @@
 /*
 ** {==================================================================
 ** Configuration for Numbers (low-level part).
-** Change these definitions if no predefined LUA_FLOAT_* / LUA_INT_*
+** Change these definitions if no predefined MOON_FLOAT_* / MOON_INT_*
 ** satisfy your needs.
 ** ===================================================================
 */
 
 /*
-@@ LUAI_UACNUMBER is the result of a 'default argument promotion'
+@@ MOONI_UACNUMBER is the result of a 'default argument promotion'
 @@ over a floating number.
 @@ l_floatatt(x) corrects float attribute 'x' to the proper float type
 ** by prefixing it with one of FLT/DBL/LDBL.
-@@ LUA_NUMBER_FRMLEN is the length modifier for writing floats.
-@@ LUA_NUMBER_FMT is the format for writing floats with the maximum
+@@ MOON_NUMBER_FRMLEN is the length modifier for writing floats.
+@@ MOON_NUMBER_FMT is the format for writing floats with the maximum
 ** number of digits that respects tostring(tonumber(numeral)) == numeral.
 ** (That would be floor(log10(2^n)), where n is the number of bits in
 ** the float mantissa.)
-@@ LUA_NUMBER_FMT_N is the format for writing floats with the minimum
+@@ MOON_NUMBER_FMT_N is the format for writing floats with the minimum
 ** number of digits that ensures tonumber(tostring(number)) == number.
-** (That would be LUA_NUMBER_FMT+2.)
+** (That would be MOON_NUMBER_FMT+2.)
 @@ l_mathop allows the addition of an 'l' or 'f' to all math operations.
 @@ l_floor takes the floor of a float.
-@@ lua_str2number converts a decimal numeral to a number.
+@@ moon_str2number converts a decimal numeral to a number.
 */
 
 
@@ -403,54 +403,54 @@
 
 /* now the variable definitions */
 
-#if LUA_FLOAT_TYPE == LUA_FLOAT_FLOAT		/* { single float */
+#if MOON_FLOAT_TYPE == MOON_FLOAT_FLOAT		/* { single float */
 
-#define LUA_NUMBER	float
+#define MOON_NUMBER	float
 
 #define l_floatatt(n)		(FLT_##n)
 
-#define LUAI_UACNUMBER	double
+#define MOONI_UACNUMBER	double
 
-#define LUA_NUMBER_FRMLEN	""
-#define LUA_NUMBER_FMT		"%.7g"
-#define LUA_NUMBER_FMT_N	"%.9g"
+#define MOON_NUMBER_FRMLEN	""
+#define MOON_NUMBER_FMT		"%.7g"
+#define MOON_NUMBER_FMT_N	"%.9g"
 
 #define l_mathop(op)		op##f
 
-#define lua_str2number(s,p)	strtof((s), (p))
+#define moon_str2number(s,p)	strtof((s), (p))
 
 
-#elif LUA_FLOAT_TYPE == LUA_FLOAT_LONGDOUBLE	/* }{ long double */
+#elif MOON_FLOAT_TYPE == MOON_FLOAT_LONGDOUBLE	/* }{ long double */
 
-#define LUA_NUMBER	long double
+#define MOON_NUMBER	long double
 
 #define l_floatatt(n)		(LDBL_##n)
 
-#define LUAI_UACNUMBER	long double
+#define MOONI_UACNUMBER	long double
 
-#define LUA_NUMBER_FRMLEN	"L"
-#define LUA_NUMBER_FMT		"%.19Lg"
-#define LUA_NUMBER_FMT_N	"%.21Lg"
+#define MOON_NUMBER_FRMLEN	"L"
+#define MOON_NUMBER_FMT		"%.19Lg"
+#define MOON_NUMBER_FMT_N	"%.21Lg"
 
 #define l_mathop(op)		op##l
 
-#define lua_str2number(s,p)	strtold((s), (p))
+#define moon_str2number(s,p)	strtold((s), (p))
 
-#elif LUA_FLOAT_TYPE == LUA_FLOAT_DOUBLE	/* }{ double */
+#elif MOON_FLOAT_TYPE == MOON_FLOAT_DOUBLE	/* }{ double */
 
-#define LUA_NUMBER	double
+#define MOON_NUMBER	double
 
 #define l_floatatt(n)		(DBL_##n)
 
-#define LUAI_UACNUMBER	double
+#define MOONI_UACNUMBER	double
 
-#define LUA_NUMBER_FRMLEN	""
-#define LUA_NUMBER_FMT		"%.15g"
-#define LUA_NUMBER_FMT_N	"%.17g"
+#define MOON_NUMBER_FRMLEN	""
+#define MOON_NUMBER_FMT		"%.15g"
+#define MOON_NUMBER_FMT_N	"%.17g"
 
 #define l_mathop(op)		op
 
-#define lua_str2number(s,p)	strtod((s), (p))
+#define moon_str2number(s,p)	strtod((s), (p))
 
 #else						/* }{ */
 
@@ -461,80 +461,80 @@
 
 
 /*
-@@ LUA_UNSIGNED is the unsigned version of LUA_INTEGER.
-@@ LUAI_UACINT is the result of a 'default argument promotion'
-@@ over a LUA_INTEGER.
-@@ LUA_INTEGER_FRMLEN is the length modifier for reading/writing integers.
-@@ LUA_INTEGER_FMT is the format for writing integers.
-@@ LUA_MAXINTEGER is the maximum value for a LUA_INTEGER.
-@@ LUA_MININTEGER is the minimum value for a LUA_INTEGER.
-@@ LUA_MAXUNSIGNED is the maximum value for a LUA_UNSIGNED.
-@@ lua_integer2str converts an integer to a string.
+@@ MOON_UNSIGNED is the unsigned version of MOON_INTEGER.
+@@ MOONI_UACINT is the result of a 'default argument promotion'
+@@ over a MOON_INTEGER.
+@@ MOON_INTEGER_FRMLEN is the length modifier for reading/writing integers.
+@@ MOON_INTEGER_FMT is the format for writing integers.
+@@ MOON_MAXINTEGER is the maximum value for a MOON_INTEGER.
+@@ MOON_MININTEGER is the minimum value for a MOON_INTEGER.
+@@ MOON_MAXUNSIGNED is the maximum value for a MOON_UNSIGNED.
+@@ moon_integer2str converts an integer to a string.
 */
 
 
 /* The following definitions are good for most cases here */
 
-#define LUA_INTEGER_FMT		"%" LUA_INTEGER_FRMLEN "d"
+#define MOON_INTEGER_FMT		"%" MOON_INTEGER_FRMLEN "d"
 
-#define LUAI_UACINT		LUA_INTEGER
+#define MOONI_UACINT		MOON_INTEGER
 
-#define lua_integer2str(s,sz,n)  \
-	l_sprintf((s), sz, LUA_INTEGER_FMT, (LUAI_UACINT)(n))
+#define moon_integer2str(s,sz,n)  \
+	l_sprintf((s), sz, MOON_INTEGER_FMT, (MOONI_UACINT)(n))
 
 /*
-** use LUAI_UACINT here to avoid problems with promotions (which
+** use MOONI_UACINT here to avoid problems with promotions (which
 ** can turn a comparison between unsigneds into a signed comparison)
 */
-#define LUA_UNSIGNED		unsigned LUAI_UACINT
+#define MOON_UNSIGNED		unsigned MOONI_UACINT
 
 
 /* now the variable definitions */
 
-#if LUA_INT_TYPE == LUA_INT_INT		/* { int */
+#if MOON_INT_TYPE == MOON_INT_INT		/* { int */
 
-#define LUA_INTEGER		int
-#define LUA_INTEGER_FRMLEN	""
+#define MOON_INTEGER		int
+#define MOON_INTEGER_FRMLEN	""
 
-#define LUA_MAXINTEGER		INT_MAX
-#define LUA_MININTEGER		INT_MIN
+#define MOON_MAXINTEGER		INT_MAX
+#define MOON_MININTEGER		INT_MIN
 
-#define LUA_MAXUNSIGNED		UINT_MAX
+#define MOON_MAXUNSIGNED		UINT_MAX
 
-#elif LUA_INT_TYPE == LUA_INT_LONG	/* }{ long */
+#elif MOON_INT_TYPE == MOON_INT_LONG	/* }{ long */
 
-#define LUA_INTEGER		long
-#define LUA_INTEGER_FRMLEN	"l"
+#define MOON_INTEGER		long
+#define MOON_INTEGER_FRMLEN	"l"
 
-#define LUA_MAXINTEGER		LONG_MAX
-#define LUA_MININTEGER		LONG_MIN
+#define MOON_MAXINTEGER		LONG_MAX
+#define MOON_MININTEGER		LONG_MIN
 
-#define LUA_MAXUNSIGNED		ULONG_MAX
+#define MOON_MAXUNSIGNED		ULONG_MAX
 
-#elif LUA_INT_TYPE == LUA_INT_LONGLONG	/* }{ long long */
+#elif MOON_INT_TYPE == MOON_INT_LONGLONG	/* }{ long long */
 
 /* use presence of macro LLONG_MAX as proxy for C99 compliance */
 #if defined(LLONG_MAX)		/* { */
 /* use ISO C99 stuff */
 
-#define LUA_INTEGER		long long
-#define LUA_INTEGER_FRMLEN	"ll"
+#define MOON_INTEGER		long long
+#define MOON_INTEGER_FRMLEN	"ll"
 
-#define LUA_MAXINTEGER		LLONG_MAX
-#define LUA_MININTEGER		LLONG_MIN
+#define MOON_MAXINTEGER		LLONG_MAX
+#define MOON_MININTEGER		LLONG_MIN
 
-#define LUA_MAXUNSIGNED		ULLONG_MAX
+#define MOON_MAXUNSIGNED		ULLONG_MAX
 
-#elif defined(LUA_USE_WINDOWS) /* }{ */
+#elif defined(MOON_USE_WINDOWS) /* }{ */
 /* in Windows, can use specific Windows types */
 
-#define LUA_INTEGER		__int64
-#define LUA_INTEGER_FRMLEN	"I64"
+#define MOON_INTEGER		__int64
+#define MOON_INTEGER_FRMLEN	"I64"
 
-#define LUA_MAXINTEGER		_I64_MAX
-#define LUA_MININTEGER		_I64_MIN
+#define MOON_MAXINTEGER		_I64_MAX
+#define MOON_MININTEGER		_I64_MIN
 
-#define LUA_MAXUNSIGNED		_UI64_MAX
+#define MOON_MAXUNSIGNED		_UI64_MAX
 
 #else				/* }{ */
 
@@ -562,7 +562,7 @@
 @@ l_sprintf is equivalent to 'snprintf' or 'sprintf' in C89.
 ** (All uses in Lua have only one format item.)
 */
-#if !defined(LUA_USE_C89)
+#if !defined(MOON_USE_C89)
 #define l_sprintf(s,sz,f,i)	snprintf(s,sz,f,i)
 #else
 #define l_sprintf(s,sz,f,i)	((void)(sz), sprintf(s,f,i))
@@ -570,32 +570,32 @@
 
 
 /*
-@@ lua_strx2number converts a hexadecimal numeral to a number.
+@@ moon_strx2number converts a hexadecimal numeral to a number.
 ** In C99, 'strtod' does that conversion. Otherwise, you can
-** leave 'lua_strx2number' undefined and Lua will provide its own
+** leave 'moon_strx2number' undefined and Lua will provide its own
 ** implementation.
 */
-#if !defined(LUA_USE_C89)
-#define lua_strx2number(s,p)		lua_str2number(s,p)
+#if !defined(MOON_USE_C89)
+#define moon_strx2number(s,p)		moon_str2number(s,p)
 #endif
 
 
 /*
-@@ lua_pointer2str converts a pointer to a readable string in a
+@@ moon_pointer2str converts a pointer to a readable string in a
 ** non-specified way.
 */
-#define lua_pointer2str(buff,sz,p)	l_sprintf(buff,sz,"%p",p)
+#define moon_pointer2str(buff,sz,p)	l_sprintf(buff,sz,"%p",p)
 
 
 /*
-@@ lua_number2strx converts a float to a hexadecimal numeral.
+@@ moon_number2strx converts a float to a hexadecimal numeral.
 ** In C99, 'sprintf' (with format specifiers '%a'/'%A') does that.
-** Otherwise, you can leave 'lua_number2strx' undefined and Lua will
+** Otherwise, you can leave 'moon_number2strx' undefined and Lua will
 ** provide its own implementation.
 */
-#if !defined(LUA_USE_C89)
-#define lua_number2strx(L,b,sz,f,n)  \
-	((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
+#if !defined(MOON_USE_C89)
+#define moon_number2strx(L,b,sz,f,n)  \
+	((void)L, l_sprintf(b,sz,f,(MOONI_UACNUMBER)(n)))
 #endif
 
 
@@ -605,56 +605,56 @@
 ** availability of these variants. ('math.h' is already included in
 ** all files that use these macros.)
 */
-#if defined(LUA_USE_C89) || (defined(HUGE_VAL) && !defined(HUGE_VALF))
+#if defined(MOON_USE_C89) || (defined(HUGE_VAL) && !defined(HUGE_VALF))
 #undef l_mathop  /* variants not available */
-#undef lua_str2number
-#define l_mathop(op)		(lua_Number)op  /* no variant */
-#define lua_str2number(s,p)	((lua_Number)strtod((s), (p)))
+#undef moon_str2number
+#define l_mathop(op)		(moon_Number)op  /* no variant */
+#define moon_str2number(s,p)	((moon_Number)strtod((s), (p)))
 #endif
 
 
 /*
-@@ LUA_KCONTEXT is the type of the context ('ctx') for continuation
+@@ MOON_KCONTEXT is the type of the context ('ctx') for continuation
 ** functions.  It must be a numerical type; Lua will use 'intptr_t' if
 ** available, otherwise it will use 'ptrdiff_t' (the nearest thing to
 ** 'intptr_t' in C89)
 */
-#define LUA_KCONTEXT	ptrdiff_t
+#define MOON_KCONTEXT	ptrdiff_t
 
-#if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
+#if !defined(MOON_USE_C89) && defined(__STDC_VERSION__) && \
     __STDC_VERSION__ >= 199901L
 #include <stdint.h>
 #if defined(INTPTR_MAX)  /* even in C99 this type is optional */
-#undef LUA_KCONTEXT
-#define LUA_KCONTEXT	intptr_t
+#undef MOON_KCONTEXT
+#define MOON_KCONTEXT	intptr_t
 #endif
 #endif
 
 
 /*
-@@ lua_getlocaledecpoint gets the locale "radix character" (decimal point).
+@@ moon_getlocaledecpoint gets the locale "radix character" (decimal point).
 ** Change that if you do not want to use C locales. (Code using this
 ** macro must include the header 'locale.h'.)
 */
-#if !defined(lua_getlocaledecpoint)
-#define lua_getlocaledecpoint()		(localeconv()->decimal_point[0])
+#if !defined(moon_getlocaledecpoint)
+#define moon_getlocaledecpoint()		(localeconv()->decimal_point[0])
 #endif
 
 
 /*
 ** macros to improve jump prediction, used mostly for error handling
 ** and debug facilities. (Some macros in the Lua API use these macros.
-** Define LUA_NOBUILTIN if you do not want '__builtin_expect' in your
+** Define MOON_NOBUILTIN if you do not want '__builtin_expect' in your
 ** code.)
 */
-#if !defined(luai_likely)
+#if !defined(mooni_likely)
 
-#if defined(__GNUC__) && !defined(LUA_NOBUILTIN)
-#define luai_likely(x)		(__builtin_expect(((x) != 0), 1))
-#define luai_unlikely(x)	(__builtin_expect(((x) != 0), 0))
+#if defined(__GNUC__) && !defined(MOON_NOBUILTIN)
+#define mooni_likely(x)		(__builtin_expect(((x) != 0), 1))
+#define mooni_unlikely(x)	(__builtin_expect(((x) != 0), 0))
 #else
-#define luai_likely(x)		(x)
-#define luai_unlikely(x)	(x)
+#define mooni_likely(x)		(x)
+#define mooni_unlikely(x)	(x)
 #endif
 
 #endif
@@ -671,20 +671,20 @@
 */
 
 /*
-@@ LUA_NOCVTN2S/LUA_NOCVTS2N control how Lua performs some
-** coercions. Define LUA_NOCVTN2S to turn off automatic coercion from
-** numbers to strings. Define LUA_NOCVTS2N to turn off automatic
+@@ MOON_NOCVTN2S/MOON_NOCVTS2N control how Lua performs some
+** coercions. Define MOON_NOCVTN2S to turn off automatic coercion from
+** numbers to strings. Define MOON_NOCVTS2N to turn off automatic
 ** coercion from strings to numbers.
 */
-/* #define LUA_NOCVTN2S */
-/* #define LUA_NOCVTS2N */
+/* #define MOON_NOCVTN2S */
+/* #define MOON_NOCVTS2N */
 
 
 /*
-@@ LUA_USE_APICHECK turns on several consistency checks on the C API.
+@@ MOON_USE_APICHECK turns on several consistency checks on the C API.
 ** Define it as a help when debugging C code.
 */
-/* #define LUA_USE_APICHECK */
+/* #define MOON_USE_APICHECK */
 
 /* }================================================================== */
 
@@ -698,33 +698,33 @@
 */
 
 /*
-@@ LUA_EXTRASPACE defines the size of a raw memory area associated with
+@@ MOON_EXTRASPACE defines the size of a raw memory area associated with
 ** a Lua state with very fast access.
 ** CHANGE it if you need a different size.
 */
-#define LUA_EXTRASPACE		(sizeof(void *))
+#define MOON_EXTRASPACE		(sizeof(void *))
 
 
 /*
-@@ LUA_IDSIZE gives the maximum size for the description of the source
+@@ MOON_IDSIZE gives the maximum size for the description of the source
 ** of a function in debug information.
 ** CHANGE it if you want a different size.
 */
-#define LUA_IDSIZE	60
+#define MOON_IDSIZE	60
 
 
 /*
-@@ LUAL_BUFFERSIZE is the initial buffer size used by the lauxlib
+@@ MOONL_BUFFERSIZE is the initial buffer size used by the lauxlib
 ** buffer system.
 */
-#define LUAL_BUFFERSIZE   ((int)(16 * sizeof(void*) * sizeof(lua_Number)))
+#define MOONL_BUFFERSIZE   ((int)(16 * sizeof(void*) * sizeof(moon_Number)))
 
 
 /*
-@@ LUAI_MAXALIGN defines fields that, when used in a union, ensure
+@@ MOONI_MAXALIGN defines fields that, when used in a union, ensure
 ** maximum alignment for the other items in that union.
 */
-#define LUAI_MAXALIGN  lua_Number n; double u; void *s; lua_Integer i; long l
+#define MOONI_MAXALIGN  moon_Number n; double u; void *s; moon_Integer i; long l
 
 /* }================================================================== */
 

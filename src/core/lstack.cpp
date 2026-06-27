@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -32,23 +32,23 @@
 inline constexpr int STACKERRSPACE = 200;
 
 /*
-** LUAI_MAXSTACK limits the size of the Lua stack.
+** MOONI_MAXSTACK limits the size of the Lua stack.
 ** It must fit into INT_MAX/2.
 */
-#if !defined(LUAI_MAXSTACK)
+#if !defined(MOONI_MAXSTACK)
 #if 1000000 < (std::numeric_limits<int>::max() / 2)
-#define LUAI_MAXSTACK           1000000
+#define MOONI_MAXSTACK           1000000
 #else
-#define LUAI_MAXSTACK           (std::numeric_limits<int>::max() / 2u)
+#define MOONI_MAXSTACK           (std::numeric_limits<int>::max() / 2u)
 #endif
 #endif
 
 // Maximum stack size that respects size_t
 #define MAXSTACK_BYSIZET  ((MAX_SIZET / sizeof(StackValue)) - STACKERRSPACE)
 
-// Minimum between LUAI_MAXSTACK and MAXSTACK_BYSIZET
-#define MAXSTACK	cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
-			        ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
+// Minimum between MOONI_MAXSTACK and MAXSTACK_BYSIZET
+#define MAXSTACK	cast_int(MOONI_MAXSTACK < MAXSTACK_BYSIZET  \
+			        ? MOONI_MAXSTACK : MAXSTACK_BYSIZET)
 
 // Stack size with extra space for error handling
 #define ERRORSTACKSIZE	(MAXSTACK + STACKERRSPACE)
@@ -64,21 +64,21 @@ inline constexpr int STACKERRSPACE = 200;
 ** That is not strict ISO C, but seems to work fine everywhere.
 ** The following macro chooses how strict is the code.
 */
-#if !defined(LUAI_STRICT_ADDRESS)
-#define LUAI_STRICT_ADDRESS	1
+#if !defined(MOONI_STRICT_ADDRESS)
+#define MOONI_STRICT_ADDRESS	1
 #endif
 
 
 // Conditional stack movement for debugging
 #if !defined(HARDSTACKTESTS)
 template<typename Pre, typename Pos>
-inline void condmovestack(lua_State* L, Pre&& pre, Pos&& pos) noexcept {
+inline void condmovestack(moon_State* L, Pre&& pre, Pos&& pos) noexcept {
 	cast_void(L); cast_void(pre); cast_void(pos);
 }
 #else
 // realloc stack keeping its size
 template<typename Pre, typename Pos>
-inline void condmovestack(lua_State* L, Pre&& pre, Pos&& pos) {
+inline void condmovestack(moon_State* L, Pre&& pre, Pos&& pos) {
 	int sz_ = L->getStackSubsystem().getSize();
 	pre();
 	L->getStackSubsystem().realloc(L, sz_, 0);
@@ -97,9 +97,9 @@ inline void condmovestack(lua_State* L, Pre&& pre, Pos&& pos) {
 ** Initialize a new stack (called from lstate.cpp)
 ** L is used for memory allocation (may be different from owning thread)
 */
-void LuaStack::init(lua_State* L) {
+void MoonStack::init(moon_State* L) {
   // allocate stack array
-  stack.p = luaM_newvector<StackValue>(L, BASIC_STACK_SIZE + EXTRA_STACK);
+  stack.p = moonM_newvector<StackValue>(L, BASIC_STACK_SIZE + EXTRA_STACK);
   tbclist.p = stack.p;
 
   // erase new stack
@@ -115,11 +115,11 @@ void LuaStack::init(lua_State* L) {
 /*
 ** Free stack memory (called from lstate.cpp)
 */
-void LuaStack::free(lua_State* L) {
+void MoonStack::free(moon_State* L) {
   if (stack.p == nullptr)
     return;  // stack not completely built yet
   // free stack
-  luaM_freearray(L, stack.p, cast_sizet(getSize() + EXTRA_STACK));
+  moonM_freearray(L, stack.p, cast_sizet(getSize() + EXTRA_STACK));
 }
 
 
@@ -133,7 +133,7 @@ void LuaStack::free(lua_State* L) {
 ** Compute how much of the stack is being used, by computing the
 ** maximum top of all call frames in the stack and the current top.
 */
-int LuaStack::inUse(const lua_State* L) const {
+int MoonStack::inUse(const moon_State* L) const {
   const CallInfo* ci_iter;
   int res;
   StkId lim = top.p;
@@ -143,11 +143,11 @@ int LuaStack::inUse(const lua_State* L) const {
       lim = ci_iter->topRef().p;
   }
 
-  lua_assert(lim <= stack_last.p + EXTRA_STACK);
+  moon_assert(lim <= stack_last.p + EXTRA_STACK);
   res = cast_int(lim - stack.p) + 1;  // part of stack in use
 
-  if (res < LUA_MINSTACK)
-    res = LUA_MINSTACK;  // ensure a minimum size
+  if (res < MOON_MINSTACK)
+    res = MOON_MINSTACK;  // ensure a minimum size
 
   return res;
 }
@@ -159,12 +159,12 @@ int LuaStack::inUse(const lua_State* L) const {
 ** ==================================================================
 */
 
-#if LUAI_STRICT_ADDRESS
+#if MOONI_STRICT_ADDRESS
 
 /*
 ** Change all pointers to the stack into offsets (before reallocation).
 */
-void LuaStack::relPointers(lua_State* L) {
+void MoonStack::relPointers(moon_State* L) {
   CallInfo* callInfo;
   UpVal* up;
 
@@ -184,7 +184,7 @@ void LuaStack::relPointers(lua_State* L) {
 /*
 ** Change back all offsets into pointers (after reallocation).
 */
-void LuaStack::correctPointers(lua_State* L, StkId oldstack) {
+void MoonStack::correctPointers(moon_State* L, StkId oldstack) {
   CallInfo* callInfo;
   UpVal* up;
   UNUSED(oldstack);
@@ -199,17 +199,17 @@ void LuaStack::correctPointers(lua_State* L, StkId oldstack) {
     callInfo->topRef().p = restore(callInfo->topRef().offset);
     callInfo->funcRef().p = restore(callInfo->funcRef().offset);
     if (callInfo->isLua())
-      callInfo->getTrap() = 1;  // signal to update 'trap' in 'luaV_execute'
+      callInfo->getTrap() = 1;  // signal to update 'trap' in 'moonV_execute'
   }
 }
 
-#else  // !LUAI_STRICT_ADDRESS
+#else  // !MOONI_STRICT_ADDRESS
 
 /*
 ** Assume that it is fine to use an address after its deallocation,
 ** as long as we do not dereference it.
 */
-void LuaStack::relPointers(lua_State* L) {
+void MoonStack::relPointers(moon_State* L) {
   UNUSED(L);  // do nothing
 }
 
@@ -217,7 +217,7 @@ void LuaStack::relPointers(lua_State* L) {
 /*
 ** Correct pointers into 'oldstack' to point into new stack.
 */
-void LuaStack::correctPointers(lua_State* L, StkId oldstack) {
+void MoonStack::correctPointers(moon_State* L, StkId oldstack) {
   CallInfo* callInfo;
   UpVal* up;
   StkId newstack = stack.p;
@@ -235,11 +235,11 @@ void LuaStack::correctPointers(lua_State* L, StkId oldstack) {
     callInfo->topRef().p = callInfo->topRef().p - oldstack + newstack;
     callInfo->funcRef().p = callInfo->funcRef().p - oldstack + newstack;
     if (callInfo->isLua())
-      callInfo->getTrap() = 1;  // signal to update 'trap' in 'luaV_execute'
+      callInfo->getTrap() = 1;  // signal to update 'trap' in 'moonV_execute'
   }
 }
 
-#endif  // LUAI_STRICT_ADDRESS
+#endif  // MOONI_STRICT_ADDRESS
 
 
 /*
@@ -252,19 +252,19 @@ void LuaStack::correctPointers(lua_State* L, StkId oldstack) {
 ** Reallocate stack to exact size 'newsize'.
 ** Returns 1 on success, 0 on failure.
 */
-int LuaStack::realloc(lua_State* L, int newsize, int raiseerror) {
+int MoonStack::realloc(moon_State* L, int newsize, int raiseerror) {
   int oldsize = getSize();
   int i;
   StkId newstack;
   StkId oldstack = stack.p;
   lu_byte oldgcstop = G(L)->getGCStopEm();
 
-  lua_assert(newsize <= MAXSTACK || newsize == ERRORSTACKSIZE);
+  moon_assert(newsize <= MAXSTACK || newsize == ERRORSTACKSIZE);
 
   relPointers(L);  // change pointers to offsets
   G(L)->setGCStopEm(1);  // stop emergency collection
 
-  newstack = luaM_reallocvector<StackValue>(L, oldstack, oldsize + EXTRA_STACK,
+  newstack = moonM_reallocvector<StackValue>(L, oldstack, oldsize + EXTRA_STACK,
                                    static_cast<size_t>(newsize + EXTRA_STACK));
 
   G(L)->setGCStopEm(oldgcstop);  // restore emergency collection
@@ -272,7 +272,7 @@ int LuaStack::realloc(lua_State* L, int newsize, int raiseerror) {
   if (l_unlikely(newstack == nullptr)) {  // reallocation failed?
     correctPointers(L, oldstack);  // change offsets back to pointers
     if (raiseerror)
-      luaM_error(L);
+      moonM_error(L);
     else
       return 0;  // do not raise an error
   }
@@ -293,14 +293,14 @@ int LuaStack::realloc(lua_State* L, int newsize, int raiseerror) {
 ** Grow stack by at least 'n' elements.
 ** Returns 1 on success, 0 on failure.
 */
-int LuaStack::grow(lua_State* L, int n, int raiseerror) {
+int MoonStack::grow(moon_State* L, int n, int raiseerror) {
   int size = getSize();
 
   if (l_unlikely(size > MAXSTACK)) {
     /* if stack is larger than maximum, thread is already using the
        extra space reserved for errors, that is, thread is handling
        a stack error; cannot grow further than that. */
-    lua_assert(getSize() == ERRORSTACKSIZE);
+    moon_assert(getSize() == ERRORSTACKSIZE);
     if (raiseerror)
       L->errorError();  // stack error inside message handler
     return 0;  // if not 'raiseerror', just signal it
@@ -317,7 +317,7 @@ int LuaStack::grow(lua_State* L, int n, int raiseerror) {
 
     // Safe calculation of needed space
     ptrdiff_t stack_used = top.p - stack.p;
-    lua_assert(stack_used >= 0 && stack_used <= INT_MAX);
+    moon_assert(stack_used >= 0 && stack_used <= INT_MAX);
     int needed;
     if (stack_used > INT_MAX - n) {
       // needed calculation would overflow, use MAXSTACK
@@ -338,7 +338,7 @@ int LuaStack::grow(lua_State* L, int n, int raiseerror) {
   // add extra size to be able to handle the error message
   realloc(L, ERRORSTACKSIZE, raiseerror);
   if (raiseerror)
-    luaG_runerror(L, "stack overflow");
+    moonG_runerror(L, "stack overflow");
   return 0;
 }
 
@@ -347,7 +347,7 @@ int LuaStack::grow(lua_State* L, int n, int raiseerror) {
 ** Shrink stack to reasonable size.
 ** Called after function returns to free unused stack space.
 */
-void LuaStack::shrink(lua_State* L) {
+void MoonStack::shrink(moon_State* L) {
   int inuse = inUse(L);
   int max = (inuse > MAXSTACK / 3) ? MAXSTACK : inuse * 3;
 
@@ -360,7 +360,7 @@ void LuaStack::shrink(lua_State* L) {
   else  // don't change stack
     condmovestack(L, [](){}, [](){});  // (change only for debugging)
 
-  luaE_shrinkCI(L);  // shrink CI list
+  moonE_shrinkCI(L);  // shrink CI list
 }
 
 
@@ -368,9 +368,9 @@ void LuaStack::shrink(lua_State* L) {
 ** Increment top with stack overflow check.
 ** Used when pushing a single value.
 */
-void LuaStack::incTop(lua_State* L) {
+void MoonStack::incTop(moon_State* L) {
   top.p++;
-  luaD_checkstack(L, 1);
+  moonD_checkstack(L, 1);
 }
 
 
@@ -388,7 +388,7 @@ void LuaStack::incTop(lua_State* L) {
 **
 ** Replaces index2value() from lapi.cpp.
 */
-TValue* LuaStack::indexToValue(lua_State* L, int idx) {
+TValue* MoonStack::indexToValue(moon_State* L, int idx) {
   CallInfo *callInfo = L->getCI();
   if (idx > 0) {
     StkId o = callInfo->funcRef().p + idx;
@@ -401,10 +401,10 @@ TValue* LuaStack::indexToValue(lua_State* L, int idx) {
                  "invalid index");
     return s2v(top.p + idx);
   }
-  else if (idx == LUA_REGISTRYINDEX)
+  else if (idx == MOON_REGISTRYINDEX)
     return G(L)->getRegistry();
   else {  // upvalues
-    idx = LUA_REGISTRYINDEX - idx;
+    idx = MOON_REGISTRYINDEX - idx;
     api_check(L, idx <= MAXUPVAL + 1, "upvalue index too large");
     if (ttisCclosure(s2v(callInfo->funcRef().p))) {  // C closure?
       CClosure *func = clCvalue(s2v(callInfo->funcRef().p));
@@ -424,7 +424,7 @@ TValue* LuaStack::indexToValue(lua_State* L, int idx) {
 **
 ** Replaces index2stack() from lapi.cpp.
 */
-StkId LuaStack::indexToStack(lua_State* L, int idx) {
+StkId MoonStack::indexToStack(moon_State* L, int idx) {
   CallInfo *callInfo = L->getCI();
   if (idx > 0) {
     StkId o = callInfo->funcRef().p + idx;
@@ -450,7 +450,7 @@ StkId LuaStack::indexToStack(lua_State* L, int idx) {
 /*
 ** Check if stack has at least n elements (replaces api_checknelems).
 */
-bool LuaStack::checkHasElements(CallInfo* callInfo, int n) const noexcept {
+bool MoonStack::checkHasElements(CallInfo* callInfo, int n) const noexcept {
   return (n) < (top.p - callInfo->funcRef().p);
 }
 
@@ -459,7 +459,7 @@ bool LuaStack::checkHasElements(CallInfo* callInfo, int n) const noexcept {
 ** Check if n elements can be popped (replaces api_checkpop).
 ** Also verifies no to-be-closed variables would be affected.
 */
-bool LuaStack::checkCanPop(CallInfo* callInfo, int n) const noexcept {
+bool MoonStack::checkCanPop(CallInfo* callInfo, int n) const noexcept {
   return (n) < top.p - callInfo->funcRef().p &&
          tbclist.p < top.p - n;
 }
@@ -474,7 +474,7 @@ bool LuaStack::checkCanPop(CallInfo* callInfo, int n) const noexcept {
 /*
 ** Get depth relative to function base (current function's local variables).
 */
-int LuaStack::getDepthFromFunc(CallInfo* callInfo) const noexcept {
+int MoonStack::getDepthFromFunc(CallInfo* callInfo) const noexcept {
   return cast_int(top.p - (callInfo->funcRef().p + 1));
 }
 
@@ -489,7 +489,7 @@ int LuaStack::getDepthFromFunc(CallInfo* callInfo) const noexcept {
 /*
 ** Assign to stack slot from TValue.
 */
-void LuaStack::setSlot(StackValue* dest, const TValue* src) noexcept {
+void MoonStack::setSlot(StackValue* dest, const TValue* src) noexcept {
   *s2v(dest) = *src;
 }
 
@@ -497,7 +497,7 @@ void LuaStack::setSlot(StackValue* dest, const TValue* src) noexcept {
 /*
 ** Copy between stack slots.
 */
-void LuaStack::copySlot(StackValue* dest, StackValue* src) noexcept {
+void MoonStack::copySlot(StackValue* dest, StackValue* src) noexcept {
   *s2v(dest) = *s2v(src);
 }
 
@@ -505,6 +505,6 @@ void LuaStack::copySlot(StackValue* dest, StackValue* src) noexcept {
 /*
 ** Set slot to nil.
 */
-void LuaStack::setNil(StackValue* slot) noexcept {
+void MoonStack::setNil(StackValue* slot) noexcept {
   setnilvalue(s2v(slot));
 }

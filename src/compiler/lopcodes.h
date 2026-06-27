@@ -289,8 +289,8 @@ public:
 		return getarg(inst_, POS_sJ, SIZE_sJ) - OFFSET_sJ;
 	}
 
-	// Instruction property accessors - encapsulate luaP_opmodes array access
-	// Defined below after luaP_opmodes declaration
+	// Instruction property accessors - encapsulate moonP_opmodes array access
+	// Defined below after moonP_opmodes declaration
 	inline OpMode getOpMode() const noexcept;
 	inline bool testAMode() const noexcept;
 	inline bool testTMode() const noexcept;
@@ -370,7 +370,7 @@ typedef enum {
 ------------------------------------------------------------------------*/
 OP_MOVE,  // A B	R[A] := R[B]
 OP_LOADI,  // A sBx	R[A] := sBx
-OP_LOADF,  // A sBx	R[A] := (lua_Number)sBx
+OP_LOADF,  // A sBx	R[A] := (moon_Number)sBx
 OP_LOADK,  // A Bx	R[A] := K[Bx]
 OP_LOADKX,  // A	R[A] := K[extra arg]
 OP_LOADFALSE,  // A	R[A] := false
@@ -549,60 +549,60 @@ inline constexpr int NUM_OPCODES = ((int)(OP_EXTRAARG) + 1);
 */
 
 using OpModesArray = std::array<lu_byte, NUM_OPCODES>;
-LUAI_DDEC(const OpModesArray luaP_opmodes;)
+MOONI_DDEC(const OpModesArray moonP_opmodes;)
 
 inline OpMode getOpMode(int m) noexcept {
-	return static_cast<OpMode>(luaP_opmodes[static_cast<size_t>(m)] & 7);
+	return static_cast<OpMode>(moonP_opmodes[static_cast<size_t>(m)] & 7);
 }
 
 inline bool testAMode(int m) noexcept {
-	return (luaP_opmodes[m] & (1 << 3)) != 0;
+	return (moonP_opmodes[m] & (1 << 3)) != 0;
 }
 
 inline bool testTMode(int m) noexcept {
-	return (luaP_opmodes[m] & (1 << 4)) != 0;
+	return (moonP_opmodes[m] & (1 << 4)) != 0;
 }
 
 inline bool testITMode(int m) noexcept {
-	return (luaP_opmodes[m] & (1 << 5)) != 0;
+	return (moonP_opmodes[m] & (1 << 5)) != 0;
 }
 
 inline bool testOTMode(int m) noexcept {
-	return (luaP_opmodes[m] & (1 << 6)) != 0;
+	return (moonP_opmodes[m] & (1 << 6)) != 0;
 }
 
 inline bool testMMMode(int m) noexcept {
-	return (luaP_opmodes[m] & (1 << 7)) != 0;
+	return (moonP_opmodes[m] & (1 << 7)) != 0;
 }
 
-// InstructionView property method implementations (defined after luaP_opmodes)
+// InstructionView property method implementations (defined after moonP_opmodes)
 inline OpMode InstructionView::getOpMode() const noexcept {
-	return static_cast<OpMode>(luaP_opmodes[opcode()] & 7);
+	return static_cast<OpMode>(moonP_opmodes[opcode()] & 7);
 }
 
 inline bool InstructionView::testAMode() const noexcept {
-	return (luaP_opmodes[opcode()] & (1 << 3)) != 0;
+	return (moonP_opmodes[opcode()] & (1 << 3)) != 0;
 }
 
 inline bool InstructionView::testTMode() const noexcept {
-	return (luaP_opmodes[opcode()] & (1 << 4)) != 0;
+	return (moonP_opmodes[opcode()] & (1 << 4)) != 0;
 }
 
 inline bool InstructionView::testITMode() const noexcept {
-	return (luaP_opmodes[opcode()] & (1 << 5)) != 0;
+	return (moonP_opmodes[opcode()] & (1 << 5)) != 0;
 }
 
 inline bool InstructionView::testOTMode() const noexcept {
-	return (luaP_opmodes[opcode()] & (1 << 6)) != 0;
+	return (moonP_opmodes[opcode()] & (1 << 6)) != 0;
 }
 
 inline bool InstructionView::testMMMode() const noexcept {
-	return (luaP_opmodes[opcode()] & (1 << 7)) != 0;
+	return (moonP_opmodes[opcode()] & (1 << 7)) != 0;
 }
 
 
-LUAI_FUNC int luaP_isOT (Instruction i);
-LUAI_FUNC int luaP_isIT (Instruction i);
+MOONI_FUNC int moonP_isOT (Instruction i);
+MOONI_FUNC int moonP_isIT (Instruction i);
 
 
 #endif

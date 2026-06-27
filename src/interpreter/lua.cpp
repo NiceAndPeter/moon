@@ -19,23 +19,23 @@
 #include "llimits.h"
 
 
-#if !defined(LUA_PROGNAME)
-#define LUA_PROGNAME		"lua"
+#if !defined(MOON_PROGNAME)
+#define MOON_PROGNAME		"lua"
 #endif
 
-#if !defined(LUA_INIT_VAR)
-#define LUA_INIT_VAR		"LUA_INIT"
+#if !defined(MOON_INIT_VAR)
+#define MOON_INIT_VAR		"MOON_INIT"
 #endif
 
-#define LUA_INITVARVERSION	LUA_INIT_VAR LUA_VERSUFFIX
+#define MOON_INITVARVERSION	MOON_INIT_VAR MOON_VERSUFFIX
 
 
-static lua_State *globalL = nullptr;
+static moon_State *globalL = nullptr;
 
-static const char *progname = LUA_PROGNAME;
+static const char *progname = MOON_PROGNAME;
 
 
-#if defined(LUA_USE_POSIX)  // {
+#if defined(MOON_USE_POSIX)  // {
 
 /*
 ** Use 'sigaction' when available.
@@ -58,10 +58,10 @@ static void setsignal (int sig, void (*handler)(int)) {
 /*
 ** Hook set by signal function to stop the interpreter.
 */
-static void lstop (lua_State *L, lua_Debug *ar) {
+static void lstop (moon_State *L, moon_Debug *ar) {
   (void)ar;  // unused arg.
-  lua_sethook(L, nullptr, 0, 0);  // reset hook
-  luaL_error(L, "interrupted!");
+  moon_sethook(L, nullptr, 0, 0);  // reset hook
+  moonL_error(L, "interrupted!");
 }
 
 
@@ -72,19 +72,19 @@ static void lstop (lua_State *L, lua_Debug *ar) {
 ** interpreter.
 */
 static void laction (int i) {
-  int flag = LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE | LUA_MASKCOUNT;
+  int flag = MOON_MASKCALL | MOON_MASKRET | MOON_MASKLINE | MOON_MASKCOUNT;
   setsignal(i, SIG_DFL);  // if another SIGINT happens, terminate process
-  lua_sethook(globalL, lstop, flag, 1);
+  moon_sethook(globalL, lstop, flag, 1);
 }
 
 
 static void print_usage (const char *badoption) {
-  lua_writestringerror("%s: ", progname);
+  moon_writestringerror("%s: ", progname);
   if (badoption[1] == 'e' || badoption[1] == 'l')
-    lua_writestringerror("'%s' needs argument\n", badoption);
+    moon_writestringerror("'%s' needs argument\n", badoption);
   else
-    lua_writestringerror("unrecognized option '%s'\n", badoption);
-  lua_writestringerror(
+    moon_writestringerror("unrecognized option '%s'\n", badoption);
+  moon_writestringerror(
   "usage: %s [options] [script [args]]\n"
   "Available options are:\n"
   "  -e stat   execute string 'stat'\n"
@@ -106,8 +106,8 @@ static void print_usage (const char *badoption) {
 ** (if present)
 */
 static void l_message (const char *pname, const char *msg) {
-  if (pname) lua_writestringerror("%s: ", pname);
-  lua_writestringerror("%s\n", msg);
+  if (pname) moon_writestringerror("%s: ", pname);
+  moon_writestringerror("%s\n", msg);
 }
 
 
@@ -115,13 +115,13 @@ static void l_message (const char *pname, const char *msg) {
 ** Check whether 'status' is not OK and, if so, prints the error
 ** message on the top of the stack.
 */
-static int report (lua_State *L, int status) {
-  if (status != LUA_OK) {
-    const char *msg = lua_tostring(L, -1);
+static int report (moon_State *L, int status) {
+  if (status != MOON_OK) {
+    const char *msg = moon_tostring(L, -1);
     if (msg == nullptr)
       msg = "(error message not a string)";
     l_message(progname, msg);
-    lua_pop(L, 1);  // remove message
+    moon_pop(L, 1);  // remove message
   }
   return status;
 }
@@ -130,41 +130,41 @@ static int report (lua_State *L, int status) {
 /*
 ** Message handler used to run all chunks
 */
-static int msghandler (lua_State *L) {
-  const char *msg = lua_tostring(L, 1);
+static int msghandler (moon_State *L) {
+  const char *msg = moon_tostring(L, 1);
   if (msg == nullptr) {  // is error object not a string?
-    if (luaL_callmeta(L, 1, "__tostring") &&  // does it have a metamethod
-        lua_type(L, -1) == LUA_TSTRING)  // that produces a string?
+    if (moonL_callmeta(L, 1, "__tostring") &&  // does it have a metamethod
+        moon_type(L, -1) == MOON_TSTRING)  // that produces a string?
       return 1;  // that is the message
     else
-      msg = lua_pushfstring(L, "(error object is a %s value)",
-                               luaL_typename(L, 1));
+      msg = moon_pushfstring(L, "(error object is a %s value)",
+                               moonL_typename(L, 1));
   }
-  luaL_traceback(L, L, msg, 1);  // append a standard traceback
+  moonL_traceback(L, L, msg, 1);  // append a standard traceback
   return 1;  // return the traceback
 }
 
 
 /*
-** Interface to 'lua_pcall', which sets appropriate message function
+** Interface to 'moon_pcall', which sets appropriate message function
 ** and C-signal handler. Used to run all chunks.
 */
-static int docall (lua_State *L, int narg, int nres) {
-  int base = lua_gettop(L) - narg;  // function index
-  lua_pushcfunction(L, msghandler);  // push message handler
-  lua_insert(L, base);  // put it under function and args
+static int docall (moon_State *L, int narg, int nres) {
+  int base = moon_gettop(L) - narg;  // function index
+  moon_pushcfunction(L, msghandler);  // push message handler
+  moon_insert(L, base);  // put it under function and args
   globalL = L;  // to be available to 'laction'
   setsignal(SIGINT, laction);  // set C-signal handler
-  const int status = lua_pcall(L, narg, nres, base);
+  const int status = moon_pcall(L, narg, nres, base);
   setsignal(SIGINT, SIG_DFL);  // reset C-signal handler
-  lua_remove(L, base);  // remove message handler from the stack
+  moon_remove(L, base);  // remove message handler from the stack
   return status;
 }
 
 
 static void print_version (void) {
-  lua_writestring(LUA_COPYRIGHT, strlen(LUA_COPYRIGHT));
-  lua_writeline();
+  moon_writestring(MOON_COPYRIGHT, strlen(MOON_COPYRIGHT));
+  moon_writeline();
 }
 
 
@@ -178,31 +178,31 @@ static void print_version (void) {
 ** (If there is no interpreter's name either, 'script' is -1, so
 ** table sizes are zero.)
 */
-static void createargtable (lua_State *L, char **argv, int argc, int script) {
+static void createargtable (moon_State *L, char **argv, int argc, int script) {
   int i, narg;
   narg = argc - (script + 1);  // number of positive indices
-  lua_createtable(L, narg, script + 1);
+  moon_createtable(L, narg, script + 1);
   for (i = 0; i < argc; i++) {
-    lua_pushstring(L, argv[i]);
-    lua_rawseti(L, -2, i - script);
+    moon_pushstring(L, argv[i]);
+    moon_rawseti(L, -2, i - script);
   }
-  lua_setglobal(L, "arg");
+  moon_setglobal(L, "arg");
 }
 
 
-static int dochunk (lua_State *L, int status) {
-  if (status == LUA_OK) status = docall(L, 0, 0);
+static int dochunk (moon_State *L, int status) {
+  if (status == MOON_OK) status = docall(L, 0, 0);
   return report(L, status);
 }
 
 
-static int dofile (lua_State *L, const char *name) {
-  return dochunk(L, luaL_loadfile(L, name));
+static int dofile (moon_State *L, const char *name) {
+  return dochunk(L, moonL_loadfile(L, name));
 }
 
 
-static int dostring (lua_State *L, const char *s, const char *name) {
-  return dochunk(L, luaL_loadbuffer(L, s, strlen(s), name));
+static int dostring (moon_State *L, const char *s, const char *name) {
+  return dochunk(L, moonL_loadbuffer(L, s, strlen(s), name));
 }
 
 
@@ -211,25 +211,25 @@ static int dostring (lua_State *L, const char *s, const char *name) {
 ** If there is no explicit modname and globname contains a '-', cut
 ** the suffix after '-' (the "version") to make the global name.
 */
-static int dolibrary (lua_State *L, char *globname) {
+static int dolibrary (moon_State *L, char *globname) {
   int status;
   char *suffix = nullptr;
   char *modname = strchr(globname, '=');
   if (modname == nullptr) {  // no explicit name?
     modname = globname;  // module name is equal to global name
-    suffix = strchr(modname, *LUA_IGMARK);  // look for a suffix mark
+    suffix = strchr(modname, *MOON_IGMARK);  // look for a suffix mark
   }
   else {
     *modname = '\0';  /* global name ends here */
     modname++;  // module name starts after the '='
   }
-  lua_getglobal(L, "require");
-  lua_pushstring(L, modname);
+  moon_getglobal(L, "require");
+  moon_pushstring(L, modname);
   status = docall(L, 1, 1);  // call 'require(modname)'
-  if (status == LUA_OK) {
+  if (status == MOON_OK) {
     if (suffix != nullptr)  // is there a suffix mark?
       *suffix = '\0';  /* remove suffix from global name */
-    lua_setglobal(L, globname);  // globname = require(modname)
+    moon_setglobal(L, globname);  // globname = require(modname)
   }
   return report(L, status);
 }
@@ -238,27 +238,27 @@ static int dolibrary (lua_State *L, char *globname) {
 /*
 ** Push on the stack the contents of table 'arg' from 1 to #arg
 */
-static int pushargs (lua_State *L) {
+static int pushargs (moon_State *L) {
   int i, n;
-  if (lua_getglobal(L, "arg") != LUA_TTABLE)
-    luaL_error(L, "'arg' is not a table");
-  n = (int)luaL_len(L, -1);
-  luaL_checkstack(L, n + 3, "too many arguments to script");
+  if (moon_getglobal(L, "arg") != MOON_TTABLE)
+    moonL_error(L, "'arg' is not a table");
+  n = (int)moonL_len(L, -1);
+  moonL_checkstack(L, n + 3, "too many arguments to script");
   for (i = 1; i <= n; i++)
-    lua_rawgeti(L, -i, i);
-  lua_remove(L, -i);  // remove table from the stack
+    moon_rawgeti(L, -i, i);
+  moon_remove(L, -i);  // remove table from the stack
   return n;
 }
 
 
-static int handle_script (lua_State *L, char **argv) {
+static int handle_script (moon_State *L, char **argv) {
   const char *fname = argv[0];
   if (strcmp(fname, "-") == 0 && strcmp(argv[-1], "--") != 0)
     fname = nullptr;  // stdin
-  int status = luaL_loadfile(L, fname);
-  if (status == LUA_OK) {
+  int status = moonL_loadfile(L, fname);
+  if (status == MOON_OK) {
     int n = pushargs(L);  // push arguments to script
-    status = docall(L, n, LUA_MULTRET);
+    status = docall(L, n, MOON_MULTRET);
   }
   return report(L, status);
 }
@@ -342,23 +342,23 @@ static int collectargs (char **argv, int *first) {
 ** 'W', which also affects the state.
 ** Returns 0 if some code raises an error.
 */
-static int runargs (lua_State *L, char **argv, int n) {
+static int runargs (moon_State *L, char **argv, int n) {
   for (int i = 1; i < n; i++) {
     int option = argv[i][1];
-    lua_assert(argv[i][0] == '-');  // already checked
+    moon_assert(argv[i][0] == '-');  // already checked
     switch (option) {
       case 'e':  case 'l': {
         char *extra = argv[i] + 2;  // both options need an argument
         if (*extra == '\0') extra = argv[++i];
-        lua_assert(extra != nullptr);
+        moon_assert(extra != nullptr);
         const int status = (option == 'e')
                  ? dostring(L, extra, "=(command line)")
                  : dolibrary(L, extra);
-        if (status != LUA_OK) return 0;
+        if (status != MOON_OK) return 0;
         break;
       }
       case 'W':
-        lua_warning(L, "@on", 0);  // warnings on
+        moon_warning(L, "@on", 0);  // warnings on
         break;
     }
   }
@@ -366,14 +366,14 @@ static int runargs (lua_State *L, char **argv, int n) {
 }
 
 
-static int handle_luainit (lua_State *L) {
-  const char *name = "=" LUA_INITVARVERSION;
+static int handle_luainit (moon_State *L) {
+  const char *name = "=" MOON_INITVARVERSION;
   const char *init = getenv(name + 1);
   if (init == nullptr) {
-    name = "=" LUA_INIT_VAR;
+    name = "=" MOON_INIT_VAR;
     init = getenv(name + 1);  // try alternative name
   }
-  if (init == nullptr) return LUA_OK;
+  if (init == nullptr) return MOON_OK;
   else if (init[0] == '@')
     return dofile(L, init+1);
   else
@@ -387,38 +387,38 @@ static int handle_luainit (lua_State *L) {
 ** ===================================================================
 */
 
-#if !defined(LUA_PROMPT)
-#define LUA_PROMPT		"> "
-#define LUA_PROMPT2		">> "
+#if !defined(MOON_PROMPT)
+#define MOON_PROMPT		"> "
+#define MOON_PROMPT2		">> "
 #endif
 
-#if !defined(LUA_MAXINPUT)
-#define LUA_MAXINPUT		512
+#if !defined(MOON_MAXINPUT)
+#define MOON_MAXINPUT		512
 #endif
 
 
 /*
-** lua_stdin_is_tty detects whether the standard input is a 'tty' (that
+** moon_stdin_is_tty detects whether the standard input is a 'tty' (that
 ** is, whether we're running lua interactively).
 */
-#if !defined(lua_stdin_is_tty)  // {
+#if !defined(moon_stdin_is_tty)  // {
 
-#if defined(LUA_USE_POSIX)  // {
+#if defined(MOON_USE_POSIX)  // {
 
 #include <unistd.h>
-#define lua_stdin_is_tty()	isatty(0)
+#define moon_stdin_is_tty()	isatty(0)
 
-#elif defined(LUA_USE_WINDOWS)  // }{
+#elif defined(MOON_USE_WINDOWS)  // }{
 
 #include <io.h>
 #include <windows.h>
 
-#define lua_stdin_is_tty()	_isatty(_fileno(stdin))
+#define moon_stdin_is_tty()	_isatty(_fileno(stdin))
 
 #else  // }{
 
 // ISO C definition
-#define lua_stdin_is_tty()	1  // assume stdin is a tty
+#define moon_stdin_is_tty()	1  // assume stdin is a tty
 
 #endif  // }
 
@@ -426,26 +426,26 @@ static int handle_luainit (lua_State *L) {
 
 
 /*
-** * lua_initreadline initializes the readline system.
-** * lua_readline defines how to show a prompt and then read a line from
+** * moon_initreadline initializes the readline system.
+** * moon_readline defines how to show a prompt and then read a line from
 **   the standard input.
-** * lua_saveline defines how to "save" a read line in a "history".
-** * lua_freeline defines how to free a line read by lua_readline.
+** * moon_saveline defines how to "save" a read line in a "history".
+** * moon_freeline defines how to free a line read by moon_readline.
 */
 
-#if !defined(lua_readline)  // {
+#if !defined(moon_readline)  // {
 // Otherwise, all previously listed functions should be defined.
 
-#if defined(LUA_USE_READLINE)  // {
+#if defined(MOON_USE_READLINE)  // {
 // Lua will be linked with '-lreadline'
 
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#define lua_initreadline(L)	((void)L, rl_readline_name="lua")
-#define lua_readline(buff,prompt)	((void)buff, readline(prompt))
-#define lua_saveline(line)	add_history(line)
-#define lua_freeline(line)	free(line)
+#define moon_initreadline(L)	((void)L, rl_readline_name="lua")
+#define moon_readline(buff,prompt)	((void)buff, readline(prompt))
+#define moon_saveline(line)	add_history(line)
+#define moon_freeline(line)	free(line)
 
 #else  // }{
 // use dynamically loaded readline (or nothing)
@@ -459,40 +459,40 @@ typedef void (*l_addhistT) (const char *string);
 static l_addhistT l_addhist = nullptr;
 
 
-static char *lua_readline (char *buff, const char *prompt) {
+static char *moon_readline (char *buff, const char *prompt) {
   if (l_readline != nullptr)  // is there a 'readline'?
     return (*l_readline)(prompt);  // use it
   else {  // emulate 'readline' over 'buff'
     fputs(prompt, stdout);
     fflush(stdout);  // show prompt
-    return fgets(buff, LUA_MAXINPUT, stdin);  // read line
+    return fgets(buff, MOON_MAXINPUT, stdin);  // read line
   }
 }
 
 
-static void lua_saveline (const char *line) {
+static void moon_saveline (const char *line) {
   if (l_addhist != nullptr)  // is there an 'add_history'?
     (*l_addhist)(line);  // use it
   // else nothing to be done
 }
 
 
-static void lua_freeline (char *line) {
+static void moon_freeline (char *line) {
   if (l_readline != nullptr)  // is there a 'readline'?
     free(line);  // free line created by it
-  // else 'lua_readline' used an automatic buffer; nothing to free
+  // else 'moon_readline' used an automatic buffer; nothing to free
 }
 
 
-#if defined(LUA_USE_DLOPEN) && defined(LUA_READLINELIB)  // {
+#if defined(MOON_USE_DLOPEN) && defined(MOON_READLINELIB)  // {
 // try to load 'readline' dynamically
 
 #include <dlfcn.h>
 
-static void lua_initreadline (lua_State *L) {
-  void *lib = dlopen(LUA_READLINELIB, RTLD_NOW | RTLD_LOCAL);
+static void moon_initreadline (moon_State *L) {
+  void *lib = dlopen(MOON_READLINELIB, RTLD_NOW | RTLD_LOCAL);
   if (lib == nullptr)
-    lua_warning(L, "library '" LUA_READLINELIB "' not found", 0);
+    moon_warning(L, "library '" MOON_READLINELIB "' not found", 0);
   else {
     const char **name = static_cast<const char**>(dlsym(lib, "rl_readline_name"));
     if (name != nullptr)
@@ -500,15 +500,15 @@ static void lua_initreadline (lua_State *L) {
     l_readline = reinterpret_cast<l_readlineT>(cast_func(dlsym(lib, "readline")));
     l_addhist = reinterpret_cast<l_addhistT>(cast_func(dlsym(lib, "add_history")));
     if (l_readline == nullptr)
-      lua_warning(L, "unable to load 'readline'", 0);
+      moon_warning(L, "unable to load 'readline'", 0);
   }
 }
 
 #else  // }{
-// no dlopen or LUA_READLINELIB undefined
+// no dlopen or MOON_READLINELIB undefined
 
 // Leave pointers with nullptr
-#define lua_initreadline(L)	((void)L)
+#define moon_initreadline(L)	((void)L)
 
 #endif  // }
 
@@ -522,12 +522,12 @@ static void lua_initreadline (lua_State *L) {
 ** the string (or nil, if using the default value) on the stack, to keep
 ** it anchored.
 */
-static const char *get_prompt (lua_State *L, int firstline) {
-  if (lua_getglobal(L, firstline ? "_PROMPT" : "_PROMPT2") == LUA_TNIL)
-    return (firstline ? LUA_PROMPT : LUA_PROMPT2);  // use the default
+static const char *get_prompt (moon_State *L, int firstline) {
+  if (moon_getglobal(L, firstline ? "_PROMPT" : "_PROMPT2") == MOON_TNIL)
+    return (firstline ? MOON_PROMPT : MOON_PROMPT2);  // use the default
   else {  // apply 'tostring' over the value
-    const char *p = luaL_tolstring(L, -1, nullptr);
-    lua_remove(L, -2);  // remove original value
+    const char *p = moonL_tolstring(L, -1, nullptr);
+    moon_remove(L, -2);  // remove original value
     return p;
   }
 }
@@ -542,10 +542,10 @@ static const char *get_prompt (lua_State *L, int firstline) {
 ** message at the top of the stack ends with the above mark for
 ** incomplete statements.
 */
-static int incomplete (lua_State *L, int status) {
-  if (status == LUA_ERRSYNTAX) {
+static int incomplete (moon_State *L, int status) {
+  if (status == MOON_ERRSYNTAX) {
     size_t lmsg;
-    const char *msg = lua_tolstring(L, -1, &lmsg);
+    const char *msg = moon_tolstring(L, -1, &lmsg);
     if (lmsg >= marklen && strcmp(msg + lmsg - marklen, EOFMARK) == 0)
       return 1;
   }
@@ -556,19 +556,19 @@ static int incomplete (lua_State *L, int status) {
 /*
 ** Prompt the user, read a line, and push it into the Lua stack.
 */
-static int pushline (lua_State *L, int firstline) {
-  char buffer[LUA_MAXINPUT];
+static int pushline (moon_State *L, int firstline) {
+  char buffer[MOON_MAXINPUT];
   size_t l;
   const char *prmt = get_prompt(L, firstline);
-  char *b = lua_readline(buffer, prmt);
-  lua_pop(L, 1);  // remove prompt
+  char *b = moon_readline(buffer, prmt);
+  moon_pop(L, 1);  // remove prompt
   if (b == nullptr)
     return 0;  // no input
   l = strlen(b);
   if (l > 0 && b[l-1] == '\n')  // line ends with newline?
     b[--l] = '\0';  // remove it
-  lua_pushlstring(L, b, l);
-  lua_freeline(b);
+  moon_pushlstring(L, b, l);
+  moon_freeline(b);
   return 1;
 }
 
@@ -577,14 +577,14 @@ static int pushline (lua_State *L, int firstline) {
 ** Try to compile line on the stack as 'return <line>;'; on return, stack
 ** has either compiled chunk or original line (if compilation failed).
 */
-static int addreturn (lua_State *L) {
-  const char *line = lua_tostring(L, -1);  // original line
-  const char *retline = lua_pushfstring(L, "return %s;", line);
-  int status = luaL_loadbuffer(L, retline, strlen(retline), "=stdin");
-  if (status == LUA_OK)
-    lua_remove(L, -2);  // remove modified line
+static int addreturn (moon_State *L) {
+  const char *line = moon_tostring(L, -1);  // original line
+  const char *retline = moon_pushfstring(L, "return %s;", line);
+  int status = moonL_loadbuffer(L, retline, strlen(retline), "=stdin");
+  if (status == MOON_OK)
+    moon_remove(L, -2);  // remove modified line
   else
-    lua_pop(L, 2);  // pop result from 'luaL_loadbuffer' and modified line
+    moon_pop(L, 2);  // pop result from 'moonL_loadbuffer' and modified line
   return status;
 }
 
@@ -595,7 +595,7 @@ static void checklocal (const char *line) {
   line += strspn(line, space);  // skip spaces
   if (strncmp(line, "local", szloc) == 0 &&  // "local"?
       strchr(space, *(line + szloc)) != nullptr) {  // followed by a space?
-    lua_writestringerror("%s\n",
+    moon_writestringerror("%s\n",
       "warning: locals do not survive across lines in interactive mode");
   }
 }
@@ -606,19 +606,19 @@ static void checklocal (const char *line) {
 ** for an incomplete statement. Start with first line already read in
 ** the stack.
 */
-static int multiline (lua_State *L) {
+static int multiline (moon_State *L) {
   size_t len;
-  const char *line = lua_tolstring(L, 1, &len);  // get first line
+  const char *line = moon_tolstring(L, 1, &len);  // get first line
   checklocal(line);
   for (;;) {  // repeat until gets a complete statement
-    int status = luaL_loadbuffer(L, line, len, "=stdin");  // try it
+    int status = moonL_loadbuffer(L, line, len, "=stdin");  // try it
     if (!incomplete(L, status) || !pushline(L, 0))
       return status;  // should not or cannot try to add continuation line
-    lua_remove(L, -2);  // remove error message (from incomplete line)
-    lua_pushliteral(L, "\n");  // add newline...
-    lua_insert(L, -2);  // ...between the two lines
-    lua_concat(L, 3);  // join them
-    line = lua_tolstring(L, 1, &len);  // get what is has
+    moon_remove(L, -2);  // remove error message (from incomplete line)
+    moon_pushliteral(L, "\n");  // add newline...
+    moon_insert(L, -2);  // ...between the two lines
+    moon_concat(L, 3);  // join them
+    line = moon_tolstring(L, 1, &len);  // get what is has
   }
 }
 
@@ -629,19 +629,19 @@ static int multiline (lua_State *L) {
 ** the final status of load/call with the resulting function (if any)
 ** in the top of the stack.
 */
-static int loadline (lua_State *L) {
+static int loadline (moon_State *L) {
   const char *line;
   int status;
-  lua_settop(L, 0);
+  moon_settop(L, 0);
   if (!pushline(L, 1))
     return -1;  // no input
-  if ((status = addreturn(L)) != LUA_OK)  // 'return ...' did not work?
+  if ((status = addreturn(L)) != MOON_OK)  // 'return ...' did not work?
     status = multiline(L);  // try as command, maybe with continuation lines
-  line = lua_tostring(L, 1);
+  line = moon_tostring(L, 1);
   if (line[0] != '\0')  // non empty?
-    lua_saveline(line);  // keep history
-  lua_remove(L, 1);  // remove line from the stack
-  lua_assert(lua_gettop(L) == 1);
+    moon_saveline(line);  // keep history
+  moon_remove(L, 1);  // remove line from the stack
+  moon_assert(moon_gettop(L) == 1);
   return status;
 }
 
@@ -649,15 +649,15 @@ static int loadline (lua_State *L) {
 /*
 ** Prints (calling the Lua 'print' function) any values on the stack
 */
-static void l_print (lua_State *L) {
-  int n = lua_gettop(L);
+static void l_print (moon_State *L) {
+  int n = moon_gettop(L);
   if (n > 0) {  // any result to be printed?
-    luaL_checkstack(L, LUA_MINSTACK, "too many results to print");
-    lua_getglobal(L, "print");
-    lua_insert(L, 1);
-    if (lua_pcall(L, n, 0, 0) != LUA_OK)
-      l_message(progname, lua_pushfstring(L, "error calling 'print' (%s)",
-                                             lua_tostring(L, -1)));
+    moonL_checkstack(L, MOON_MINSTACK, "too many results to print");
+    moon_getglobal(L, "print");
+    moon_insert(L, 1);
+    if (moon_pcall(L, n, 0, 0) != MOON_OK)
+      l_message(progname, moon_pushfstring(L, "error calling 'print' (%s)",
+                                             moon_tostring(L, -1)));
   }
 }
 
@@ -666,26 +666,26 @@ static void l_print (lua_State *L) {
 ** Do the REPL: repeatedly read (load) a line, evaluate (call) it, and
 ** print any results.
 */
-static void doREPL (lua_State *L) {
+static void doREPL (moon_State *L) {
   int status;
   const char *oldprogname = progname;
   progname = nullptr;  // no 'progname' on errors in interactive mode
-  lua_initreadline(L);
+  moon_initreadline(L);
   while ((status = loadline(L)) != -1) {
-    if (status == LUA_OK)
-      status = docall(L, 0, LUA_MULTRET);
-    if (status == LUA_OK) l_print(L);
+    if (status == MOON_OK)
+      status = docall(L, 0, MOON_MULTRET);
+    if (status == MOON_OK) l_print(L);
     else report(L, status);
   }
-  lua_settop(L, 0);  // clear stack
-  lua_writeline();
+  moon_settop(L, 0);  // clear stack
+  moon_writeline();
   progname = oldprogname;
 }
 
 // }==================================================================
 
-#if !defined(luai_openlibs)
-#define luai_openlibs(L)	luaL_openselectedlibs(L, ~0, 0)
+#if !defined(mooni_openlibs)
+#define mooni_openlibs(L)	moonL_openselectedlibs(L, ~0, 0)
 #endif
 
 
@@ -693,13 +693,13 @@ static void doREPL (lua_State *L) {
 ** Main body of stand-alone interpreter (to be called in protected mode).
 ** Reads the options and handles them all.
 */
-static int pmain (lua_State *L) {
-  int argc = (int)lua_tointeger(L, 1);
-  char **argv = static_cast<char **>(lua_touserdata(L, 2));
+static int pmain (moon_State *L) {
+  int argc = (int)moon_tointeger(L, 1);
+  char **argv = static_cast<char **>(moon_touserdata(L, 2));
   int script;
   int args = collectargs(argv, &script);
   int optlim = (script > 0) ? script : argc;  // first argv not an option
-  luaL_checkversion(L);  // check that interpreter has correct version
+  moonL_checkversion(L);  // check that interpreter has correct version
   if (args == has_error) {  // bad arg?
     print_usage(argv[script]);  // 'script' has index of bad arg.
     return 0;
@@ -707,53 +707,53 @@ static int pmain (lua_State *L) {
   if (args & has_v)  // option '-v'?
     print_version();
   if (args & has_E) {  // option '-E'?
-    lua_pushboolean(L, 1);  // signal for libraries to ignore env. vars.
-    lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
+    moon_pushboolean(L, 1);  // signal for libraries to ignore env. vars.
+    moon_setfield(L, MOON_REGISTRYINDEX, "MOON_NOENV");
   }
-  luai_openlibs(L);  // open standard libraries
+  mooni_openlibs(L);  // open standard libraries
   createargtable(L, argv, argc, script);  // create table 'arg'
-  lua_gc(L, LUA_GCRESTART);  // start GC...
-  lua_gc(L, LUA_GCGEN);  // ...in generational mode
+  moon_gc(L, MOON_GCRESTART);  // start GC...
+  moon_gc(L, MOON_GCGEN);  // ...in generational mode
   if (!(args & has_E)) {  // no option '-E'?
-    if (handle_luainit(L) != LUA_OK)  // run LUA_INIT
-      return 0;  // error running LUA_INIT
+    if (handle_luainit(L) != MOON_OK)  // run MOON_INIT
+      return 0;  // error running MOON_INIT
   }
   if (!runargs(L, argv, optlim))  // execute arguments -e and -l
     return 0;  // something failed
   if (script > 0) {  // execute main script (if there is one)
-    if (handle_script(L, argv + script) != LUA_OK)
+    if (handle_script(L, argv + script) != MOON_OK)
       return 0;  // interrupt in case of error
   }
   if (args & has_i)  // -i option?
     doREPL(L);  // do read-eval-print loop
   else if (script < 1 && !(args & (has_e | has_v))) {  // no active option?
-    if (lua_stdin_is_tty()) {  // running in interactive mode?
+    if (moon_stdin_is_tty()) {  // running in interactive mode?
       print_version();
       doREPL(L);  // do read-eval-print loop
     }
     else
       dofile(L, nullptr);  // executes stdin as a file
   }
-  lua_pushboolean(L, 1);  // signal no errors
+  moon_pushboolean(L, 1);  // signal no errors
   return 1;
 }
 
 
 int main (int argc, char **argv) {
   int status, result;
-  lua_State *L = luaL_newstate();  // create state
+  moon_State *L = moonL_newstate();  // create state
   if (L == nullptr) {
     l_message(argv[0], "cannot create state: not enough memory");
     return EXIT_FAILURE;
   }
-  lua_gc(L, LUA_GCSTOP);  // stop GC while building state
-  lua_pushcfunction(L, &pmain);  // to call 'pmain' in protected mode
-  lua_pushinteger(L, argc);  // 1st argument
-  lua_pushlightuserdata(L, argv);  // 2nd argument
-  status = lua_pcall(L, 2, 1, 0);  // do the call
-  result = lua_toboolean(L, -1);  // get result
+  moon_gc(L, MOON_GCSTOP);  // stop GC while building state
+  moon_pushcfunction(L, &pmain);  // to call 'pmain' in protected mode
+  moon_pushinteger(L, argc);  // 1st argument
+  moon_pushlightuserdata(L, argv);  // 2nd argument
+  status = moon_pcall(L, 2, 1, 0);  // do the call
+  result = moon_toboolean(L, -1);  // get result
   report(L, status);
-  lua_close(L);
-  return (result && status == LUA_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
+  moon_close(L);
+  return (result && status == MOON_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 

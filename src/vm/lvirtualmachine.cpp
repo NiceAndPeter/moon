@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -24,15 +24,15 @@
 #include "lvm.h"
 
 /*
-** Full implementations moved from the former luaV_* functions.
+** Full implementations moved from the former moonV_* functions.
 */
 
 // Helper functions for execute() - copied from lvm.cpp since they're needed here now
 
-#if !defined(luai_threadyield)
-inline void luai_threadyield(lua_State* L) noexcept {
-  lua_unlock(L);
-  lua_lock(L);
+#if !defined(mooni_threadyield)
+inline void mooni_threadyield(moon_State* L) noexcept {
+  moon_unlock(L);
+  moon_lock(L);
 }
 #endif
 
@@ -48,43 +48,43 @@ inline constexpr int MAXTAGLOOP = 2000;
 ** (copied from lvm.cpp since they're needed here now)
 */
 
-inline constexpr lua_Integer l_addi(lua_State*, lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_addi(moon_State*, moon_Integer a, moon_Integer b) noexcept {
 	return intop(+, a, b);
 }
 
-inline constexpr lua_Integer l_subi(lua_State*, lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_subi(moon_State*, moon_Integer a, moon_Integer b) noexcept {
 	return intop(-, a, b);
 }
 
-inline constexpr lua_Integer l_muli(lua_State*, lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_muli(moon_State*, moon_Integer a, moon_Integer b) noexcept {
 	return intop(*, a, b);
 }
 
-inline constexpr lua_Integer l_band(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_band(moon_Integer a, moon_Integer b) noexcept {
 	return intop(&, a, b);
 }
 
-inline constexpr lua_Integer l_bor(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_bor(moon_Integer a, moon_Integer b) noexcept {
 	return intop(|, a, b);
 }
 
-inline constexpr lua_Integer l_bxor(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_bxor(moon_Integer a, moon_Integer b) noexcept {
 	return intop(^, a, b);
 }
 
-inline constexpr bool l_lti(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_lti(moon_Integer a, moon_Integer b) noexcept {
 	return a < b;
 }
 
-inline constexpr bool l_lei(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_lei(moon_Integer a, moon_Integer b) noexcept {
 	return a <= b;
 }
 
-inline constexpr bool l_gti(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_gti(moon_Integer a, moon_Integer b) noexcept {
 	return a > b;
 }
 
-inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_gei(moon_Integer a, moon_Integer b) noexcept {
 	return a >= b;
 }
 
@@ -97,7 +97,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   StkId stackFrameBase;
   const Instruction *programCounter;
   int hooksEnabled;
-#if LUA_USE_JUMPTABLE
+#if MOON_USE_JUMPTABLE
 #include "ljumptab.h"
 #endif
 
@@ -199,7 +199,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   auto saveProgramCounter = [&](CallInfo* ci_arg) {
     ci_arg->setSavedPC(programCounter);
   };
-  auto saveInterpreterState = [&](lua_State* L_arg, CallInfo* ci_arg) {
+  auto saveInterpreterState = [&](moon_State* L_arg, CallInfo* ci_arg) {
     saveProgramCounter(ci_arg);
     L_arg->getStackSubsystem().setTopPtr(ci_arg->topRef().p);
   };
@@ -240,20 +240,20 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   ** Check if garbage collection is needed and yield thread if necessary.
   ** 'c_val' is the limit of live values in the stack (typically L->top or callInfo->top)
   **
-  ** PERFORMANCE: GC is expensive, so we only check conditionally (luaC_condGC).
+  ** PERFORMANCE: GC is expensive, so we only check conditionally (moonC_condGC).
   ** The GC uses a debt-based system to determine when collection is needed.
   **
   ** Saves state before GC (because GC can trigger __gc metamethods that might
   ** throw errors), then updates trap after (because GC might have changed hooks).
   **
-  ** luai_threadyield allows the OS to schedule other threads, preventing tight
+  ** mooni_threadyield allows the OS to schedule other threads, preventing tight
   ** loops from starving other threads on single-core systems.
   */
-  auto checkGC = [&](lua_State* L_arg, StkId c_val) {
-    luaC_condGC(L_arg,
+  auto checkGC = [&](moon_State* L_arg, StkId c_val) {
+    moonC_condGC(L_arg,
                 [&](){ saveProgramCounter(callInfo); L_arg->getStackSubsystem().setTopPtr(c_val); },
                 [&](){ updateTrap(callInfo); });
-    luai_threadyield(L_arg);
+    mooni_threadyield(L_arg);
   };
 
   // Lambda: Arithmetic with immediate operand
@@ -262,19 +262,19 @@ void VirtualMachine::execute(CallInfo *callInfo) {
     TValue *v1 = getValueB(i);
     int imm = InstructionView(i).sc();
     if (ttisinteger(v1)) {
-      lua_Integer iv1 = ivalue(v1);
+      moon_Integer iv1 = ivalue(v1);
       programCounter++; ra->setInt(iop(L, iv1, imm));
     }
     else if (ttisfloat(v1)) {
-      lua_Number nb = fltvalue(v1);
-      lua_Number fimm = cast_num(imm);
+      moon_Number nb = fltvalue(v1);
+      moon_Number fimm = cast_num(imm);
       programCounter++; ra->setFloat(fop(L, nb, fimm));
     }
   };
 
   // Lambda: Auxiliary function for arithmetic operations over floats
   auto op_arithf_aux = [&](const TValue *v1, const TValue *v2, auto fop, Instruction i) {
-    lua_Number n1, n2;
+    moon_Number n1, n2;
     if (tonumberns(v1, n1) && tonumberns(v2, n2)) {
       auto ra = getRegisterA(i);
       programCounter++; s2v(ra)->setFloat(fop(L, n1, n2));
@@ -292,7 +292,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   auto op_arithfK = [&](auto fop, Instruction i) {
     TValue *v1 = getValueB(i);
     TValue *v2 = getConstantC(i);
-    lua_assert(ttisnumber(v2));
+    moon_assert(ttisnumber(v2));
     op_arithf_aux(v1, v2, fop, i);
   };
 
@@ -320,7 +320,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   auto op_arithK = [&](auto iop, auto fop, Instruction i) {
     TValue *v1 = getValueB(i);
     TValue *v2 = getConstantC(i);
-    lua_assert(ttisnumber(v2));
+    moon_assert(ttisnumber(v2));
     op_arith_aux(v1, v2, iop, fop, i);
   };
 
@@ -328,7 +328,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   auto op_bitwiseK = [&](auto op, Instruction i) {
     auto *v1 = getValueB(i);
     auto *v2 = getConstantC(i);
-    lua_Integer i1;
+    moon_Integer i1;
     auto i2 = ivalue(v2);
     if (tointegerns(v1, &i1)) {
       auto ra = getRegisterA(i);
@@ -340,7 +340,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   auto op_bitwise = [&](auto op, Instruction i) {
     auto *v1 = getValueB(i);
     auto *v2 = getValueC(i);
-    lua_Integer i1, i2;
+    moon_Integer i1, i2;
     if (tointegerns(v1, &i1) && tointegerns(v2, &i2)) {
       auto ra = getRegisterA(i);
       programCounter++; s2v(ra)->setInt(op(i1, i2));
@@ -368,13 +368,13 @@ void VirtualMachine::execute(CallInfo *callInfo) {
     if (ttisinteger(ra))
       cond = opi(ivalue(ra), im);
     else if (ttisfloat(ra)) {
-      lua_Number fa = fltvalue(ra);
-      lua_Number fim = cast_num(im);
+      moon_Number fa = fltvalue(ra);
+      moon_Number fim = cast_num(im);
       cond = opf(fa, fim);
     }
     else {
       int isf = InstructionView(i).c();
-      protectCall([&]() { cond = luaT_callorderiTM(L, ra, im, inv, isf, metamethodEvent); });
+      protectCall([&]() { cond = moonT_callorderiTM(L, ra, im, inv, isf, metamethodEvent); });
     }
     performConditionalJump(cond, callInfo, i);
   };
@@ -384,10 +384,10 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   auto cmp_le = [](const TValue* a, const TValue* b) { return *a <= *b; };
 
   // "Other" comparison lambdas for op_order (non-numeric comparisons)
-  auto other_lt = [&](lua_State* L_arg, const TValue* l, const TValue* r) {
+  auto other_lt = [&](moon_State* L_arg, const TValue* l, const TValue* r) {
     return L_arg->lessThanOthers(l, r);
   };
-  auto other_le = [&](lua_State* L_arg, const TValue* l, const TValue* r) {
+  auto other_le = [&](moon_State* L_arg, const TValue* l, const TValue* r) {
     return L_arg->lessEqualOthers(l, r);
   };
 
@@ -398,7 +398,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   constants = currentClosure->getProto()->getConstants();
   programCounter = callInfo->getSavedPC();
   if (l_unlikely(hooksEnabled))
-    hooksEnabled = luaG_tracecall(L);
+    hooksEnabled = moonG_tracecall(L);
   stackFrameBase = callInfo->funcRef().p + 1;
 
   Instruction i;  // instruction being executed (moved outside loop for lambda capture)
@@ -406,7 +406,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   // VM instruction fetch lambda
   auto vmfetch = [&]() {
     if (l_unlikely(hooksEnabled)) {  // stack reallocation or hooks?
-      hooksEnabled = luaG_traceexec(L, programCounter);  // handle hooks
+      hooksEnabled = moonG_traceexec(L, programCounter);  // handle hooks
       updateStackBase(callInfo);  // correct stack
     }
     i = *(programCounter++);
@@ -415,10 +415,10 @@ void VirtualMachine::execute(CallInfo *callInfo) {
   // main loop of interpreter
   for (;;) {
     vmfetch();
-    lua_assert(stackFrameBase == callInfo->funcRef().p + 1);
-    lua_assert(stackFrameBase <= L->getTop().p && L->getTop().p <= L->getStackLast().p);
+    moon_assert(stackFrameBase == callInfo->funcRef().p + 1);
+    moon_assert(stackFrameBase <= L->getTop().p && L->getTop().p <= L->getStackLast().p);
     // for tests, invalidate top for instructions not expecting it
-    lua_assert(luaP_isIT(i) || (cast_void(L->getStackSubsystem().setTopPtr(stackFrameBase)), 1));
+    moon_assert(moonP_isIT(i) || (cast_void(L->getStackSubsystem().setTopPtr(stackFrameBase)), 1));
     switch (InstructionView(i).opcode()) {
       case OP_MOVE: {
         auto ra = getRegisterA(i);
@@ -483,7 +483,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto ra = getRegisterA(i);
         auto *upvalue = currentClosure->getUpval(InstructionView(i).b());
         *upvalue->getVP() = *s2v(ra);
-        luaC_barrier(L, upvalue, s2v(ra));
+        moonC_barrier(L, upvalue, s2v(ra));
         break;
       }
       case OP_GETTABUP: {
@@ -491,7 +491,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto *upval = currentClosure->getUpval(InstructionView(i).b())->getVP();
         auto *rc = getConstantC(i);
         auto *key = tsvalue(rc);  // key must be a short string
-        LuaT tag;
+        MoonT tag;
         tag = fastget(upval, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
         if (tagisempty(tag))
           protectCall([&]() { tag = finishGet(upval, rc, ra, tag); });
@@ -501,7 +501,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
         auto *rc = getValueC(i);
-        LuaT tag;
+        MoonT tag;
         if (ttisinteger(rc)) {  // fast track for integers?
           fastgeti(rb, ivalue(rc), s2v(ra), tag);
         }
@@ -515,7 +515,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
         auto c = InstructionView(i).c();
-        LuaT tag;
+        MoonT tag;
         fastgeti(rb, c, s2v(ra), tag);
         if (tagisempty(tag)) {
           TValue key;
@@ -529,7 +529,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto *rb = getValueB(i);
         auto *rc = getConstantC(i);
         auto *key = tsvalue(rc);  // key must be a short string
-        LuaT tag;
+        MoonT tag;
         tag = fastget(rb, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
         if (tagisempty(tag))
           protectCall([&]() { tag = finishGet(rb, rc, ra, tag); });
@@ -598,7 +598,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         if (b > 0)
           b = 1u << (b - 1);  // hash size is 2^(b - 1)
         if (InstructionView(i).testk()) {  // non-zero extra argument?
-          lua_assert(InstructionView(*programCounter).ax() != 0);
+          moon_assert(InstructionView(*programCounter).ax() != 0);
           // add it to array size
           c += cast_uint(InstructionView(*programCounter).ax()) * (MAXARG_vC + 1);
         }
@@ -617,44 +617,44 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto *rc = getConstantC(i);
         auto *key = tsvalue(rc);  // key must be a short string
         L->getStackSubsystem().setSlot(ra + 1, rb);
-        LuaT tag = fastget(rb, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
+        MoonT tag = fastget(rb, key, s2v(ra), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getShortStr(strkey, res); });
         if (tagisempty(tag))
           protectCall([&]() { tag = finishGet(rb, rc, ra, tag); });
         break;
       }
       case OP_ADDI: {
-        op_arithI(l_addi, luai_numadd, i);
+        op_arithI(l_addi, mooni_numadd, i);
         break;
       }
       case OP_ADDK: {
-        op_arithK(l_addi, luai_numadd, i);
+        op_arithK(l_addi, mooni_numadd, i);
         break;
       }
       case OP_SUBK: {
-        op_arithK(l_subi, luai_numsub, i);
+        op_arithK(l_subi, mooni_numsub, i);
         break;
       }
       case OP_MULK: {
-        op_arithK(l_muli, luai_nummul, i);
+        op_arithK(l_muli, mooni_nummul, i);
         break;
       }
       case OP_MODK: {
         saveInterpreterState(L, callInfo);  // in case of division by 0
-        op_arithK([this](lua_State*, lua_Integer a, lua_Integer b) { return mod(a, b); },
-                  [this](lua_State*, lua_Number a, lua_Number b) { return modf(a, b); }, i);
+        op_arithK([this](moon_State*, moon_Integer a, moon_Integer b) { return mod(a, b); },
+                  [this](moon_State*, moon_Number a, moon_Number b) { return modf(a, b); }, i);
         break;
       }
       case OP_POWK: {
-        op_arithfK(luai_numpow, i);
+        op_arithfK(mooni_numpow, i);
         break;
       }
       case OP_DIVK: {
-        op_arithfK(luai_numdiv, i);
+        op_arithfK(mooni_numdiv, i);
         break;
       }
       case OP_IDIVK: {
         saveInterpreterState(L, callInfo);  // in case of division by 0
-        op_arithK([this](lua_State*, lua_Integer a, lua_Integer b) { return idiv(a, b); }, luai_numidiv, i);
+        op_arithK([this](moon_State*, moon_Integer a, moon_Integer b) { return idiv(a, b); }, mooni_numidiv, i);
         break;
       }
       case OP_BANDK: {
@@ -673,7 +673,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
         auto ic = InstructionView(i).sc();
-        lua_Integer ib;
+        moon_Integer ib;
         if (tointegerns(rb, &ib)) {
           programCounter++; s2v(ra)->setInt(VirtualMachine::shiftl(ic, ib));
         }
@@ -683,41 +683,41 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
         auto ic = InstructionView(i).sc();
-        lua_Integer ib;
+        moon_Integer ib;
         if (tointegerns(rb, &ib)) {
           programCounter++; s2v(ra)->setInt(VirtualMachine::shiftl(ib, -ic));
         }
         break;
       }
       case OP_ADD: {
-        op_arith(l_addi, luai_numadd, i);
+        op_arith(l_addi, mooni_numadd, i);
         break;
       }
       case OP_SUB: {
-        op_arith(l_subi, luai_numsub, i);
+        op_arith(l_subi, mooni_numsub, i);
         break;
       }
       case OP_MUL: {
-        op_arith(l_muli, luai_nummul, i);
+        op_arith(l_muli, mooni_nummul, i);
         break;
       }
       case OP_MOD: {
         saveInterpreterState(L, callInfo);  // in case of division by 0
-        op_arith([this](lua_State*, lua_Integer a, lua_Integer b) { return mod(a, b); },
-                 [this](lua_State*, lua_Number a, lua_Number b) { return modf(a, b); }, i);
+        op_arith([this](moon_State*, moon_Integer a, moon_Integer b) { return mod(a, b); },
+                 [this](moon_State*, moon_Number a, moon_Number b) { return modf(a, b); }, i);
         break;
       }
       case OP_POW: {
-        op_arithf(luai_numpow, i);
+        op_arithf(mooni_numpow, i);
         break;
       }
       case OP_DIV: {  // float division (always with floats)
-        op_arithf(luai_numdiv, i);
+        op_arithf(mooni_numdiv, i);
         break;
       }
       case OP_IDIV: {  // floor division
         saveInterpreterState(L, callInfo);  // in case of division by 0
-        op_arith([this](lua_State*, lua_Integer a, lua_Integer b) { return idiv(a, b); }, luai_numidiv, i);
+        op_arith([this](moon_State*, moon_Integer a, moon_Integer b) { return idiv(a, b); }, mooni_numidiv, i);
         break;
       }
       case OP_BAND: {
@@ -746,8 +746,8 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto *rb = getValueB(i);
         auto metamethodEvent = static_cast<TMS>(InstructionView(i).c());
         auto result = getRegisterA(pi);
-        lua_assert(OP_ADD <= InstructionView(pi).opcode() && InstructionView(pi).opcode() <= OP_SHR);
-        protectCall([&]() { luaT_trybinTM(L, s2v(ra), rb, result, metamethodEvent); });
+        moon_assert(OP_ADD <= InstructionView(pi).opcode() && InstructionView(pi).opcode() <= OP_SHR);
+        protectCall([&]() { moonT_trybinTM(L, s2v(ra), rb, result, metamethodEvent); });
         break;
       }
       case OP_MMBINI: {
@@ -757,7 +757,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto metamethodEvent = static_cast<TMS>(InstructionView(i).c());
         auto flip = InstructionView(i).k();
         auto result = getRegisterA(pi);
-        protectCall([&]() { luaT_trybiniTM(L, s2v(ra), imm, flip, result, metamethodEvent); });
+        protectCall([&]() { moonT_trybiniTM(L, s2v(ra), imm, flip, result, metamethodEvent); });
         break;
       }
       case OP_MMBINK: {
@@ -767,33 +767,33 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto metamethodEvent = static_cast<TMS>(InstructionView(i).c());
         auto flip = InstructionView(i).k();
         auto result = getRegisterA(pi);
-        protectCall([&]() { luaT_trybinassocTM(L, s2v(ra), imm, flip, result, metamethodEvent); });
+        protectCall([&]() { moonT_trybinassocTM(L, s2v(ra), imm, flip, result, metamethodEvent); });
         break;
       }
       case OP_UNM: {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
-        lua_Number nb;
+        moon_Number nb;
         if (ttisinteger(rb)) {
           auto ib = ivalue(rb);
           s2v(ra)->setInt(intop(-, 0, ib));
         }
         else if (tonumberns(rb, nb)) {
-          s2v(ra)->setFloat(luai_numunm(L, nb));
+          s2v(ra)->setFloat(mooni_numunm(L, nb));
         }
         else
-          protectCall([&]() { luaT_trybinTM(L, rb, rb, ra, TMS::TM_UNM); });
+          protectCall([&]() { moonT_trybinTM(L, rb, rb, ra, TMS::TM_UNM); });
         break;
       }
       case OP_BNOT: {
         auto ra = getRegisterA(i);
         auto *rb = getValueB(i);
-        lua_Integer ib;
+        moon_Integer ib;
         if (tointegerns(rb, &ib)) {
           s2v(ra)->setInt(intop(^, ~l_castS2U(0), ib));
         }
         else
-          protectCall([&]() { luaT_trybinTM(L, rb, rb, ra, TMS::TM_BNOT); });
+          protectCall([&]() { moonT_trybinTM(L, rb, rb, ra, TMS::TM_BNOT); });
         break;
       }
       case OP_NOT: {
@@ -815,19 +815,19 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         auto n = InstructionView(i).b();  // number of elements to concatenate
         L->getStackSubsystem().setTopPtr(ra + n);  // mark the end of concat operands
         protectCallNoTop([&]() { concat(n); });
-        checkGC(L, L->getTop().p);  // 'luaV_concat' ensures correct top
+        checkGC(L, L->getTop().p);  // 'moonV_concat' ensures correct top
         break;
       }
       case OP_CLOSE: {
         auto ra = getRegisterA(i);
-        lua_assert(!InstructionView(i).b());  // 'close must be alive
-        protectCall([&]() { ra = luaF_close(L, ra, LUA_OK, 1); });
+        moon_assert(!InstructionView(i).b());  // 'close must be alive
+        protectCall([&]() { ra = moonF_close(L, ra, MOON_OK, 1); });
         break;
       }
       case OP_TBC: {
         auto ra = getRegisterA(i);
         // create new to-be-closed upvalue
-        halfProtectedCall([&]() { luaF_newtbcupval(L, ra); });
+        halfProtectedCall([&]() { moonF_newtbcupval(L, ra); });
         break;
       }
       case OP_JMP: {
@@ -865,26 +865,26 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         if (ttisinteger(s2v(ra)))
           cond = (ivalue(s2v(ra)) == im);
         else if (ttisfloat(s2v(ra)))
-          cond = luai_numeq(fltvalue(s2v(ra)), cast_num(im));
+          cond = mooni_numeq(fltvalue(s2v(ra)), cast_num(im));
         else
           cond = 0;  // other types cannot be equal to a number
         performConditionalJump(cond, callInfo, i);
         break;
       }
       case OP_LTI: {
-        op_orderI(l_lti, luai_numlt, 0, TMS::TM_LT, i);
+        op_orderI(l_lti, mooni_numlt, 0, TMS::TM_LT, i);
         break;
       }
       case OP_LEI: {
-        op_orderI(l_lei, luai_numle, 0, TMS::TM_LE, i);
+        op_orderI(l_lei, mooni_numle, 0, TMS::TM_LE, i);
         break;
       }
       case OP_GTI: {
-        op_orderI(l_gti, luai_numgt, 1, TMS::TM_LT, i);
+        op_orderI(l_gti, mooni_numgt, 1, TMS::TM_LT, i);
         break;
       }
       case OP_GEI: {
-        op_orderI(l_gei, luai_numge, 1, TMS::TM_LE, i);
+        op_orderI(l_gei, mooni_numge, 1, TMS::TM_LE, i);
         break;
       }
       case OP_TEST: {
@@ -933,9 +933,9 @@ void VirtualMachine::execute(CallInfo *callInfo) {
           b = cast_int(L->getTop().p - ra);
         saveProgramCounter(callInfo);  // several calls here can raise errors
         if (InstructionView(i).testk()) {
-          luaF_closeupval(L, stackFrameBase);  // close upvalues from current call
-          lua_assert(L->getTbclist().p < stackFrameBase);  // no pending tbc variables
-          lua_assert(stackFrameBase == callInfo->funcRef().p + 1);
+          moonF_closeupval(L, stackFrameBase);  // close upvalues from current call
+          moon_assert(L->getTbclist().p < stackFrameBase);  // no pending tbc variables
+          moon_assert(stackFrameBase == callInfo->funcRef().p + 1);
         }
         int n;  // number of results when calling a C function
         if ((n = L->preTailCall( callInfo, ra, b, delta)) < 0)  // Lua function?
@@ -943,7 +943,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         else {  // C function?
           callInfo->funcRef().p -= delta;  // restore 'func' (if vararg)
           L->postCall( callInfo, n);  // finish caller
-          updateTrap(callInfo);  // 'luaD_poscall' can change hooks
+          updateTrap(callInfo);  // 'moonD_poscall' can change hooks
           goto ret;  // caller returns after the tail call
         }
       }
@@ -958,15 +958,15 @@ void VirtualMachine::execute(CallInfo *callInfo) {
           callInfo->setNRes(n);  // save number of returns
           if (L->getTop().p < callInfo->topRef().p)
             L->getStackSubsystem().setTopPtr(callInfo->topRef().p);
-          stackFrameBase = luaF_close(L, stackFrameBase, CLOSEKTOP, 1);
+          stackFrameBase = moonF_close(L, stackFrameBase, CLOSEKTOP, 1);
           updateTrap(callInfo);
           updateStackAfterRealloc(ra, callInfo, i);
         }
         if (nparams1)  // vararg function?
           callInfo->funcRef().p -= callInfo->getExtraArgs() + nparams1;
-        L->getStackSubsystem().setTopPtr(ra + n);  // set call for 'luaD_poscall'
+        L->getStackSubsystem().setTopPtr(ra + n);  // set call for 'moonD_poscall'
         L->postCall( callInfo, n);
-        updateTrap(callInfo);  // 'luaD_poscall' can change hooks
+        updateTrap(callInfo);  // 'moonD_poscall' can change hooks
         goto ret;
       }
       case OP_RETURN0: {
@@ -1057,10 +1057,10 @@ void VirtualMachine::execute(CallInfo *callInfo) {
        *s2v(ra + 3) = *s2v(ra + 2);  /* Use operator= */
        *s2v(ra + 2) = temp;  /* Use operator= */
         // create to-be-closed upvalue (if closing var. is not nil)
-        halfProtectedCall([&]() { luaF_newtbcupval(L, ra + 2); });
+        halfProtectedCall([&]() { moonF_newtbcupval(L, ra + 2); });
         programCounter += InstructionView(i).bx();  // go to end of the loop
         i = *(programCounter++);  // fetch next instruction
-        lua_assert(InstructionView(i).opcode() == OP_TFORCALL && ra == getRegisterA(i));
+        moon_assert(InstructionView(i).opcode() == OP_TFORCALL && ra == getRegisterA(i));
         goto l_tforcall;
       }
       case OP_TFORCALL: {
@@ -1079,7 +1079,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         protectCallNoTop([&]() { L->call( ra + 3, InstructionView(i).c()); });  // do the call
         updateStackAfterRealloc(ra, callInfo, i);  // stack may have changed
         i = *(programCounter++);  // go to next instruction
-        lua_assert(InstructionView(i).opcode() == OP_TFORLOOP && ra == getRegisterA(i));
+        moon_assert(InstructionView(i).opcode() == OP_TFORLOOP && ra == getRegisterA(i));
         goto l_tforloop;
       }}
       case OP_TFORLOOP: {
@@ -1106,14 +1106,14 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         // when 'n' is known, table should have proper size
         if (last > h->arraySize()) {  // needs more space?
           // fixed-size sets should have space preallocated
-          lua_assert(InstructionView(i).vb() == 0);
+          moon_assert(InstructionView(i).vb() == 0);
           h->resizeArray(L, last);  // preallocate it at once
         }
         for (; n > 0; n--) {
           auto *val = s2v(ra + n);
           obj2arr(h, last - 1, val);
           last--;
-          luaC_barrierback(L, obj2gco(h), val);
+          moonC_barrierback(L, obj2gco(h), val);
         }
         break;
       }
@@ -1127,11 +1127,11 @@ void VirtualMachine::execute(CallInfo *callInfo) {
       case OP_VARARG: {
         auto ra = getRegisterA(i);
         auto n = InstructionView(i).c() - 1;  // required results
-        protectCall([&]() { luaT_getvarargs(L, callInfo, ra, n); });
+        protectCall([&]() { moonT_getvarargs(L, callInfo, ra, n); });
         break;
       }
       case OP_VARARGPREP: {
-        protectCallNoTop([&]() { luaT_adjustvarargs(L, InstructionView(i).a(), callInfo, currentClosure->getProto()); });
+        protectCallNoTop([&]() { moonT_adjustvarargs(L, InstructionView(i).a(), callInfo, currentClosure->getProto()); });
         if (l_unlikely(hooksEnabled)) {  // previous "Protect" updated hooksEnabled
           L->hookCall( callInfo);
           L->setOldPC(1);  // next opcode will be seen as a "new" line
@@ -1140,7 +1140,7 @@ void VirtualMachine::execute(CallInfo *callInfo) {
         break;
       }
       case OP_EXTRAARG: {
-        lua_assert(0);
+        moon_assert(0);
         break;
       }
     }
@@ -1167,19 +1167,19 @@ void VirtualMachine::finishOp() {
     case OP_LTI: case OP_LEI:
     case OP_GTI: case OP_GEI:
     case OP_EQ: {  // note that 'OP_EQI'/'OP_EQK' cannot yield
-      lua_assert(L->getTop().p > L->getStack().p);  // ensure stack not empty
+      moon_assert(L->getTop().p > L->getStack().p);  // ensure stack not empty
       int res = !l_isfalse(s2v(L->getTop().p - 1));
       L->getStackSubsystem().pop();
-      lua_assert(InstructionView(*callInfo->getSavedPC()).opcode() == OP_JMP);
+      moon_assert(InstructionView(*callInfo->getSavedPC()).opcode() == OP_JMP);
       if (res != InstructionView(inst).k())  // condition failed?
         callInfo->setSavedPC(callInfo->getSavedPC() + 1);  // skip jump instruction
       break;
     }
     case OP_CONCAT: {
-      StkId top = L->getTop().p - 1;  // top when 'luaT_tryconcatTM' was called
+      StkId top = L->getTop().p - 1;  // top when 'moonT_tryconcatTM' was called
       int a = InstructionView(inst).a();  // first element to concatenate
-      lua_assert(top >= base + a + 1);  // ensure valid range for subtraction
-      lua_assert(top >= L->getStack().p + 2);  // ensure top-2 is valid
+      moon_assert(top >= base + a + 1);  // ensure valid range for subtraction
+      moon_assert(top >= L->getStack().p + 2);  // ensure top-2 is valid
       int total = cast_int(top - 1 - (base + a));  // yet to concatenate
       *s2v(top - 2) = *s2v(top);  /* put TM result in proper position (operator=) */
       L->getStackSubsystem().setTopPtr(top - 1);  // top is one after last element (at top-2)
@@ -1201,7 +1201,7 @@ void VirtualMachine::finishOp() {
     }
     default: {
       // only these other opcodes can yield
-      lua_assert(op == OP_TFORCALL || op == OP_CALL ||
+      moon_assert(op == OP_TFORCALL || op == OP_CALL ||
            op == OP_TAILCALL || op == OP_SETTABUP || op == OP_SETTABLE ||
            op == OP_SETI || op == OP_SETFIELD);
       break;
@@ -1213,25 +1213,25 @@ void VirtualMachine::finishOp() {
 
 // Helper function for string to number conversion
 static int l_strton (const TValue *obj, TValue *result) {
-  lua_assert(obj != result);
+  moon_assert(obj != result);
   if (!cvt2num(obj))  // is object not a string?
     return 0;
   else {
     TString *st = tsvalue(obj);
     size_t stlen;
     const char *s = getStringWithLength(st, stlen);
-    return (luaO_str2num(s, result) == stlen + 1);
+    return (moonO_str2num(s, result) == stlen + 1);
   }
 }
 
-int VirtualMachine::tonumber(const TValue *obj, lua_Number *n) const {
+int VirtualMachine::tonumber(const TValue *obj, moon_Number *n) const {
   TValue v;
   if (ttisinteger(obj)) {
     *n = cast_num(ivalue(obj));
     return 1;
   }
   else if (l_strton(obj, &v)) {  // string coercible to number?
-    *n = nvalue(&v);  /* convert result of 'luaO_str2num' to a float */
+    *n = nvalue(&v);  /* convert result of 'moonO_str2num' to a float */
     return 1;
   }
   else
@@ -1239,21 +1239,21 @@ int VirtualMachine::tonumber(const TValue *obj, lua_Number *n) const {
 }
 
 // Wrapper for lobject.h inline functions to call
-int VirtualMachine_flttointeger(lua_Number n, lua_Integer *p, F2Imod mode) {
+int VirtualMachine_flttointeger(moon_Number n, moon_Integer *p, F2Imod mode) {
   return VirtualMachine::flttointeger(n, p, mode);
 }
 
-int VirtualMachine::flttointeger(lua_Number n, lua_Integer *p, F2Imod mode) {
-  lua_Number f = l_floor(n);
+int VirtualMachine::flttointeger(moon_Number n, moon_Integer *p, F2Imod mode) {
+  moon_Number f = l_floor(n);
   if (n != f) {  // not an integral value?
     if (mode == F2Imod::F2Ieq) return 0;  // fails if mode demands integral value
     else if (mode == F2Imod::F2Iceil)  // needs ceiling?
       f += 1;  // convert floor to ceiling (remember: n != f)
   }
-  return lua_numbertointeger(f, p);
+  return moon_numbertointeger(f, p);
 }
 
-int VirtualMachine::tointegerns(const TValue *obj, lua_Integer *p, F2Imod mode) const {
+int VirtualMachine::tointegerns(const TValue *obj, moon_Integer *p, F2Imod mode) const {
   if (ttisfloat(obj))
     return flttointeger(fltvalue(obj), p, mode);
   else if (ttisinteger(obj)) {
@@ -1264,7 +1264,7 @@ int VirtualMachine::tointegerns(const TValue *obj, lua_Integer *p, F2Imod mode) 
     return 0;
 }
 
-int VirtualMachine::tointeger(const TValue *obj, lua_Integer *p, F2Imod mode) const {
+int VirtualMachine::tointeger(const TValue *obj, moon_Integer *p, F2Imod mode) const {
   TValue v;
   if (l_strton(obj, &v))  // does 'obj' point to a numerical string?
     obj = &v;  // change it to point to its corresponding number
@@ -1273,10 +1273,10 @@ int VirtualMachine::tointeger(const TValue *obj, lua_Integer *p, F2Imod mode) co
 
 // === ARITHMETIC ===
 
-lua_Integer VirtualMachine::idiv(lua_Integer m, lua_Integer n) const {
+moon_Integer VirtualMachine::idiv(moon_Integer m, moon_Integer n) const {
   if (l_unlikely(l_castS2U(n) + 1u <= 1u)) {  // special cases: -1 or 0
     if (n == 0)
-      luaG_runerror(L, "attempt to divide by zero");
+      moonG_runerror(L, "attempt to divide by zero");
     return intop(-, 0, m);  // n==-1; avoid overflow with 0x80000...//-1
   }
   else {
@@ -1287,10 +1287,10 @@ lua_Integer VirtualMachine::idiv(lua_Integer m, lua_Integer n) const {
   }
 }
 
-lua_Integer VirtualMachine::mod(lua_Integer m, lua_Integer n) const {
+moon_Integer VirtualMachine::mod(moon_Integer m, moon_Integer n) const {
   if (l_unlikely(l_castS2U(n) + 1u <= 1u)) {  // special cases: -1 or 0
     if (n == 0)
-      luaG_runerror(L, "attempt to perform 'n%%0'");
+      moonG_runerror(L, "attempt to perform 'n%%0'");
     return 0;  // m % -1 == 0; avoid overflow with 0x80000...%-1
   }
   else {
@@ -1301,15 +1301,15 @@ lua_Integer VirtualMachine::mod(lua_Integer m, lua_Integer n) const {
   }
 }
 
-lua_Number VirtualMachine::modf(lua_Number m, lua_Number n) const {
-  lua_Number r;
-  luai_nummod(L, m, n, r);
+moon_Number VirtualMachine::modf(moon_Number m, moon_Number n) const {
+  moon_Number r;
+  mooni_nummod(L, m, n, r);
   return r;
 }
 
-lua_Integer VirtualMachine::shiftl(lua_Integer x, lua_Integer y) {
+moon_Integer VirtualMachine::shiftl(moon_Integer x, moon_Integer y) {
   // number of bits in an integer
-  constexpr int NBITS = l_numbits<lua_Integer>();
+  constexpr int NBITS = l_numbits<moon_Integer>();
 
   if (y < 0) {  // shift right?
     if (y <= -NBITS) return 0;
@@ -1341,17 +1341,17 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
     return 0;
   else if (ttypetag(t1) != ttypetag(t2)) {
     switch (ttypetag(t1)) {
-      case LuaT::NUMINT: {  // integer == float?
-        lua_Integer i2;
+      case MoonT::NUMINT: {  // integer == float?
+        moon_Integer i2;
         return (flttointeger(fltvalue(t2), &i2, F2Imod::F2Ieq) &&
                 ivalue(t1) == i2);
       }
-      case LuaT::NUMFLT: {  // float == integer?
-        lua_Integer i1;
+      case MoonT::NUMFLT: {  // float == integer?
+        moon_Integer i1;
         return (flttointeger(fltvalue(t1), &i1, F2Imod::F2Ieq) &&
                 i1 == ivalue(t2));
       }
-      case LuaT::SHRSTR: case LuaT::LNGSTR: {
+      case MoonT::SHRSTR: case MoonT::LNGSTR: {
         return tsvalue(t1)->equals(tsvalue(t2));
       }
       default:
@@ -1360,18 +1360,18 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
   }
   else {  // equal variants
     switch (ttypetag(t1)) {
-      case LuaT::NIL: case LuaT::VFALSE: case LuaT::VTRUE:
+      case MoonT::NIL: case MoonT::VFALSE: case MoonT::VTRUE:
         return 1;
-      case LuaT::NUMINT:
+      case MoonT::NUMINT:
         return (ivalue(t1) == ivalue(t2));
-      case LuaT::NUMFLT:
+      case MoonT::NUMFLT:
         return (fltvalue(t1) == fltvalue(t2));
-      case LuaT::LIGHTUSERDATA: return pvalue(t1) == pvalue(t2);
-      case LuaT::SHRSTR:
+      case MoonT::LIGHTUSERDATA: return pvalue(t1) == pvalue(t2);
+      case MoonT::SHRSTR:
         return shortStringsEqual(tsvalue(t1), tsvalue(t2));
-      case LuaT::LNGSTR:
+      case MoonT::LNGSTR:
         return tsvalue(t1)->equals(tsvalue(t2));
-      case LuaT::USERDATA: {
+      case MoonT::USERDATA: {
         if (uvalue(t1) == uvalue(t2)) return 1;
         else if (L == nullptr) return 0;
         metamethod = fasttm(L, uvalue(t1)->getMetatable(), TMS::TM_EQ);
@@ -1379,7 +1379,7 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
           metamethod = fasttm(L, uvalue(t2)->getMetatable(), TMS::TM_EQ);
         break;  // will try TM
       }
-      case LuaT::TABLE: {
+      case MoonT::TABLE: {
         if (hvalue(t1) == hvalue(t2)) return 1;
         else if (L == nullptr) return 0;
         metamethod = fasttm(L, hvalue(t1)->getMetatable(), TMS::TM_EQ);
@@ -1387,7 +1387,7 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
           metamethod = fasttm(L, hvalue(t2)->getMetatable(), TMS::TM_EQ);
         break;  // will try TM
       }
-      case LuaT::LCF:
+      case MoonT::LCF:
         return (fvalue(t1) == fvalue(t2));
       default:  // functions and threads
         return (gcvalue(t1) == gcvalue(t2));
@@ -1395,7 +1395,7 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
     if (metamethod == nullptr)  // no TM?
       return 0;  // objects are different
     else {
-      auto tag = luaT_callTMres(L, metamethod, t1, t2, L->getTop().p);  // call TM
+      auto tag = moonT_callTMres(L, metamethod, t1, t2, L->getTop().p);  // call TM
       return !tagisfalse(tag);
     }
   }
@@ -1403,36 +1403,36 @@ int VirtualMachine::equalObj(const TValue *t1, const TValue *t2) const {
 
 // === TABLE OPERATIONS ===
 
-LuaT VirtualMachine::finishGet(const TValue *t, TValue *key, StkId val, LuaT tag) const {
+MoonT VirtualMachine::finishGet(const TValue *t, TValue *key, StkId val, MoonT tag) const {
   const TValue *metamethod;  // metamethod
   for (int loop = 0; loop < MAXTAGLOOP; loop++) {
-    if (tag == LuaT::NOTABLE) {  // 't' is not a table?
-      lua_assert(!ttistable(t));
-      metamethod = luaT_gettmbyobj(L, t, TMS::TM_INDEX);
+    if (tag == MoonT::NOTABLE) {  // 't' is not a table?
+      moon_assert(!ttistable(t));
+      metamethod = moonT_gettmbyobj(L, t, TMS::TM_INDEX);
       if (l_unlikely(notm(metamethod)))
-        luaG_typeerror(L, t, "index");  // no metamethod
+        moonG_typeerror(L, t, "index");  // no metamethod
       // else will try the metamethod
     }
     else {  // 't' is a table
       metamethod = fasttm(L, hvalue(t)->getMetatable(), TMS::TM_INDEX);  // table's metamethod
       if (metamethod == nullptr) {  // no metamethod?
         setnilvalue(s2v(val));  // result is nil
-        return LuaT::NIL;
+        return MoonT::NIL;
       }
       // else will try the metamethod
     }
     if (ttisfunction(metamethod)) {  // is metamethod a function?
-      tag = luaT_callTMres(L, metamethod, t, key, val);  // call it
+      tag = moonT_callTMres(L, metamethod, t, key, val);  // call it
       return tag;  // return tag of the result
     }
     t = metamethod;  // else try to access 'metamethod[key]'
     tag = fastget(t, key, s2v(val), [](Table* tbl, const TValue* k, TValue* res) { return tbl->get(k, res); });
     if (!tagisempty(tag))
       return tag;  // done
-    // else repeat (tail call 'luaV_finishget')
+    // else repeat (tail call 'moonV_finishget')
   }
-  luaG_runerror(L, "'__index' chain too long; possible loop");
-  return LuaT::NIL;  // to avoid warnings
+  moonG_runerror(L, "'__index' chain too long; possible loop");
+  return MoonT::NIL;  // to avoid warnings
 }
 
 void VirtualMachine::finishSet(const TValue *t, TValue *key, TValue *val, int hres) const {
@@ -1447,19 +1447,19 @@ void VirtualMachine::finishSet(const TValue *t, TValue *key, TValue *val, int hr
         h->finishSet(L, key, val, hres);  // set new value
         L->getStackSubsystem().pop();
         invalidateTMcache(h);
-        luaC_barrierback(L, obj2gco(h), val);
+        moonC_barrierback(L, obj2gco(h), val);
         return;
       }
       // else will try the metamethod
     }
     else {  // not a table; check metamethod
-      metamethod = luaT_gettmbyobj(L, t, TMS::TM_NEWINDEX);
+      metamethod = moonT_gettmbyobj(L, t, TMS::TM_NEWINDEX);
       if (l_unlikely(notm(metamethod)))
-        luaG_typeerror(L, t, "index");
+        moonG_typeerror(L, t, "index");
     }
     // try the metamethod
     if (ttisfunction(metamethod)) {
-      luaT_callTM(L, metamethod, t, key, val);
+      moonT_callTM(L, metamethod, t, key, val);
       return;
     }
     t = metamethod;  // else repeat assignment over 'metamethod'
@@ -1468,9 +1468,9 @@ void VirtualMachine::finishSet(const TValue *t, TValue *key, TValue *val, int hr
       finishfastset(t, val);
       return;  // done
     }
-    // else 'return luaV_finishset(L, t, key, val, slot)' (loop)
+    // else 'return moonV_finishset(L, t, key, val, slot)' (loop)
   }
-  luaG_runerror(L, "'__newindex' chain too long; possible loop");
+  moonG_runerror(L, "'__newindex' chain too long; possible loop");
 }
 
 // === STRING/OBJECT OPERATIONS ===
@@ -1478,10 +1478,10 @@ void VirtualMachine::finishSet(const TValue *t, TValue *key, TValue *val, int hr
 // Helper functions for string concatenation
 
 // Function to ensure that element at 'o' is a string (converts if possible)
-static inline bool tostring(lua_State* L, TValue* o) {
+static inline bool tostring(moon_State* L, TValue* o) {
 	if (ttisstring(o)) return true;
 	if (!cvt2str(o)) return false;
-	luaO_tostring(L, o);
+	moonO_tostring(L, o);
 	return true;
 }
 
@@ -1509,7 +1509,7 @@ void VirtualMachine::concat(int total) {
     auto n = 2;  // number of elements handled in this pass (at least 2)
     if (!(ttisstring(s2v(top - 2)) || cvt2str(s2v(top - 2))) ||
         !tostring(L, s2v(top - 1))) {
-      luaT_tryconcatTM(L);  // may invalidate 'top'
+      moonT_tryconcatTM(L);  // may invalidate 'top'
       top = L->getTop().p;  // recapture after potential GC
     }
     else if (isemptystr(s2v(top - 1))) {  // second operand is empty?
@@ -1529,12 +1529,12 @@ void VirtualMachine::concat(int total) {
         auto l = getStringLength(tsvalue(s2v(top - n - 1)));
         if (l_unlikely(l >= MAX_SIZE - sizeof(TString) - tl)) {
           L->getStackSubsystem().setTopPtr(top - total);  // pop strings to avoid wasting stack
-          luaG_runerror(L, "string length overflow");
+          moonG_runerror(L, "string length overflow");
         }
         tl += l;
       }
-      if (tl <= LUAI_MAXSHORTLEN) {  // is result a short string?
-        char buff[LUAI_MAXSHORTLEN];
+      if (tl <= MOONI_MAXSHORTLEN) {  // is result a short string?
+        char buff[MOONI_MAXSHORTLEN];
         copy2buff(top, n, buff);  // copy strings to buffer
         tstring = TString::create(L, buff, tl);
         top = L->getTop().p;  // recapture after potential GC
@@ -1554,27 +1554,27 @@ void VirtualMachine::concat(int total) {
 void VirtualMachine::objlen(StkId ra, const TValue *rb) {
   const TValue *metamethod;
   switch (ttypetag(rb)) {
-    case LuaT::TABLE: {
+    case MoonT::TABLE: {
       Table *h = hvalue(rb);
       metamethod = fasttm(L, h->getMetatable(), TMS::TM_LEN);
       if (metamethod) break;  // metamethod? break switch to call it
       s2v(ra)->setInt(l_castU2S(h->getn(L)));  // else primitive len
       return;
     }
-    case LuaT::SHRSTR: {
-      s2v(ra)->setInt(static_cast<lua_Integer>(tsvalue(rb)->length()));
+    case MoonT::SHRSTR: {
+      s2v(ra)->setInt(static_cast<moon_Integer>(tsvalue(rb)->length()));
       return;
     }
-    case LuaT::LNGSTR: {
+    case MoonT::LNGSTR: {
       s2v(ra)->setInt(cast_st2S(tsvalue(rb)->getLnglen()));
       return;
     }
     default: {  // try metamethod
-      metamethod = luaT_gettmbyobj(L, rb, TMS::TM_LEN);
+      metamethod = moonT_gettmbyobj(L, rb, TMS::TM_LEN);
       if (l_unlikely(notm(metamethod)))  // no metamethod?
-        luaG_typeerror(L, rb, "get length of");
+        moonG_typeerror(L, rb, "get length of");
       break;
     }
   }
-  luaT_callTMres(L, metamethod, rb, rb, ra);
+  moonT_callTMres(L, metamethod, rb, rb, ra);
 }

@@ -227,9 +227,9 @@ inline bool isdead(const GlobalState* g, const T* v) noexcept {
 ** or the collectable object has the right tag and it is not dead.
 ** The option 'L == nullptr' allows this function to be used where L is not available.
 */
-inline void checkliveness(lua_State* L, const TValue* obj) noexcept {
+inline void checkliveness(moon_State* L, const TValue* obj) noexcept {
 	(void)L;
-	lua_longassert(!iscollectable(obj) ||
+	moon_longassert(!iscollectable(obj) ||
 		(righttt(obj) && (L == nullptr || !isdead(G(L), gcvalue(obj)))));
 }
 
@@ -294,44 +294,44 @@ inline lu_byte GlobalState::getWhite() const noexcept {
 */
 
 /*
-** Minor collections will shift to major ones after LUAI_MINORMAJOR%
+** Minor collections will shift to major ones after MOONI_MINORMAJOR%
 ** bytes become old.
 */
-inline constexpr int LUAI_MINORMAJOR = 70;
+inline constexpr int MOONI_MINORMAJOR = 70;
 
 /*
 ** Major collections will shift to minor ones after a collection
-** collects at least LUAI_MAJORMINOR% of the new bytes.
+** collects at least MOONI_MAJORMINOR% of the new bytes.
 */
-inline constexpr int LUAI_MAJORMINOR = 50;
+inline constexpr int MOONI_MAJORMINOR = 50;
 
 /*
-** A young (minor) collection will run after creating LUAI_GENMINORMUL%
+** A young (minor) collection will run after creating MOONI_GENMINORMUL%
 ** new bytes.
 */
-inline constexpr int LUAI_GENMINORMUL = 20;
+inline constexpr int MOONI_GENMINORMUL = 20;
 
 
 // incremental
 
-// Number of bytes must be LUAI_GCPAUSE% before starting new cycle
-inline constexpr int LUAI_GCPAUSE = 250;
+// Number of bytes must be MOONI_GCPAUSE% before starting new cycle
+inline constexpr int MOONI_GCPAUSE = 250;
 
 /*
-** Step multiplier: The collector handles LUAI_GCMUL% work units for
+** Step multiplier: The collector handles MOONI_GCMUL% work units for
 ** each new allocated word. (Each "work unit" corresponds roughly to
 ** sweeping one object or traversing one slot.)
 */
-inline constexpr int LUAI_GCMUL = 200;
+inline constexpr int MOONI_GCMUL = 200;
 
 // How many bytes to allocate before next GC step
-inline constexpr size_t LUAI_GCSTEPSIZE = (200 * sizeof(Table));
+inline constexpr size_t MOONI_GCSTEPSIZE = (200 * sizeof(Table));
 
 
 // These macros must remain as macros due to token pasting (##)
-// They expand parameter names like STEPMUL to LUA_GCPSTEPMUL at compile time
-#define setgcparam(g,p,v)  ((g)->setGCParam(LUA_GCP##p, luaO_codeparam(v)))
-#define applygcparam(g,p,x)  luaO_applyparam((g)->getGCParam(LUA_GCP##p), x)
+// They expand parameter names like STEPMUL to MOON_GCPSTEPMUL at compile time
+#define setgcparam(g,p,v)  ((g)->setGCParam(MOON_GCP##p, moonO_codeparam(v)))
+#define applygcparam(g,p,x)  moonO_applyparam((g)->getGCParam(MOON_GCP##p), x)
 
 // }======================================================
 
@@ -353,12 +353,12 @@ inline constexpr lu_byte GCSTPCLS = 4;  // bit true when closing Lua state
 
 
 // Forward declarations needed by template functions
-LUAI_FUNC void luaC_step (lua_State& L);
-LUAI_FUNC void luaC_fullgc (lua_State& L, int isemergency);
+MOONI_FUNC void moonC_step (moon_State& L);
+MOONI_FUNC void moonC_fullgc (moon_State& L, int isemergency);
 
 #if !defined(HARDMEMTESTS)
 template<typename PreFunc, typename PostFunc>
-inline void condchangemem([[maybe_unused]] lua_State* L,
+inline void condchangemem([[maybe_unused]] moon_State* L,
                           [[maybe_unused]] PreFunc pre,
                           [[maybe_unused]] PostFunc post,
                           [[maybe_unused]] int emg) {
@@ -366,90 +366,90 @@ inline void condchangemem([[maybe_unused]] lua_State* L,
 }
 #else
 template<typename PreFunc, typename PostFunc>
-inline void condchangemem(lua_State* L, PreFunc pre, PostFunc post, int emg) {
+inline void condchangemem(moon_State* L, PreFunc pre, PostFunc post, int emg) {
 	if (G(L)->isGCRunning()) {
 		pre();
-		luaC_fullgc(*L, emg);
+		moonC_fullgc(*L, emg);
 		post();
 	}
 }
 #endif
 
 template<typename PreFunc, typename PostFunc>
-inline void luaC_condGC(lua_State* L, PreFunc pre, PostFunc post) {
+inline void moonC_condGC(moon_State* L, PreFunc pre, PostFunc post) {
 	if (G(L)->getGCDebt() <= 0) {
 		pre();
-		luaC_step(*L);
+		moonC_step(*L);
 		post();
 	}
 	condchangemem(L, pre, post, 0);
 }
 
 // more often than not, 'pre'/'pos' are empty
-inline void luaC_checkGC(lua_State* L) {
-	luaC_condGC(L, [](){}, [](){});
+inline void moonC_checkGC(moon_State* L) {
+	moonC_condGC(L, [](){}, [](){});
 }
 
 
 // Forward declarations for barrier implementation functions
-LUAI_FUNC void luaC_barrier_ (lua_State& L, GCObject *o, GCObject *v);
-LUAI_FUNC void luaC_barrierback_ (lua_State& L, GCObject *o);
+MOONI_FUNC void moonC_barrier_ (moon_State& L, GCObject *o, GCObject *v);
+MOONI_FUNC void moonC_barrierback_ (moon_State& L, GCObject *o);
 
 /*
 ** Write barrier for object-to-object references.
 ** If 'p' (parent) is black and 'o' (object) is white, mark 'o' gray.
 */
-inline void luaC_objbarrier(lua_State* L, GCObject* p, GCObject* o) noexcept {
+inline void moonC_objbarrier(moon_State* L, GCObject* p, GCObject* o) noexcept {
 	if (isblack(p) && iswhite(o))
-		luaC_barrier_(*L, obj2gco(p), obj2gco(o));
+		moonC_barrier_(*L, obj2gco(p), obj2gco(o));
 }
 
 /*
 ** Write barrier for TValue references.
 ** If 'v' is collectable, apply object barrier.
 */
-inline void luaC_barrier(lua_State* L, GCObject* p, const TValue* v) noexcept {
+inline void moonC_barrier(moon_State* L, GCObject* p, const TValue* v) noexcept {
 	if (iscollectable(v))
-		luaC_objbarrier(L, p, gcvalue(v));
+		moonC_objbarrier(L, p, gcvalue(v));
 }
 
 /*
 ** Backward write barrier for generational GC.
 ** If 'p' is black and 'o' is white, mark 'p' as gray (move backward).
 */
-inline void luaC_objbarrierback(lua_State* L, GCObject* p, GCObject* o) noexcept {
+inline void moonC_objbarrierback(moon_State* L, GCObject* p, GCObject* o) noexcept {
 	if (isblack(p) && iswhite(o))
-		luaC_barrierback_(*L, p);
+		moonC_barrierback_(*L, p);
 }
 
 /*
 ** Backward write barrier for TValue references.
 ** If 'v' is collectable, apply backward barrier.
 */
-inline void luaC_barrierback(lua_State* L, GCObject* p, const TValue* v) noexcept {
+inline void moonC_barrierback(moon_State* L, GCObject* p, const TValue* v) noexcept {
 	if (iscollectable(v))
-		luaC_objbarrierback(L, p, gcvalue(v));
+		moonC_objbarrierback(L, p, gcvalue(v));
 }
 
-// Use GCObject::fix() method instead of luaC_fix
-LUAI_FUNC void luaC_freeallobjects (lua_State& L);
-// luaC_step and luaC_fullgc declared earlier for template functions
-LUAI_FUNC void luaC_runtilstate (lua_State& L, GCState state, int fast);
-LUAI_FUNC void propagateall (GlobalState& g);  // used by GCCollector
-[[nodiscard]] LUAI_FUNC GCObject *luaC_newobj (lua_State& L, LuaT tt, size_t sz);
-[[nodiscard]] LUAI_FUNC GCObject *luaC_newobjdt (lua_State& L, LuaT tt, size_t sz,
+// Use GCObject::fix() method instead of moonC_fix
+MOONI_FUNC void moonC_freeallobjects (moon_State& L);
+// moonC_step and moonC_fullgc declared earlier for template functions
+MOONI_FUNC void moonC_runtilstate (moon_State& L, GCState state, int fast);
+MOONI_FUNC void propagateall (GlobalState& g);  // used by GCCollector
+[[nodiscard]] MOONI_FUNC GCObject *moonC_newobj (moon_State& L, MoonT tt, size_t sz);
+[[nodiscard]] MOONI_FUNC GCObject *moonC_newobjdt (moon_State& L, MoonT tt, size_t sz,
                                                  size_t offset);
-// luaC_barrier_ and luaC_barrierback_ declared above before inline barrier functions
-// Use GCObject::checkFinalizer() method instead of luaC_checkfinalizer
-LUAI_FUNC void luaC_changemode (lua_State& L, GCKind newmode);
+// moonC_barrier_ and moonC_barrierback_ declared above before inline barrier functions
+// Use GCObject::checkFinalizer() method instead of moonC_checkfinalizer
+MOONI_FUNC void moonC_changemode (moon_State& L, GCKind newmode);
 
 // Weak table functions
-[[nodiscard]] LUAI_FUNC int getmode (GlobalState *g, Table *h);
-LUAI_FUNC void traverseweakvalue (GlobalState& g, Table *h);
-[[nodiscard]] LUAI_FUNC int traverseephemeron (GlobalState *g, Table *h, int inv);
+[[nodiscard]] MOONI_FUNC int getmode (GlobalState *g, Table *h);
+MOONI_FUNC void traverseweakvalue (GlobalState& g, Table *h);
+[[nodiscard]] MOONI_FUNC int traverseephemeron (GlobalState *g, Table *h, int inv);
 
 // Sweeping helper
-LUAI_FUNC void freeobj (lua_State& L, GCObject *o);
+MOONI_FUNC void freeobj (moon_State& L, GCObject *o);
 
 
 /*
@@ -459,38 +459,38 @@ LUAI_FUNC void freeobj (lua_State& L, GCObject *o);
 */
 
 // CClosure placement new operator
-inline void* CClosure::operator new(size_t size, lua_State* L, LuaT tt, size_t extra) {
-  return luaC_newobj(*L, tt, size + extra);
+inline void* CClosure::operator new(size_t size, moon_State* L, MoonT tt, size_t extra) {
+  return moonC_newobj(*L, tt, size + extra);
 }
 
 // LClosure placement new operator
-inline void* LClosure::operator new(size_t size, lua_State* L, LuaT tt, size_t extra) {
-  return luaC_newobj(*L, tt, size + extra);
+inline void* LClosure::operator new(size_t size, moon_State* L, MoonT tt, size_t extra) {
+  return moonC_newobj(*L, tt, size + extra);
 }
 
 // Udata placement new operator
-inline void* Udata::operator new(size_t size, lua_State* L, LuaT tt, size_t extra) {
-  return luaC_newobj(*L, tt, size + extra);
+inline void* Udata::operator new(size_t size, moon_State* L, MoonT tt, size_t extra) {
+  return moonC_newobj(*L, tt, size + extra);
 }
 
 // TString placement new operator
-inline void* TString::operator new(size_t size, lua_State* L, LuaT tt, size_t extra) {
-  return luaC_newobj(*L, tt, size + extra);
+inline void* TString::operator new(size_t size, moon_State* L, MoonT tt, size_t extra) {
+  return moonC_newobj(*L, tt, size + extra);
 }
 
 // Proto placement new operator
-inline void* Proto::operator new(size_t size, lua_State* L, LuaT tt) {
-  return luaC_newobj(*L, tt, size);
+inline void* Proto::operator new(size_t size, moon_State* L, MoonT tt) {
+  return moonC_newobj(*L, tt, size);
 }
 
 // UpVal placement new operator
-inline void* UpVal::operator new(size_t size, lua_State* L, LuaT tt) {
-  return luaC_newobj(*L, tt, size);
+inline void* UpVal::operator new(size_t size, moon_State* L, MoonT tt) {
+  return moonC_newobj(*L, tt, size);
 }
 
 // Table placement new operator
-inline void* Table::operator new(size_t size, lua_State* L, LuaT tt) {
-  return luaC_newobj(*L, tt, size);
+inline void* Table::operator new(size_t size, moon_State* L, MoonT tt) {
+  return moonC_newobj(*L, tt, size);
 }
 
 // }==================================================================

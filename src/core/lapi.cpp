@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -31,21 +31,21 @@
 
 
 
-const char lua_ident[] =
-  "$LuaVersion: " LUA_COPYRIGHT " $"
-  "$LuaAuthors: " LUA_AUTHORS " $";
+const char moon_ident[] =
+  "$MoonVersion: " MOON_COPYRIGHT " $"
+  "$MoonAuthors: " MOON_AUTHORS " $";
 
 
 
 /*
-** NOTE: index2value() and index2stack() moved to LuaStack class (lstack.cpp)
+** NOTE: index2value() and index2stack() moved to MoonStack class (lstack.cpp)
 ** as indexToValue() and indexToStack() methods.
 */
 
 
-LUA_API int lua_checkstack (lua_State *L, int n) {
+MOON_API int moon_checkstack (moon_State *L, int n) {
   int res;
-  lua_lock(L);
+  moon_lock(L);
   CallInfo *callInfo = L->getCI();
   api_check(L, n >= 0, "negative 'n'");
   if (L->getStackLast().p - L->getTop().p > n)  // stack large enough?
@@ -54,14 +54,14 @@ LUA_API int lua_checkstack (lua_State *L, int n) {
     res = L->growStack(n, 0);
   if (res && callInfo->topRef().p < L->getTop().p + n)
     callInfo->topRef().p = L->getTop().p + n;  // adjust frame top
-  lua_unlock(L);
+  moon_unlock(L);
   return res;
 }
 
 
-LUA_API void lua_xmove (lua_State *from, lua_State *to, int n) {
+MOON_API void moon_xmove (moon_State *from, moon_State *to, int n) {
   if (from == to) return;
-  lua_lock(to);
+  moon_lock(to);
   api_checkpop(from, n);
   api_check(from, G(from) == G(to), "moving among independent states");
   api_check(from, to->getCI()->topRef().p - to->getTop().p >= n, "stack overflow");
@@ -70,23 +70,23 @@ LUA_API void lua_xmove (lua_State *from, lua_State *to, int n) {
     *s2v(to->getTop().p) = *s2v(from->getTop().p + i);  /* use operator= */
     to->getStackSubsystem().push();  // stack already checked by previous 'api_check'
   }
-  lua_unlock(to);
+  moon_unlock(to);
 }
 
 
-LUA_API lua_CFunction lua_atpanic (lua_State *L, lua_CFunction panicf) {
-  lua_CFunction old;
-  lua_lock(L);
+MOON_API moon_CFunction moon_atpanic (moon_State *L, moon_CFunction panicf) {
+  moon_CFunction old;
+  moon_lock(L);
   old = G(L)->getPanic();
   G(L)->setPanic(panicf);
-  lua_unlock(L);
+  moon_unlock(L);
   return old;
 }
 
 
-LUA_API lua_Number lua_version (lua_State *L) {
+MOON_API moon_Number moon_version (moon_State *L) {
   UNUSED(L);
-  return LUA_VERSION_NUM;
+  return MOON_VERSION_NUM;
 }
 
 
@@ -99,20 +99,20 @@ LUA_API lua_Number lua_version (lua_State *L) {
 /*
 ** convert an acceptable stack index into an absolute index
 */
-LUA_API int lua_absindex (lua_State *L, int idx) {
+MOON_API int moon_absindex (moon_State *L, int idx) {
   return (idx > 0 || ispseudo(idx))
          ? idx
          : cast_int(L->getTop().p - L->getCI()->funcRef().p) + idx;
 }
 
 
-LUA_API int lua_gettop (lua_State *L) {
+MOON_API int moon_gettop (moon_State *L) {
   return cast_int(L->getTop().p - (L->getCI()->funcRef().p + 1));
 }
 
 
-LUA_API void lua_settop (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API void moon_settop (moon_State *L, int idx) {
+  moon_lock(L);
   CallInfo *callInfo = L->getCI();
   auto func = callInfo->funcRef().p;
   ptrdiff_t diff;  // difference for new top
@@ -130,32 +130,32 @@ LUA_API void lua_settop (lua_State *L, int idx) {
   }
   StkId newtop = L->getTop().p + diff;
   if (diff < 0 && L->getTbclist().p >= newtop) {
-    lua_assert(callInfo->callStatusRef() & CIST_TBC);
-    newtop = luaF_close(L, newtop, CLOSEKTOP, 0);
+    moon_assert(callInfo->callStatusRef() & CIST_TBC);
+    newtop = moonF_close(L, newtop, CLOSEKTOP, 0);
   }
   L->getStackSubsystem().setTopPtr(newtop);  // correct top only after closing any upvalue
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_closeslot (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API void moon_closeslot (moon_State *L, int idx) {
+  moon_lock(L);
   StkId level = L->getStackSubsystem().indexToStack(L, idx);
   api_check(L, (L->getCI()->callStatusRef() & CIST_TBC) && (L->getTbclist().p == level),
      "no variable to close at given level");
-  level = luaF_close(L, level, CLOSEKTOP, 0);
+  level = moonF_close(L, level, CLOSEKTOP, 0);
   setnilvalue(s2v(level));
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
 /*
 ** Reverse the stack segment from 'from' to 'to'
-** (auxiliary to 'lua_rotate')
+** (auxiliary to 'moon_rotate')
 ** Note that we move(copy) only the value inside the stack.
 ** (We do not move additional fields that may exist.)
 */
-static void reverse (lua_State *L, StkId from, StkId to) {
+static void reverse (moon_State *L, StkId from, StkId to) {
   for (; from < to; from++, to--) {
     TValue temp;
     temp = *s2v(from);
@@ -169,8 +169,8 @@ static void reverse (lua_State *L, StkId from, StkId to) {
 ** Let x = AB, where A is a prefix of length 'n'. Then,
 ** rotate x n == BA. But BA == (A^r . B^r)^r.
 */
-LUA_API void lua_rotate (lua_State *L, int idx, int n) {
-  lua_lock(L);
+MOON_API void moon_rotate (moon_State *L, int idx, int n) {
+  moon_lock(L);
   auto t = L->getTop().p - 1;  // end of stack segment being rotated
   auto p = L->getStackSubsystem().indexToStack(L, idx);  // start of segment
   api_check(L, L->getTbclist().p < p, "moving a to-be-closed slot");
@@ -179,29 +179,29 @@ LUA_API void lua_rotate (lua_State *L, int idx, int n) {
   reverse(L, p, m);  // reverse the prefix with length 'n'
   reverse(L, m + 1, t);  // reverse the suffix
   reverse(L, p, t);  // reverse the entire segment
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_copy (lua_State *L, int fromidx, int toidx) {
-  lua_lock(L);
+MOON_API void moon_copy (moon_State *L, int fromidx, int toidx) {
+  moon_lock(L);
   TValue *fr = L->getStackSubsystem().indexToValue(L, fromidx);
   TValue *to = L->getStackSubsystem().indexToValue(L, toidx);
   api_check(L, isvalid(L, to), "invalid index");
   *to = *fr;
   if (isupvalue(toidx))  // function upvalue?
-    luaC_barrier(L, clCvalue(s2v(L->getCI()->funcRef().p)), fr);
-  /* LUA_REGISTRYINDEX does not need gc barrier
+    moonC_barrier(L, clCvalue(s2v(L->getCI()->funcRef().p)), fr);
+  /* MOON_REGISTRYINDEX does not need gc barrier
      (collector revisits it before finishing collection) */
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_pushvalue (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API void moon_pushvalue (moon_State *L, int idx) {
+  moon_lock(L);
   L->getStackSubsystem().setSlot(L->getTop().p, L->getStackSubsystem().indexToValue(L, idx));
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
@@ -211,60 +211,60 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
 */
 
 
-LUA_API int lua_type (lua_State *L, int idx) {
+MOON_API int moon_type (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
-  return (isvalid(L, o) ? ttype(o) : LUA_TNONE);
+  return (isvalid(L, o) ? ttype(o) : MOON_TNONE);
 }
 
 
-LUA_API const char *lua_typename (lua_State *L, int t) {
+MOON_API const char *moon_typename (moon_State *L, int t) {
   UNUSED(L);
-  api_check(L, LUA_TNONE <= t && t < LUA_NUMTYPES, "invalid type");
+  api_check(L, MOON_TNONE <= t && t < MOON_NUMTYPES, "invalid type");
   return ttypename(t);
 }
 
 
-LUA_API int lua_iscfunction (lua_State *L, int idx) {
+MOON_API int moon_iscfunction (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return (ttislcf(o) || (ttisCclosure(o)));
 }
 
 
-LUA_API int lua_isinteger (lua_State *L, int idx) {
+MOON_API int moon_isinteger (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return ttisinteger(o);
 }
 
 
-LUA_API int lua_isnumber (lua_State *L, int idx) {
-  lua_Number n;
+MOON_API int moon_isnumber (moon_State *L, int idx) {
+  moon_Number n;
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return tonumber(o, &n);
 }
 
 
-LUA_API int lua_isstring (lua_State *L, int idx) {
+MOON_API int moon_isstring (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return (ttisstring(o) || cvt2str(o));
 }
 
 
-LUA_API int lua_isuserdata (lua_State *L, int idx) {
+MOON_API int moon_isuserdata (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return (ttisfulluserdata(o) || ttislightuserdata(o));
 }
 
 
-LUA_API int lua_rawequal (lua_State *L, int index1, int index2) {
+MOON_API int moon_rawequal (moon_State *L, int index1, int index2) {
   const TValue *o1 = L->getStackSubsystem().indexToValue(L,index1);
   const TValue *o2 = L->getStackSubsystem().indexToValue(L,index2);
   return (isvalid(L, o1) && isvalid(L, o2)) ? VirtualMachine::rawequalObj(o1, o2) : 0;
 }
 
 
-LUA_API void lua_arith (lua_State *L, int op) {
-  lua_lock(L);
-  if (op != LUA_OPUNM && op != LUA_OPBNOT)
+MOON_API void moon_arith (moon_State *L, int op) {
+  moon_lock(L);
+  if (op != MOON_OPUNM && op != MOON_OPBNOT)
     api_checkpop(L, 2);  // all other operations expect two operands
   else {  // for unary operations, add fake 2nd operand
     api_checkpop(L, 1);
@@ -272,34 +272,34 @@ LUA_API void lua_arith (lua_State *L, int op) {
     api_incr_top(L);
   }
   // first operand at top - 2, second at top - 1; result go to top - 2
-  luaO_arith(L, op, s2v(L->getTop().p - 2), s2v(L->getTop().p - 1), L->getTop().p - 2);
+  moonO_arith(L, op, s2v(L->getTop().p - 2), s2v(L->getTop().p - 1), L->getTop().p - 2);
   L->getStackSubsystem().pop();  // pop second operand
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API int lua_compare (lua_State *L, int index1, int index2, int op) {
+MOON_API int moon_compare (moon_State *L, int index1, int index2, int op) {
   int i = 0;
-  lua_lock(L);  // may call tag method
+  moon_lock(L);  // may call tag method
   const TValue *o1 = L->getStackSubsystem().indexToValue(L,index1);
   const TValue *o2 = L->getStackSubsystem().indexToValue(L,index2);
   if (isvalid(L, o1) && isvalid(L, o2)) {
     switch (op) {
-      case LUA_OPEQ: i = L->getVM().equalObj(o1, o2); break;
-      case LUA_OPLT: i = L->getVM().lessThan(o1, o2); break;
-      case LUA_OPLE: i = L->getVM().lessEqual(o1, o2); break;
+      case MOON_OPEQ: i = L->getVM().equalObj(o1, o2); break;
+      case MOON_OPLT: i = L->getVM().lessThan(o1, o2); break;
+      case MOON_OPLE: i = L->getVM().lessEqual(o1, o2); break;
       default: api_check(L, 0, "invalid option");
     }
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return i;
 }
 
 
-LUA_API unsigned (lua_numbertocstring) (lua_State *L, int idx, char *buff) {
+MOON_API unsigned (moon_numbertocstring) (moon_State *L, int idx, char *buff) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   if (ttisnumber(o)) {
-    unsigned len = luaO_tostringbuff(o, buff);
+    unsigned len = moonO_tostringbuff(o, buff);
     buff[len++] = '\0';  // add final zero
     return len;
   }
@@ -308,17 +308,17 @@ LUA_API unsigned (lua_numbertocstring) (lua_State *L, int idx, char *buff) {
 }
 
 
-LUA_API size_t lua_stringtonumber (lua_State *L, const char *s) {
-  size_t sz = luaO_str2num(s, s2v(L->getTop().p));
+MOON_API size_t moon_stringtonumber (moon_State *L, const char *s) {
+  size_t sz = moonO_str2num(s, s2v(L->getTop().p));
   if (sz != 0)
     api_incr_top(L);
   return sz;
 }
 
 
-LUA_API lua_Number lua_tonumberx (lua_State *L, int idx, int *pisnum) {
+MOON_API moon_Number moon_tonumberx (moon_State *L, int idx, int *pisnum) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
-  lua_Number n = 0;
+  moon_Number n = 0;
   int isnum = tonumber(o, &n);
   if (pisnum)
     *pisnum = isnum;
@@ -326,9 +326,9 @@ LUA_API lua_Number lua_tonumberx (lua_State *L, int idx, int *pisnum) {
 }
 
 
-LUA_API lua_Integer lua_tointegerx (lua_State *L, int idx, int *pisnum) {
+MOON_API moon_Integer moon_tointegerx (moon_State *L, int idx, int *pisnum) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
-  lua_Integer res = 0;
+  moon_Integer res = 0;
   int isnum = tointeger(o, &res);
   if (pisnum)
     *pisnum = isnum;
@@ -336,27 +336,27 @@ LUA_API lua_Integer lua_tointegerx (lua_State *L, int idx, int *pisnum) {
 }
 
 
-LUA_API int lua_toboolean (lua_State *L, int idx) {
+MOON_API int moon_toboolean (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return !l_isfalse(o);
 }
 
 
-LUA_API const char *lua_tolstring (lua_State *L, int idx, size_t *len) {
+MOON_API const char *moon_tolstring (moon_State *L, int idx, size_t *len) {
   TValue *o;
-  lua_lock(L);
+  moon_lock(L);
   o = L->getStackSubsystem().indexToValue(L,idx);
   if (!ttisstring(o)) {
     if (!cvt2str(o)) {  // not convertible?
       if (len != nullptr) *len = 0;
-      lua_unlock(L);
+      moon_unlock(L);
       return nullptr;
     }
-    luaO_tostring(L, o);
-    luaC_checkGC(L);
+    moonO_tostring(L, o);
+    moonC_checkGC(L);
     o = L->getStackSubsystem().indexToValue(L,idx);  // previous call may reallocate the stack
   }
-  lua_unlock(L);
+  moon_unlock(L);
   if (len != nullptr)
     return getStringWithLength(tsvalue(o), *len);
   else
@@ -364,16 +364,16 @@ LUA_API const char *lua_tolstring (lua_State *L, int idx, size_t *len) {
 }
 
 
-LUA_API lua_Unsigned lua_rawlen (lua_State *L, int idx) {
+MOON_API moon_Unsigned moon_rawlen (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   switch (ttypetag(o)) {
-    case LuaT::SHRSTR: return static_cast<lua_Unsigned>(tsvalue(o)->length());
-    case LuaT::LNGSTR: return static_cast<lua_Unsigned>(tsvalue(o)->length());
-    case LuaT::USERDATA: return static_cast<lua_Unsigned>(uvalue(o)->getLen());
-    case LuaT::TABLE: {
-      lua_lock(L);
-      const lua_Unsigned res = hvalue(o)->getn(L);
-      lua_unlock(L);
+    case MoonT::SHRSTR: return static_cast<moon_Unsigned>(tsvalue(o)->length());
+    case MoonT::LNGSTR: return static_cast<moon_Unsigned>(tsvalue(o)->length());
+    case MoonT::USERDATA: return static_cast<moon_Unsigned>(uvalue(o)->getLen());
+    case MoonT::TABLE: {
+      moon_lock(L);
+      const moon_Unsigned res = hvalue(o)->getn(L);
+      moon_unlock(L);
       return res;
     }
     default: return 0;
@@ -381,7 +381,7 @@ LUA_API lua_Unsigned lua_rawlen (lua_State *L, int idx) {
 }
 
 
-LUA_API lua_CFunction lua_tocfunction (lua_State *L, int idx) {
+MOON_API moon_CFunction moon_tocfunction (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   if (ttislcf(o)) return fvalue(o);
   else if (ttisCclosure(o))
@@ -392,20 +392,20 @@ LUA_API lua_CFunction lua_tocfunction (lua_State *L, int idx) {
 
 static inline void *touserdata (const TValue *o) {
   switch (ttype(o)) {
-    case LUA_TUSERDATA: return uvalue(o)->getMemory();
-    case LUA_TLIGHTUSERDATA: return pvalue(o);
+    case MOON_TUSERDATA: return uvalue(o)->getMemory();
+    case MOON_TLIGHTUSERDATA: return pvalue(o);
     default: return nullptr;
   }
 }
 
 
-LUA_API void *lua_touserdata (lua_State *L, int idx) {
+MOON_API void *moon_touserdata (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return touserdata(o);
 }
 
 
-LUA_API lua_State *lua_tothread (lua_State *L, int idx) {
+MOON_API moon_State *moon_tothread (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   return (!ttisthread(o)) ? nullptr : thvalue(o);
 }
@@ -418,11 +418,11 @@ LUA_API lua_State *lua_tothread (lua_State *L, int idx) {
 ** a 'size_t'. (As the returned pointer is only informative, this
 ** conversion should not be a problem.)
 */
-LUA_API const void *lua_topointer (lua_State *L, int idx) {
+MOON_API const void *moon_topointer (moon_State *L, int idx) {
   const TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   switch (ttypetag(o)) {
-    case LuaT::LCF: return cast_voidp(cast_sizet(fvalue(o)));
-    case LuaT::USERDATA: case LuaT::LIGHTUSERDATA:
+    case MoonT::LCF: return cast_voidp(cast_sizet(fvalue(o)));
+    case MoonT::USERDATA: case MoonT::LIGHTUSERDATA:
       return touserdata(o);
     default: {
       if (iscollectable(o))
@@ -440,27 +440,27 @@ LUA_API const void *lua_topointer (lua_State *L, int idx) {
 */
 
 
-LUA_API void lua_pushnil (lua_State *L) {
-  lua_lock(L);
+MOON_API void moon_pushnil (moon_State *L) {
+  moon_lock(L);
   setnilvalue(s2v(L->getTop().p));
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_pushnumber (lua_State *L, lua_Number n) {
-  lua_lock(L);
+MOON_API void moon_pushnumber (moon_State *L, moon_Number n) {
+  moon_lock(L);
   s2v(L->getTop().p)->setFloat(n);
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
-  lua_lock(L);
+MOON_API void moon_pushinteger (moon_State *L, moon_Integer n) {
+  moon_lock(L);
   s2v(L->getTop().p)->setInt(n);
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
@@ -469,35 +469,35 @@ LUA_API void lua_pushinteger (lua_State *L, lua_Integer n) {
 ** 'len' == 0 (as 's' can be nullptr in that case), due to later use of
 ** 'memcmp' and 'memcpy'.
 */
-LUA_API const char *lua_pushlstring (lua_State *L, const char *s, size_t len) {
+MOON_API const char *moon_pushlstring (moon_State *L, const char *s, size_t len) {
   TString *tstring;
-  lua_lock(L);
+  moon_lock(L);
   tstring = (len == 0) ? TString::create(L, "") : TString::create(L, s, len);
   setsvalue2s(L, L->getTop().p, tstring);
   api_incr_top(L);
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moonC_checkGC(L);
+  moon_unlock(L);
   return getStringContents(tstring);
 }
 
 
-LUA_API const char *lua_pushexternalstring (lua_State *L,
-	        const char *s, size_t len, lua_Alloc falloc, void *ud) {
+MOON_API const char *moon_pushexternalstring (moon_State *L,
+	        const char *s, size_t len, moon_Alloc falloc, void *ud) {
   TString *tstring;
-  lua_lock(L);
+  moon_lock(L);
   api_check(L, len <= MAX_SIZE, "string too large");
   api_check(L, s[len] == '\0', "string not ending with zero");
   tstring = TString::createExternal(L, s, len, falloc, ud);
   setsvalue2s(L, L->getTop().p, tstring);
   api_incr_top(L);
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moonC_checkGC(L);
+  moon_unlock(L);
   return getStringContents(tstring);
 }
 
 
-LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
-  lua_lock(L);
+MOON_API const char *moon_pushstring (moon_State *L, const char *s) {
+  moon_lock(L);
   if (s == nullptr)
     setnilvalue(s2v(L->getTop().p));
   else {
@@ -507,36 +507,36 @@ LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
     s = getStringContents(tstring);  // internal copy's address
   }
   api_incr_top(L);
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moonC_checkGC(L);
+  moon_unlock(L);
   return s;
 }
 
 
-LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
+MOON_API const char *moon_pushvfstring (moon_State *L, const char *fmt,
                                       va_list argp) {
   const char *ret;
-  lua_lock(L);
-  ret = luaO_pushvfstring(L, fmt, argp);
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moon_lock(L);
+  ret = moonO_pushvfstring(L, fmt, argp);
+  moonC_checkGC(L);
+  moon_unlock(L);
   return ret;
 }
 
 
-LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
+MOON_API const char *moon_pushfstring (moon_State *L, const char *fmt, ...) {
   const char *ret;
   va_list argp;
-  lua_lock(L);
+  moon_lock(L);
   pushvfstring(L, argp, fmt, ret);
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moonC_checkGC(L);
+  moon_unlock(L);
   return ret;
 }
 
 
-LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
-  lua_lock(L);
+MOON_API void moon_pushcclosure (moon_State *L, moon_CFunction fn, int n) {
+  moon_lock(L);
   if (n == 0) {
     setfvalue(s2v(L->getTop().p), fn);
     api_incr_top(L);
@@ -549,41 +549,41 @@ LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
     for (int i = 0; i < n; i++) {
       *cl->getUpvalue(i) = *s2v(L->getTop().p - n + i);
       // does not need barrier because closure is white
-      lua_assert(iswhite(cl));
+      moon_assert(iswhite(cl));
     }
     L->getStackSubsystem().popN(n);
     setclCvalue(L, s2v(L->getTop().p), cl);
     api_incr_top(L);
-    luaC_checkGC(L);
+    moonC_checkGC(L);
   }
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_pushboolean (lua_State *L, int b) {
-  lua_lock(L);
+MOON_API void moon_pushboolean (moon_State *L, int b) {
+  moon_lock(L);
   if (b)
     setbtvalue(s2v(L->getTop().p));
   else
     setbfvalue(s2v(L->getTop().p));
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_pushlightuserdata (lua_State *L, void *p) {
-  lua_lock(L);
+MOON_API void moon_pushlightuserdata (moon_State *L, void *p) {
+  moon_lock(L);
   setpvalue(s2v(L->getTop().p), p);
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API int lua_pushthread (lua_State *L) {
-  lua_lock(L);
+MOON_API int moon_pushthread (moon_State *L) {
+  moon_lock(L);
   setthvalue(L, s2v(L->getTop().p), L);
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
   return (mainthread(G(L)) == L);
 }
 
@@ -594,8 +594,8 @@ LUA_API int lua_pushthread (lua_State *L) {
 */
 
 
-static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
-  LuaT tag;
+static int auxgetstr (moon_State *L, const TValue *t, const char *k) {
+  MoonT tag;
   TString *str = TString::create(L, k);
   tag = L->getVM().fastget(t, str, s2v(L->getTop().p), [](Table* tbl, TString* strkey, TValue* res) { return tbl->getStr(strkey, res); });
   if (!tagisempty(tag))
@@ -605,7 +605,7 @@ static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
     api_incr_top(L);
     tag = L->getVM().finishGet(t, s2v(L->getTop().p - 1), L->getTop().p - 1, tag);
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return novariant(tag);
 }
 
@@ -615,44 +615,44 @@ static int auxgetstr (lua_State *L, const TValue *t, const char *k) {
 ** table; so, an emergency collection while using the global table
 ** cannot collect it.
 */
-static void getGlobalTable (lua_State *L, TValue *gt) {
+static void getGlobalTable (moon_State *L, TValue *gt) {
   Table *registry = hvalue(G(L)->getRegistry());
-  LuaT tag = registry->getInt(LUA_RIDX_GLOBALS, gt);
+  MoonT tag = registry->getInt(MOON_RIDX_GLOBALS, gt);
   (void)tag;  // avoid not-used warnings when checks are off
-  api_check(L, novariant(tag) == LUA_TTABLE, "global table must exist");
+  api_check(L, novariant(tag) == MOON_TTABLE, "global table must exist");
 }
 
 
-LUA_API int lua_getglobal (lua_State *L, const char *name) {
+MOON_API int moon_getglobal (moon_State *L, const char *name) {
   TValue gt;
-  lua_lock(L);
+  moon_lock(L);
   getGlobalTable(L, &gt);
   return auxgetstr(L, &gt, name);
 }
 
 
-LUA_API int lua_gettable (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API int moon_gettable (moon_State *L, int idx) {
+  moon_lock(L);
   api_checkpop(L, 1);
   TValue *t = L->getStackSubsystem().indexToValue(L,idx);
-  LuaT tag = L->getVM().fastget(t, s2v(L->getTop().p - 1), s2v(L->getTop().p - 1), [](Table* tbl, const TValue* key, TValue* res) { return tbl->get(key, res); });
+  MoonT tag = L->getVM().fastget(t, s2v(L->getTop().p - 1), s2v(L->getTop().p - 1), [](Table* tbl, const TValue* key, TValue* res) { return tbl->get(key, res); });
   if (tagisempty(tag))
     tag = L->getVM().finishGet(t, s2v(L->getTop().p - 1), L->getTop().p - 1, tag);
-  lua_unlock(L);
+  moon_unlock(L);
   return novariant(tag);
 }
 
 
-LUA_API int lua_getfield (lua_State *L, int idx, const char *k) {
-  lua_lock(L);
+MOON_API int moon_getfield (moon_State *L, int idx, const char *k) {
+  moon_lock(L);
   return auxgetstr(L, L->getStackSubsystem().indexToValue(L,idx), k);
 }
 
 
-LUA_API int lua_geti (lua_State *L, int idx, lua_Integer n) {
-  lua_lock(L);
+MOON_API int moon_geti (moon_State *L, int idx, moon_Integer n) {
+  moon_lock(L);
   TValue *t = L->getStackSubsystem().indexToValue(L,idx);
-  LuaT tag;
+  MoonT tag;
   L->getVM().fastgeti(t, n, s2v(L->getTop().p), tag);
   if (tagisempty(tag)) {
     TValue key;
@@ -660,48 +660,48 @@ LUA_API int lua_geti (lua_State *L, int idx, lua_Integer n) {
     tag = L->getVM().finishGet(t, &key, L->getTop().p, tag);
   }
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
   return novariant(tag);
 }
 
 
-static int finishrawget (lua_State *L, LuaT tag) {
+static int finishrawget (moon_State *L, MoonT tag) {
   if (tagisempty(tag))  // avoid copying empty items to the stack
     setnilvalue(s2v(L->getTop().p));
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
   return novariant(tag);
 }
 
 
-static inline Table *gettable (lua_State *L, int idx) {
+static inline Table *gettable (moon_State *L, int idx) {
   TValue *t = L->getStackSubsystem().indexToValue(L,idx);
   api_check(L, ttistable(t), "table expected");
   return hvalue(t);
 }
 
 
-LUA_API int lua_rawget (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API int moon_rawget (moon_State *L, int idx) {
+  moon_lock(L);
   api_checkpop(L, 1);
   Table *t = gettable(L, idx);
-  LuaT tag = t->get(s2v(L->getTop().p - 1), s2v(L->getTop().p - 1));
+  MoonT tag = t->get(s2v(L->getTop().p - 1), s2v(L->getTop().p - 1));
   L->getStackSubsystem().pop();  // pop key
   return finishrawget(L, tag);
 }
 
 
-LUA_API int lua_rawgeti (lua_State *L, int idx, lua_Integer n) {
-  lua_lock(L);
+MOON_API int moon_rawgeti (moon_State *L, int idx, moon_Integer n) {
+  moon_lock(L);
   Table *t = gettable(L, idx);
-  LuaT tag;
+  MoonT tag;
   t->fastGeti(n, s2v(L->getTop().p), tag);
   return finishrawget(L, tag);
 }
 
 
-LUA_API int lua_rawgetp (lua_State *L, int idx, const void *p) {
-  lua_lock(L);
+MOON_API int moon_rawgetp (moon_State *L, int idx, const void *p) {
+  moon_lock(L);
   Table *t = gettable(L, idx);
   TValue k;
   setpvalue(&k, cast_voidp(p));
@@ -709,29 +709,29 @@ LUA_API int lua_rawgetp (lua_State *L, int idx, const void *p) {
 }
 
 
-LUA_API void lua_createtable (lua_State *L, int narray, int nrec) {
-  lua_lock(L);
+MOON_API void moon_createtable (moon_State *L, int narray, int nrec) {
+  moon_lock(L);
   Table *t = Table::create(L);
   sethvalue2s(L, L->getTop().p, t);
   api_incr_top(L);
   if (narray > 0 || nrec > 0)
     t->resize(L, cast_uint(narray), cast_uint(nrec));
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moonC_checkGC(L);
+  moon_unlock(L);
 }
 
 
-LUA_API int lua_getmetatable (lua_State *L, int objindex) {
+MOON_API int moon_getmetatable (moon_State *L, int objindex) {
   const TValue *obj;
   Table *mt;
   int res = 0;
-  lua_lock(L);
+  moon_lock(L);
   obj = L->getStackSubsystem().indexToValue(L,objindex);
   switch (ttype(obj)) {
-    case LUA_TTABLE:
+    case MOON_TTABLE:
       mt = hvalue(obj)->getMetatable();
       break;
-    case LUA_TUSERDATA:
+    case MOON_TUSERDATA:
       mt = uvalue(obj)->getMetatable();
       break;
     default:
@@ -743,26 +743,26 @@ LUA_API int lua_getmetatable (lua_State *L, int objindex) {
     api_incr_top(L);
     res = 1;
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return res;
 }
 
 
-LUA_API int lua_getiuservalue (lua_State *L, int idx, int n) {
+MOON_API int moon_getiuservalue (moon_State *L, int idx, int n) {
   int t;
-  lua_lock(L);
+  moon_lock(L);
   TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   api_check(L, ttisfulluserdata(o), "full userdata expected");
   if (n <= 0 || n > uvalue(o)->getNumUserValues()) {
     setnilvalue(s2v(L->getTop().p));
-    t = LUA_TNONE;
+    t = MOON_TNONE;
   }
   else {
     L->getStackSubsystem().setSlot(L->getTop().p, &uvalue(o)->getUserValue(n - 1)->value);
     t = ttype(s2v(L->getTop().p));
   }
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
   return t;
 }
 
@@ -774,7 +774,7 @@ LUA_API int lua_getiuservalue (lua_State *L, int idx, int n) {
 /*
 ** t[k] = value at the top of the stack (where 'k' is a string)
 */
-static void auxsetstr (lua_State *L, const TValue *t, const char *k) {
+static void auxsetstr (moon_State *L, const TValue *t, const char *k) {
   TString *str = TString::create(L, k);
   api_checkpop(L, 1);
   int hres = L->getVM().fastset(t, str, s2v(L->getTop().p - 1), [](Table* tbl, TString* strkey, TValue* val) { return tbl->psetStr(strkey, val); });
@@ -788,20 +788,20 @@ static void auxsetstr (lua_State *L, const TValue *t, const char *k) {
     L->getVM().finishSet(t, s2v(L->getTop().p - 1), s2v(L->getTop().p - 2), hres);
     L->getStackSubsystem().popN(2);  // pop value and key
   }
-  lua_unlock(L);  // lock done by caller
+  moon_unlock(L);  // lock done by caller
 }
 
 
-LUA_API void lua_setglobal (lua_State *L, const char *name) {
+MOON_API void moon_setglobal (moon_State *L, const char *name) {
   TValue gt;
-  lua_lock(L);  // unlock done in 'auxsetstr'
+  moon_lock(L);  // unlock done in 'auxsetstr'
   getGlobalTable(L, &gt);
   auxsetstr(L, &gt, name);
 }
 
 
-LUA_API void lua_settable (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API void moon_settable (moon_State *L, int idx) {
+  moon_lock(L);
   api_checkpop(L, 2);
   TValue *t = L->getStackSubsystem().indexToValue(L,idx);
   int hres = L->getVM().fastset(t, s2v(L->getTop().p - 2), s2v(L->getTop().p - 1), [](Table* tbl, const TValue* key, TValue* val) { return tbl->pset(key, val); });
@@ -810,18 +810,18 @@ LUA_API void lua_settable (lua_State *L, int idx) {
   else
     L->getVM().finishSet(t, s2v(L->getTop().p - 2), s2v(L->getTop().p - 1), hres);
   L->getStackSubsystem().popN(2);  // pop index and value
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_setfield (lua_State *L, int idx, const char *k) {
-  lua_lock(L);  // unlock done in 'auxsetstr'
+MOON_API void moon_setfield (moon_State *L, int idx, const char *k) {
+  moon_lock(L);  // unlock done in 'auxsetstr'
   auxsetstr(L, L->getStackSubsystem().indexToValue(L,idx), k);
 }
 
 
-LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
-  lua_lock(L);
+MOON_API void moon_seti (moon_State *L, int idx, moon_Integer n) {
+  moon_lock(L);
   api_checkpop(L, 1);
   TValue *t = L->getStackSubsystem().indexToValue(L,idx);
   int hres;
@@ -834,47 +834,47 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
     L->getVM().finishSet(t, &temp, s2v(L->getTop().p - 1), hres);
   }
   L->getStackSubsystem().pop();  // pop value
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {
-  lua_lock(L);
+static void aux_rawset (moon_State *L, int idx, TValue *key, int n) {
+  moon_lock(L);
   api_checkpop(L, n);
   Table *t = gettable(L, idx);
   t->set(L, key, s2v(L->getTop().p - 1));
   invalidateTMcache(t);
-  luaC_barrierback(L, obj2gco(t), s2v(L->getTop().p - 1));
+  moonC_barrierback(L, obj2gco(t), s2v(L->getTop().p - 1));
   L->getStackSubsystem().popN(n);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_rawset (lua_State *L, int idx) {
+MOON_API void moon_rawset (moon_State *L, int idx) {
   aux_rawset(L, idx, s2v(L->getTop().p - 2), 2);
 }
 
 
-LUA_API void lua_rawsetp (lua_State *L, int idx, const void *p) {
+MOON_API void moon_rawsetp (moon_State *L, int idx, const void *p) {
   TValue k;
   setpvalue(&k, cast_voidp(p));
   aux_rawset(L, idx, &k, 1);
 }
 
 
-LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
-  lua_lock(L);
+MOON_API void moon_rawseti (moon_State *L, int idx, moon_Integer n) {
+  moon_lock(L);
   api_checkpop(L, 1);
   Table *t = gettable(L, idx);
   t->setInt(L, n, s2v(L->getTop().p - 1));
-  luaC_barrierback(L, obj2gco(t), s2v(L->getTop().p - 1));
+  moonC_barrierback(L, obj2gco(t), s2v(L->getTop().p - 1));
   L->getStackSubsystem().pop();
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API int lua_setmetatable (lua_State *L, int objindex) {
-  lua_lock(L);
+MOON_API int moon_setmetatable (moon_State *L, int objindex) {
+  moon_lock(L);
   api_checkpop(L, 1);
   TValue *obj = L->getStackSubsystem().indexToValue(L,objindex);
   Table *mt;
@@ -885,17 +885,17 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
     mt = hvalue(s2v(L->getTop().p - 1));
   }
   switch (ttype(obj)) {
-    case LUA_TTABLE: {
+    case MOON_TTABLE: {
       hvalue(obj)->setMetatable(mt);
       if (mt) {
-        luaC_objbarrier(L, gcvalue(obj), mt);
+        moonC_objbarrier(L, gcvalue(obj), mt);
         gcvalue(obj)->checkFinalizer(L, mt);      }
       break;
     }
-    case LUA_TUSERDATA: {
+    case MOON_TUSERDATA: {
       uvalue(obj)->setMetatable(mt);
       if (mt) {
-        luaC_objbarrier(L, uvalue(obj), mt);
+        moonC_objbarrier(L, uvalue(obj), mt);
         gcvalue(obj)->checkFinalizer(L, mt);      }
       break;
     }
@@ -905,14 +905,14 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
     }
   }
   L->getStackSubsystem().pop();
-  lua_unlock(L);
+  moon_unlock(L);
   return 1;
 }
 
 
-LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
+MOON_API int moon_setiuservalue (moon_State *L, int idx, int n) {
   int res;
-  lua_lock(L);
+  moon_lock(L);
   api_checkpop(L, 1);
   TValue *o = L->getStackSubsystem().indexToValue(L,idx);
   api_check(L, ttisfulluserdata(o), "full userdata expected");
@@ -920,11 +920,11 @@ LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
     res = 0;  // 'n' not in [1, uvalue(o)->getNumUserValues()]
   else {
     uvalue(o)->getUserValue(n - 1)->value = *s2v(L->getTop().p - 1);
-    luaC_barrierback(L, gcvalue(o), s2v(L->getTop().p - 1));
+    moonC_barrierback(L, gcvalue(o), s2v(L->getTop().p - 1));
     res = 1;
   }
   L->getStackSubsystem().pop();
-  lua_unlock(L);
+  moon_unlock(L);
   return res;
 }
 
@@ -934,23 +934,23 @@ LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
 */
 
 
-inline void checkresults(lua_State* L, int na, int nr) {
-	api_check(L, (nr) == LUA_MULTRET
+inline void checkresults(moon_State* L, int na, int nr) {
+	api_check(L, (nr) == MOON_MULTRET
 	          || (L->getCI()->topRef().p - L->getTop().p >= (nr) - (na)),
 	          "results from function overflow current stack size");
-	api_check(L, LUA_MULTRET <= (nr) && (nr) <= MAXRESULTS,
+	api_check(L, MOON_MULTRET <= (nr) && (nr) <= MAXRESULTS,
 	          "invalid number of results");
 }
 
 
-LUA_API void lua_callk (lua_State *L, int nargs, int nresults,
-                        lua_KContext ctx, lua_KFunction k) {
+MOON_API void moon_callk (moon_State *L, int nargs, int nresults,
+                        moon_KContext ctx, moon_KFunction k) {
   StkId func;
-  lua_lock(L);
+  moon_lock(L);
   api_check(L, k == nullptr || !L->getCI()->isLua(),
     "cannot use continuations inside hooks");
   api_checkpop(L, nargs + 1);
-  api_check(L, L->getStatus() == LUA_OK, "cannot do calls on non-normal thread");
+  api_check(L, L->getStatus() == MOON_OK, "cannot do calls on non-normal thread");
   checkresults(L, nargs, nresults);
   func = L->getTop().p - (nargs+1);
   if (k != nullptr && yieldable(L)) {  // need to prepare continuation?
@@ -961,7 +961,7 @@ LUA_API void lua_callk (lua_State *L, int nargs, int nresults,
   else  // no continuation or no yieldable
     L->callNoYield( func, nresults);  // just do the call
   adjustresults(L, nresults);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
@@ -975,20 +975,20 @@ struct CallS {  // data to 'f_call'
 };
 
 
-static void f_call (lua_State *L, void *ud) {
+static void f_call (moon_State *L, void *ud) {
   CallS *c = static_cast<CallS*>(ud);
   L->callNoYield( c->func, c->nresults);
 }
 
 
 
-LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
-                        lua_KContext ctx, lua_KFunction k) {
-  lua_lock(L);
+MOON_API int moon_pcallk (moon_State *L, int nargs, int nresults, int errfunc,
+                        moon_KContext ctx, moon_KFunction k) {
+  moon_lock(L);
   api_check(L, k == nullptr || !L->getCI()->isLua(),
     "cannot use continuations inside hooks");
   api_checkpop(L, nargs + 1);
-  api_check(L, L->getStatus() == LUA_OK, "cannot do calls on non-normal thread");
+  api_check(L, L->getStatus() == MOON_OK, "cannot do calls on non-normal thread");
   checkresults(L, nargs, nresults);
   ptrdiff_t func;
   if (errfunc == 0)
@@ -1018,33 +1018,33 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
     L->call( c.func, nresults);  // do the call
     callInfo->callStatusRef() &= ~CIST_YPCALL;
     L->setErrFunc(callInfo->getOldErrFunc());
-    status = LUA_OK;  // if it is here, there were no errors
+    status = MOON_OK;  // if it is here, there were no errors
   }
   adjustresults(L, nresults);
-  lua_unlock(L);
+  moon_unlock(L);
   return APIstatus(status);
 }
 
 
-LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
+MOON_API int moon_load (moon_State *L, moon_Reader reader, void *data,
                       const char *chunkname, const char *mode) {
   TStatus status;
-  lua_lock(L);
+  moon_lock(L);
   if (!chunkname) chunkname = "?";
   ZIO z(L, reader, data);
   status = L->protectedParser( &z, chunkname, mode);
-  if (status == LUA_OK) {  // no errors?
+  if (status == MOON_OK) {  // no errors?
     LClosure *f = clLvalue(s2v(L->getTop().p - 1));  // get new function
     if (f->getNumUpvalues() >= 1) {  // does it have an upvalue?
       // get global table from registry
       TValue gt;
       getGlobalTable(L, &gt);
-      // set global table as 1st upvalue of 'f' (may be LUA_ENV)
+      // set global table as 1st upvalue of 'f' (may be MOON_ENV)
       *f->getUpval(0)->getVP() = gt;
-      luaC_barrier(L, f->getUpval(0), &gt);
+      moonC_barrier(L, f->getUpval(0), &gt);
     }
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return APIstatus(status);
 }
 
@@ -1053,20 +1053,20 @@ LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
 ** Dump a Lua function, calling 'writer' to write its parts. Ensure
 ** the stack returns with its original size.
 */
-LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
+MOON_API int moon_dump (moon_State *L, moon_Writer writer, void *data, int strip) {
   ptrdiff_t otop = L->saveStack(L->getTop().p);  // original top
   TValue *f = s2v(L->getTop().p - 1);  // function to be dumped
-  lua_lock(L);
+  moon_lock(L);
   api_checkpop(L, 1);
   api_check(L, isLfunction(f), "Lua function expected");
-  const int status = luaU_dump(L, clLvalue(f)->getProto(), writer, data, strip);
+  const int status = moonU_dump(L, clLvalue(f)->getProto(), writer, data, strip);
   L->getStackSubsystem().setTopPtr(L->restoreStack(otop));  // restore top
-  lua_unlock(L);
+  moon_unlock(L);
   return status;
 }
 
 
-LUA_API int lua_status (lua_State *L) {
+MOON_API int moon_status (moon_State *L) {
   return APIstatus(L->getStatus());
 }
 
@@ -1074,78 +1074,78 @@ LUA_API int lua_status (lua_State *L) {
 /*
 ** Garbage-collection function
 */
-LUA_API int lua_gc (lua_State *L, int what, ...) {
+MOON_API int moon_gc (moon_State *L, int what, ...) {
   va_list argp;
   int res = 0;
   GlobalState *g = G(L);
   if (g->getGCStp() & (GCSTPGC | GCSTPCLS))  // internal stop?
     return -1;  // all options are invalid when stopped
-  lua_lock(L);
+  moon_lock(L);
   va_start(argp, what);
   switch (what) {
-    case LUA_GCSTOP: {
+    case MOON_GCSTOP: {
       g->setGCStp(GCSTPUSR);  // stopped by the user
       break;
     }
-    case LUA_GCRESTART: {
-      luaE_setdebt(g, 0);
+    case MOON_GCRESTART: {
+      moonE_setdebt(g, 0);
       g->setGCStp(0);  // (other bits must be zero here)
       break;
     }
-    case LUA_GCCOLLECT: {
-      luaC_fullgc(*L, 0);
+    case MOON_GCCOLLECT: {
+      moonC_fullgc(*L, 0);
       break;
     }
-    case LUA_GCCOUNT: {
+    case MOON_GCCOUNT: {
       // GC values are expressed in Kbytes: #bytes/2^10
       res = cast_int(g->getTotalBytes() >> 10);
       break;
     }
-    case LUA_GCCOUNTB: {
+    case MOON_GCCOUNTB: {
       res = cast_int(g->getTotalBytes() & 0x3ff);
       break;
     }
-    case LUA_GCSTEP: {
+    case MOON_GCSTEP: {
       lu_byte oldstp = g->getGCStp();
       l_mem n = static_cast<l_mem>(va_arg(argp, size_t));
       int work = 0;  // true if GC did some work
       g->setGCStp(0);  // allow GC to run (other bits must be zero here)
       if (n <= 0)
         n = g->getGCDebt();  // force to run one basic step
-      luaE_setdebt(g, g->getGCDebt() - n);
-      luaC_condGC(L, [](){}, [&work](){ work = 1; });
+      moonE_setdebt(g, g->getGCDebt() - n);
+      moonC_condGC(L, [](){}, [&work](){ work = 1; });
       if (work && g->getGCState() == GCState::Pause)  // end of cycle?
         res = 1;  // signal it
       g->setGCStp(oldstp);  // restore previous state
       break;
     }
-    case LUA_GCISRUNNING: {
+    case MOON_GCISRUNNING: {
       res = g->isGCRunning();
       break;
     }
-    case LUA_GCGEN: {
-      res = (g->getGCKind() == GCKind::Incremental) ? LUA_GCINC : LUA_GCGEN;
-      luaC_changemode(*L, GCKind::GenerationalMinor);
+    case MOON_GCGEN: {
+      res = (g->getGCKind() == GCKind::Incremental) ? MOON_GCINC : MOON_GCGEN;
+      moonC_changemode(*L, GCKind::GenerationalMinor);
       break;
     }
-    case LUA_GCINC: {
-      res = (g->getGCKind() == GCKind::Incremental) ? LUA_GCINC : LUA_GCGEN;
-      luaC_changemode(*L, GCKind::Incremental);
+    case MOON_GCINC: {
+      res = (g->getGCKind() == GCKind::Incremental) ? MOON_GCINC : MOON_GCGEN;
+      moonC_changemode(*L, GCKind::Incremental);
       break;
     }
-    case LUA_GCPARAM: {
+    case MOON_GCPARAM: {
       int param = va_arg(argp, int);
       int value = va_arg(argp, int);
-      api_check(L, 0 <= param && param < LUA_GCPN, "invalid parameter");
-      res = cast_int(luaO_applyparam(g->getGCParam(param), 100));
+      api_check(L, 0 <= param && param < MOON_GCPN, "invalid parameter");
+      res = cast_int(moonO_applyparam(g->getGCParam(param), 100));
       if (value >= 0)
-        g->setGCParam(param, luaO_codeparam(cast_uint(value)));
+        g->setGCParam(param, moonO_codeparam(cast_uint(value)));
       break;
     }
     default: res = -1;  // invalid option
   }
   va_end(argp);
-  lua_unlock(L);
+  moon_unlock(L);
   return res;
 }
 
@@ -1156,23 +1156,23 @@ LUA_API int lua_gc (lua_State *L, int what, ...) {
 */
 
 
-LUA_API int lua_error (lua_State *L) {
+MOON_API int moon_error (moon_State *L) {
   TValue *errobj;
-  lua_lock(L);
+  moon_lock(L);
   errobj = s2v(L->getTop().p - 1);
   api_checkpop(L, 1);
   // error object is the memory error message?
   if (ttisshrstring(errobj) && shortStringsEqual(tsvalue(errobj), G(L)->getMemErrMsg()))
-    luaM_error(L);  // raise a memory error
+    moonM_error(L);  // raise a memory error
   else
-    luaG_errormsg(L);  // raise a regular error
+    moonG_errormsg(L);  // raise a regular error
   // code unreachable; will unlock when control actually leaves the kernel
   return 0;  // to avoid warnings
 }
 
 
-LUA_API int lua_next (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API int moon_next (moon_State *L, int idx) {
+  moon_lock(L);
   api_checkpop(L, 1);
   Table *t = gettable(L, idx);
   int more = t->tableNext(L, L->getTop().p - 1);
@@ -1180,86 +1180,86 @@ LUA_API int lua_next (lua_State *L, int idx) {
     api_incr_top(L);
   else  // no more elements
     L->getStackSubsystem().pop();  // pop key
-  lua_unlock(L);
+  moon_unlock(L);
   return more;
 }
 
 
-LUA_API void lua_toclose (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API void moon_toclose (moon_State *L, int idx) {
+  moon_lock(L);
   StkId o = L->getStackSubsystem().indexToStack(L,idx);
   api_check(L, L->getTbclist().p < o, "given index below or equal a marked one");
-  luaF_newtbcupval(L, o);  // create new to-be-closed upvalue
+  moonF_newtbcupval(L, o);  // create new to-be-closed upvalue
   L->getCI()->callStatusRef() |= CIST_TBC;  // mark that function has TBC slots
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_concat (lua_State *L, int n) {
-  lua_lock(L);
+MOON_API void moon_concat (moon_State *L, int n) {
+  moon_lock(L);
   api_checknelems(L, n);
   if (n > 0) {
     L->getVM().concat(n);
-    luaC_checkGC(L);
+    moonC_checkGC(L);
   }
   else {  // nothing to concatenate
     setsvalue2s(L, L->getTop().p, TString::create(L, "", 0));  // push empty string
     api_incr_top(L);
   }
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API void lua_len (lua_State *L, int idx) {
-  lua_lock(L);
+MOON_API void moon_len (moon_State *L, int idx) {
+  moon_lock(L);
   TValue *t = L->getStackSubsystem().indexToValue(L,idx);
   L->getVM().objlen(L->getTop().p, t);
   api_incr_top(L);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-LUA_API lua_Alloc lua_getallocf (lua_State *L, void **ud) {
-  lua_lock(L);
+MOON_API moon_Alloc moon_getallocf (moon_State *L, void **ud) {
+  moon_lock(L);
   if (ud) *ud = G(L)->getUd();
-  lua_Alloc f = G(L)->getFrealloc();
-  lua_unlock(L);
+  moon_Alloc f = G(L)->getFrealloc();
+  moon_unlock(L);
   return f;
 }
 
 
-LUA_API void lua_setallocf (lua_State *L, lua_Alloc f, void *ud) {
-  lua_lock(L);
+MOON_API void moon_setallocf (moon_State *L, moon_Alloc f, void *ud) {
+  moon_lock(L);
   G(L)->setUd(ud);
   G(L)->setFrealloc(f);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-void lua_setwarnf (lua_State *L, lua_WarnFunction f, void *ud) {
-  lua_lock(L);
+void moon_setwarnf (moon_State *L, moon_WarnFunction f, void *ud) {
+  moon_lock(L);
   G(L)->setUdWarn(ud);
   G(L)->setWarnF(f);
-  lua_unlock(L);
+  moon_unlock(L);
 }
 
 
-void lua_warning (lua_State *L, const char *msg, int tocont) {
-  lua_lock(L);
-  luaE_warning(L, msg, tocont);
-  lua_unlock(L);
+void moon_warning (moon_State *L, const char *msg, int tocont) {
+  moon_lock(L);
+  moonE_warning(L, msg, tocont);
+  moon_unlock(L);
 }
 
 
 
-LUA_API void *lua_newuserdatauv (lua_State *L, size_t size, int nuvalue) {
-  lua_lock(L);
+MOON_API void *moon_newuserdatauv (moon_State *L, size_t size, int nuvalue) {
+  moon_lock(L);
   api_check(L, 0 <= nuvalue && nuvalue < SHRT_MAX, "invalid value");
-  Udata *u = luaS_newudata(L, size, static_cast<unsigned short>(nuvalue));
+  Udata *u = moonS_newudata(L, size, static_cast<unsigned short>(nuvalue));
   setuvalue(L, s2v(L->getTop().p), u);
   api_incr_top(L);
-  luaC_checkGC(L);
-  lua_unlock(L);
+  moonC_checkGC(L);
+  moon_unlock(L);
   return u->getMemory();
 }
 
@@ -1268,7 +1268,7 @@ LUA_API void *lua_newuserdatauv (lua_State *L, size_t size, int nuvalue) {
 static const char *aux_upvalue (TValue *fi, int n, TValue **val,
                                 GCObject **owner) {
   switch (ttypetag(fi)) {
-    case LuaT::CCL: {  // C closure
+    case MoonT::CCL: {  // C closure
       CClosure *f = clCvalue(fi);
       if (!(cast_uint(n) - 1u < cast_uint(f->getNumUpvalues())))
         return nullptr;  // 'n' not in [1, f->getNumUpvalues()]
@@ -1276,7 +1276,7 @@ static const char *aux_upvalue (TValue *fi, int n, TValue **val,
       if (owner) *owner = obj2gco(f);
       return "";
     }
-    case LuaT::LCL: {  // Lua closure
+    case MoonT::LCL: {  // Lua closure
       LClosure *f = clLvalue(fi);
       TString *name;
       Proto *p = f->getProto();
@@ -1292,40 +1292,40 @@ static const char *aux_upvalue (TValue *fi, int n, TValue **val,
 }
 
 
-LUA_API const char *lua_getupvalue (lua_State *L, int funcindex, int n) {
+MOON_API const char *moon_getupvalue (moon_State *L, int funcindex, int n) {
   const char *name;
   TValue *val = nullptr;  // to avoid warnings
-  lua_lock(L);
+  moon_lock(L);
   name = aux_upvalue(L->getStackSubsystem().indexToValue(L,funcindex), n, &val, nullptr);
   if (name) {
     L->getStackSubsystem().setSlot(L->getTop().p, val);
     api_incr_top(L);
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return name;
 }
 
 
-LUA_API const char *lua_setupvalue (lua_State *L, int funcindex, int n) {
+MOON_API const char *moon_setupvalue (moon_State *L, int funcindex, int n) {
   const char *name;
   TValue *val = nullptr;  // to avoid warnings
   GCObject *owner = nullptr;  // to avoid warnings
   TValue *fi;
-  lua_lock(L);
+  moon_lock(L);
   fi = L->getStackSubsystem().indexToValue(L,funcindex);
   api_checknelems(L, 1);
   name = aux_upvalue(fi, n, &val, &owner);
   if (name) {
     L->getStackSubsystem().pop();
     *val = *s2v(L->getTop().p);
-    luaC_barrier(L, owner, val);
+    moonC_barrier(L, owner, val);
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return name;
 }
 
 
-static UpVal **getupvalref (lua_State *L, int fidx, int n, LClosure **pf) {
+static UpVal **getupvalref (moon_State *L, int fidx, int n, LClosure **pf) {
   static const UpVal *const nullup = nullptr;
   LClosure *f;
   TValue *fi = L->getStackSubsystem().indexToValue(L,fidx);
@@ -1339,19 +1339,19 @@ static UpVal **getupvalref (lua_State *L, int fidx, int n, LClosure **pf) {
 }
 
 
-LUA_API void *lua_upvalueid (lua_State *L, int fidx, int n) {
+MOON_API void *moon_upvalueid (moon_State *L, int fidx, int n) {
   TValue *fi = L->getStackSubsystem().indexToValue(L,fidx);
   switch (ttypetag(fi)) {
-    case LuaT::LCL: {  // lua closure
+    case MoonT::LCL: {  // lua closure
       return *getupvalref(L, fidx, n, nullptr);
     }
-    case LuaT::CCL: {  // C closure
+    case MoonT::CCL: {  // C closure
       CClosure *f = clCvalue(fi);
       if (1 <= n && n <= f->getNumUpvalues())
         return f->getUpvalue(n - 1);
       // else
     }  // FALLTHROUGH
-    case LuaT::LCF:
+    case MoonT::LCF:
       return nullptr;  // light C functions have no upvalues
     default: {
       api_check(L, 0, "function expected");
@@ -1361,14 +1361,14 @@ LUA_API void *lua_upvalueid (lua_State *L, int fidx, int n) {
 }
 
 
-LUA_API void lua_upvaluejoin (lua_State *L, int fidx1, int n1,
+MOON_API void moon_upvaluejoin (moon_State *L, int fidx1, int n1,
                                             int fidx2, int n2) {
   LClosure *f1;
   UpVal **up1 = getupvalref(L, fidx1, n1, &f1);
   UpVal **up2 = getupvalref(L, fidx2, n2, nullptr);
   api_check(L, *up1 != nullptr && *up2 != nullptr, "invalid upvalue index");
   *up1 = *up2;
-  luaC_objbarrier(L, f1, *up1);
+  moonC_objbarrier(L, f1, *up1);
 }
 
 

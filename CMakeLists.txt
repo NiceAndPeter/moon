@@ -84,22 +84,22 @@ set(OPTIMIZE_FLAGS
 # Test mode definitions
 if(LUA_BUILD_TESTS)
     add_compile_definitions(
-        LUA_USER_H="ltests.h"
+        MOON_USER_H="ltests.h"
     )
     # If assertions are disabled, tell ltests.h not to enable them
     if(NOT LUA_ENABLE_ASSERTIONS)
-        add_compile_definitions(LUA_TESTS_NO_ASSERT)
+        add_compile_definitions(MOON_TESTS_NO_ASSERT)
     endif()
 endif()
 
 # Assertion control (independent of test mode, for non-test builds)
 if(LUA_ENABLE_ASSERTIONS AND NOT LUA_BUILD_TESTS)
-    add_compile_definitions(LUAI_ASSERT)
+    add_compile_definitions(MOONI_ASSERT)
 endif()
 
 # Platform definitions
 if(LINUX)
-    add_compile_definitions(LUA_USE_LINUX)
+    add_compile_definitions(MOON_USE_LINUX)
 endif()
 
 # Sanitizer options
@@ -448,7 +448,7 @@ if(LUA_BUILD_TESTS)
     set(TEST_LIB_OUTPUT_DIR ${TEST_LIB_DIR})
 
     # Common compile options for test libraries
-    set(TEST_LIB_COMPILE_OPTIONS -Wall -O2 -fPIC -ULUA_USER_H)
+    set(TEST_LIB_COMPILE_OPTIONS -Wall -O2 -fPIC -UMOON_USER_H)
 
     # lib1.so
     add_library(lib1 MODULE ${TEST_LIB_DIR}/lib1.c)

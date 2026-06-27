@@ -40,7 +40,7 @@ public:
     ** Shrink string table if it's too sparse.
     ** Called during finalization phase to optimize memory.
     */
-    static void checkSizes(lua_State* L, GlobalState& g);
+    static void checkSizes(moon_State* L, GlobalState& g);
 
     /*
     ** Move all unreachable finalizable objects to the tobefnz list.
@@ -52,13 +52,13 @@ public:
     ** Execute a single finalizer (__gc metamethod).
     ** Gets next object from tobefnz, calls its __gc in protected mode.
     */
-    static void GCTM(lua_State* L);
+    static void GCTM(moon_State* L);
 
     /*
     ** Call all pending finalizers.
     ** Processes entire tobefnz list until empty.
     */
-    static void callallpendingfinalizers(lua_State* L);
+    static void callallpendingfinalizers(moon_State* L);
 
     /*
     ** Correct pointers when removing object 'o' from allgc list.
@@ -86,7 +86,7 @@ private:
     /*
     ** Helper: wrapper for calling finalizer function.
     */
-    static void dothecall(lua_State* L, void* ud);
+    static void dothecall(moon_State* L, void* ud);
 };
 
 #endif  // gc_finalizer_h

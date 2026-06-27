@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -41,11 +41,11 @@
 ** and Clang can generate a single indirect jump instead of cascading
 ** comparisons, improving instruction cache utilization and branch prediction.
 */
-#if !defined(LUA_USE_JUMPTABLE)
+#if !defined(MOON_USE_JUMPTABLE)
 #if defined(__GNUC__)
-#define LUA_USE_JUMPTABLE	1
+#define MOON_USE_JUMPTABLE	1
 #else
-#define LUA_USE_JUMPTABLE	0
+#define MOON_USE_JUMPTABLE	0
 #endif
 #endif
 
@@ -65,10 +65,10 @@ inline constexpr int MAXTAGLOOP = 2000;
 ** ===========================================================================
 ** Moved to lvm_conversion.cpp:
 **   - l_strton()              - String to number conversion
-**   - luaV_tonumber_()        - Value to float conversion
-**   - luaV_flttointeger()     - Float to integer with rounding
-**   - luaV_tointegerns()      - Value to integer (no string coercion)
-**   - luaV_tointeger()        - Value to integer (with string coercion)
+**   - moonV_tonumber_()        - Value to float conversion
+**   - moonV_flttointeger()     - Float to integer with rounding
+**   - moonV_tointegerns()      - Value to integer (no string coercion)
+**   - moonV_tointeger()        - Value to integer (with string coercion)
 **   - TValue::toNumber()      - TValue conversion methods
 **   - TValue::toInteger()
 **   - TValue::toIntegerNoString()
@@ -78,12 +78,12 @@ inline constexpr int MAXTAGLOOP = 2000;
 
 /*
 ** ===========================================================================
-** For-loop operations (lua_State methods)
+** For-loop operations (moon_State methods)
 ** ===========================================================================
 ** Moved to lvm_loops.cpp:
-**   - lua_State::forLimit()      - Convert for-loop limit to integer
-**   - lua_State::forPrep()       - Prepare numerical for loop (OP_FORPREP)
-**   - lua_State::floatForLoop()  - Execute float for-loop step
+**   - moon_State::forLimit()      - Convert for-loop limit to integer
+**   - moon_State::forPrep()       - Prepare numerical for loop (OP_FORPREP)
+**   - moon_State::floatForLoop()  - Execute float for-loop step
 ** ===========================================================================
 */
 
@@ -93,8 +93,8 @@ inline constexpr int MAXTAGLOOP = 2000;
 ** Table access operations
 ** ===========================================================================
 ** Moved to lvm_table.cpp:
-**   - luaV_finishget()  - Finish table access with __index metamethod
-**   - luaV_finishset()  - Finish table assignment with __newindex metamethod
+**   - moonV_finishget()  - Finish table access with __index metamethod
+**   - moonV_finishset()  - Finish table assignment with __newindex metamethod
 ** ===========================================================================
 */
 
@@ -107,9 +107,9 @@ inline constexpr int MAXTAGLOOP = 2000;
 **   - l_strcmp()                 - String comparison with locale support
 **   - LTintfloat(), LEintfloat() - Integer vs float comparisons
 **   - LTfloatint(), LEfloatint() - Float vs integer comparisons
-**   - lua_State::lessThanOthers(), lua_State::lessEqualOthers()
-**   - luaV_lessthan(), luaV_lessequal() - Main comparison operations
-**   - luaV_equalobj()            - Equality comparison with metamethods
+**   - moon_State::lessThanOthers(), moon_State::lessEqualOthers()
+**   - moonV_lessthan(), moonV_lessequal() - Main comparison operations
+**   - moonV_equalobj()            - Equality comparison with metamethods
 ** ===========================================================================
 */
 
@@ -122,8 +122,8 @@ inline constexpr int MAXTAGLOOP = 2000;
 **   - tostring()     - Ensure value is a string (with coercion)
 **   - isemptystr()   - Check if string is empty
 **   - copy2buff()    - Copy strings from stack to buffer
-**   - luaV_concat()  - Main concatenation operation
-**   - luaV_objlen()  - Length operator (#) implementation
+**   - moonV_concat()  - Main concatenation operation
+**   - moonV_objlen()  - Length operator (#) implementation
 ** ===========================================================================
 */
 
@@ -133,7 +133,7 @@ inline constexpr int MAXTAGLOOP = 2000;
 ** create a new Lua closure, push it in the stack, and initialize
 ** its upvalues.
 */
-void lua_State::pushClosure(Proto *p, UpVal **encup, StkId base, StkId ra) {
+void moon_State::pushClosure(Proto *p, UpVal **encup, StkId base, StkId ra) {
   auto upvaluesSpan = p->getUpvaluesSpan();
   int nup = static_cast<int>(upvaluesSpan.size());
   LClosure *ncl = LClosure::create(this, nup);
@@ -142,10 +142,10 @@ void lua_State::pushClosure(Proto *p, UpVal **encup, StkId base, StkId ra) {
   int i = 0;
   for (const auto& upvalue : upvaluesSpan) {  // fill in its upvalues
     if (upvalue.isInStack())  // upvalue refers to local variable?
-      ncl->setUpval(i, luaF_findupval(this, base + upvalue.getIndex()));
+      ncl->setUpval(i, moonF_findupval(this, base + upvalue.getIndex()));
     else  // get upvalue from enclosing function
       ncl->setUpval(i, encup[upvalue.getIndex()]);
-    luaC_objbarrier(this, ncl, ncl->getUpval(i));
+    moonC_objbarrier(this, ncl, ncl->getUpval(i));
     i++;
   }
 }
@@ -154,64 +154,64 @@ void lua_State::pushClosure(Proto *p, UpVal **encup, StkId base, StkId ra) {
 /*
 ** finish execution of an opcode interrupted by a yield
 */
-// luaV_finishOp removed - use VirtualMachine::finishOp() directly
+// moonV_finishOp removed - use VirtualMachine::finishOp() directly
 
 
 
 
 /*
 ** {==================================================================
-** Macros for arithmetic/bitwise/comparison opcodes in 'luaV_execute'
+** Macros for arithmetic/bitwise/comparison opcodes in 'moonV_execute'
 **
 ** All these macros are to be used exclusively inside the main
-** iterpreter loop (function luaV_execute) and may access directly
+** iterpreter loop (function moonV_execute) and may access directly
 ** the local variables of that function (L, i, pc, callInfo, etc.).
 ** ===================================================================
 */
 
-inline constexpr lua_Integer l_addi(lua_State*, lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_addi(moon_State*, moon_Integer a, moon_Integer b) noexcept {
 	return intop(+, a, b);
 }
 
-inline constexpr lua_Integer l_subi(lua_State*, lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_subi(moon_State*, moon_Integer a, moon_Integer b) noexcept {
 	return intop(-, a, b);
 }
 
-inline constexpr lua_Integer l_muli(lua_State*, lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_muli(moon_State*, moon_Integer a, moon_Integer b) noexcept {
 	return intop(*, a, b);
 }
 
-inline constexpr lua_Integer l_band(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_band(moon_Integer a, moon_Integer b) noexcept {
 	return intop(&, a, b);
 }
 
-inline constexpr lua_Integer l_bor(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_bor(moon_Integer a, moon_Integer b) noexcept {
 	return intop(|, a, b);
 }
 
-inline constexpr lua_Integer l_bxor(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr moon_Integer l_bxor(moon_Integer a, moon_Integer b) noexcept {
 	return intop(^, a, b);
 }
 
-inline constexpr bool l_lti(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_lti(moon_Integer a, moon_Integer b) noexcept {
 	return a < b;
 }
 
-inline constexpr bool l_lei(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_lei(moon_Integer a, moon_Integer b) noexcept {
 	return a <= b;
 }
 
-inline constexpr bool l_gti(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_gti(moon_Integer a, moon_Integer b) noexcept {
 	return a > b;
 }
 
-inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
+inline constexpr bool l_gei(moon_Integer a, moon_Integer b) noexcept {
 	return a >= b;
 }
 
 /*
 ** NOTE: The VM operation macros (op_arithI, op_arith, op_arithK, op_bitwise, etc.)
-** have been converted to lambdas defined inside luaV_execute() for better type safety
+** have been converted to lambdas defined inside moonV_execute() for better type safety
 ** and debuggability. See lines 1378-1514 for the lambda implementations.
 */
 
@@ -220,7 +220,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 
 /*
 ** {==================================================================
-** Function 'luaV_execute': main interpreter loop
+** Function 'moonV_execute': main interpreter loop
 ** ===================================================================
 **
 ** ARCHITECTURE OVERVIEW:
@@ -255,7 +255,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 */
 
 /*
-** some macros for common tasks in 'luaV_execute'
+** some macros for common tasks in 'moonV_execute'
 */
 
 
@@ -271,7 +271,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 **   OP_ADD A B C  means: R(A) := R(B) + R(C)
 **   OP_ADDK A B C means: R(A) := R(B) + K(C)  [if k bit set]
 **
-** NOTE: These have been converted to lambdas defined inside luaV_execute()
+** NOTE: These have been converted to lambdas defined inside moonV_execute()
 ** for better type safety and debuggability. See lines 1274-1301 for implementations.
 */
 
@@ -284,7 +284,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 ** updatebase(callInfo): Update local base pointer from CallInfo
 ** updatestack(ra,callInfo,i): Conditionally update base and ra if trap is set
 **
-** NOTE: These have been converted to lambdas defined inside luaV_execute()
+** NOTE: These have been converted to lambdas defined inside moonV_execute()
 ** for better type safety. See lines ~1304-1323 for implementations.
 */
 
@@ -300,7 +300,7 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 **                        what was expected (parameter 'k'), else do next instruction,
 **                        which must be a jump.
 **
-** NOTE: These have been converted to lambdas defined inside luaV_execute()
+** NOTE: These have been converted to lambdas defined inside moonV_execute()
 ** for better type safety. See lines ~1331-1345 for implementations.
 */
 
@@ -312,9 +312,9 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 ** so stack unwinding can report the correct error location.
 **
 ** savepc(callInfo): Save local pc to CallInfo
-** savestate(L,callInfo): Save both pc and top to CallInfo and lua_State
+** savestate(L,callInfo): Save both pc and top to CallInfo and moon_State
 **
-** NOTE: These have been converted to lambdas defined inside luaV_execute()
+** NOTE: These have been converted to lambdas defined inside moonV_execute()
 ** for better type safety. See lines ~1317-1323 for implementations.
 **
 ** EXCEPTION HANDLING: This implementation uses C++ exceptions instead of
@@ -330,10 +330,10 @@ inline constexpr bool l_gei(lua_Integer a, lua_Integer b) noexcept {
 ** function executed during Lua functions at points where the
 ** function can yield.
 */
-#if !defined(luai_threadyield)
-inline void luai_threadyield(lua_State* L) noexcept {
-  lua_unlock(L);
-  lua_lock(L);
+#if !defined(mooni_threadyield)
+inline void mooni_threadyield(moon_State* L) noexcept {
+  moon_unlock(L);
+  moon_lock(L);
 }
 #endif
 
@@ -343,19 +343,19 @@ inline void luai_threadyield(lua_State* L) noexcept {
 ** 'c' is the limit of live values in the stack (typically L->top or callInfo->top)
 **
 ** PERFORMANCE vs CORRECTNESS: GC is expensive, so we only check conditionally
-** (luaC_condGC) rather than forcing collection. The GC uses a debt-based system
+** (moonC_condGC) rather than forcing collection. The GC uses a debt-based system
 ** to determine when collection is needed.
 **
 ** The macro saves state before GC (because GC can trigger __gc metamethods that
 ** might throw errors), then updates trap after (because GC might have changed hooks).
 **
-** luai_threadyield allows the OS to schedule other threads. Without it, tight
+** mooni_threadyield allows the OS to schedule other threads. Without it, tight
 ** loops could starve other threads on single-core systems.
 */
 #define checkGC(L,c)  \
-	{ luaC_condGC(L, (savepc(callInfo), L->getStackSubsystem().setTopPtr(c)), \
+	{ moonC_condGC(L, (savepc(callInfo), L->getStackSubsystem().setTopPtr(c)), \
                          updatetrap(callInfo)); \
-           luai_threadyield(L); }
+           mooni_threadyield(L); }
 
 
 #define vmdispatch(o)	switch(o)
@@ -387,51 +387,51 @@ inline void luai_threadyield(lua_State* L) noexcept {
 ** 2. An error is thrown (C++ exception)
 ** 3. The function yields (coroutine suspend)
 */
-// luaV_execute removed - use VirtualMachine::execute() directly
+// moonV_execute removed - use VirtualMachine::execute() directly
 
 // }==================================================================
 
 
 /*
-** lua_State VM operation methods (delegate to the VirtualMachine class)
+** moon_State VM operation methods (delegate to the VirtualMachine class)
 */
 
-void lua_State::execute(CallInfo *callinfo) {
+void moon_State::execute(CallInfo *callinfo) {
   vm_->execute(callinfo);
 }
 
-void lua_State::finishOp() {
+void moon_State::finishOp() {
   vm_->finishOp();
 }
 
-void lua_State::concat(int total) {
+void moon_State::concat(int total) {
   vm_->concat(total);
 }
 
-void lua_State::objlen(StkId ra, const TValue *rb) {
+void moon_State::objlen(StkId ra, const TValue *rb) {
   vm_->objlen(ra, rb);
 }
 
-LuaT lua_State::finishGet(const TValue *t, TValue *key, StkId val, LuaT tag) {
+MoonT moon_State::finishGet(const TValue *t, TValue *key, StkId val, MoonT tag) {
   return vm_->finishGet(t, key, val, tag);
 }
 
-void lua_State::finishSet(const TValue *t, TValue *key, TValue *val, int aux) {
+void moon_State::finishSet(const TValue *t, TValue *key, TValue *val, int aux) {
   vm_->finishSet(t, key, val, aux);
 }
 
 /*
-** lua_State arithmetic operation methods (now delegate to VirtualMachine class)
+** moon_State arithmetic operation methods (now delegate to VirtualMachine class)
 */
 
-lua_Integer lua_State::idiv(lua_Integer m, lua_Integer n) {
+moon_Integer moon_State::idiv(moon_Integer m, moon_Integer n) {
   return vm_->idiv(m, n);
 }
 
-lua_Integer lua_State::mod(lua_Integer m, lua_Integer n) {
+moon_Integer moon_State::mod(moon_Integer m, moon_Integer n) {
   return vm_->mod(m, n);
 }
 
-lua_Number lua_State::modf(lua_Number m, lua_Number n) {
+moon_Number moon_State::modf(moon_Number m, moon_Number n) {
   return vm_->modf(m, n);
 }

@@ -11,17 +11,17 @@
 #include <cstdlib>
 
 // test Lua with compatibility code
-#define LUA_COMPAT_MATHLIB
-#undef LUA_COMPAT_GLOBAL
+#define MOON_COMPAT_MATHLIB
+#undef MOON_COMPAT_GLOBAL
 
 
-#define LUA_DEBUG
+#define MOON_DEBUG
 
 
-// turn on assertions (unless explicitly disabled via LUA_TESTS_NO_ASSERT)
-#ifndef LUA_TESTS_NO_ASSERT
-#ifndef LUAI_ASSERT
-#define LUAI_ASSERT
+// turn on assertions (unless explicitly disabled via MOON_TESTS_NO_ASSERT)
+#ifndef MOON_TESTS_NO_ASSERT
+#ifndef MOONI_ASSERT
+#define MOONI_ASSERT
 #endif
 #endif
 
@@ -32,7 +32,7 @@
 
 // test for sizes in 'l_sprintf' (make sure whole buffer is available)
 #undef l_sprintf
-#if !defined(LUA_USE_C89)
+#if !defined(MOON_USE_C89)
 #define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), snprintf(s,sz,f,i))
 #else
 #define l_sprintf(s,sz,f,i)	(memset(s,0xAB,sz), sprintf(s,f,i))
@@ -40,15 +40,15 @@
 
 
 // get a chance to test code without jump tables
-#define LUA_USE_JUMPTABLE	0
+#define MOON_USE_JUMPTABLE	0
 
 
 // use 32-bit integers in random generator
-#define LUA_RAND32
+#define MOON_RAND32
 
 
 // test stack reallocation without strict address use
-#define LUAI_STRICT_ADDRESS	0
+#define MOONI_STRICT_ADDRESS	0
 
 
 // memory-allocator control variables
@@ -59,14 +59,14 @@ typedef struct Memcontrol {
   unsigned long maxmem;
   unsigned long memlimit;
   unsigned long countlimit;
-  unsigned long objcount[LUA_NUMTYPES];
+  unsigned long objcount[MOON_NUMTYPES];
 } Memcontrol;
 
-LUA_API Memcontrol l_memcontrol;
+MOON_API Memcontrol l_memcontrol;
 
 
-#define luai_tracegc(L,f)		luai_tracegctest(L, f)
-extern void luai_tracegctest (lua_State *L, int first);
+#define mooni_tracegc(L,f)		mooni_tracegctest(L, f)
+extern void mooni_tracegctest (moon_State *L, int first);
 
 
 /*
@@ -78,67 +78,67 @@ extern void *l_Trick;
 /*
 ** Function to traverse and check all memory used by Lua
 */
-extern int lua_checkmemory (lua_State *L);
+extern int moon_checkmemory (moon_State *L);
 
 /*
 ** Function to print an object GC-friendly
 */
 class GCObject;
-extern void lua_printobj (lua_State *L, class GCObject *o);
+extern void moon_printobj (moon_State *L, class GCObject *o);
 
 
 /*
 ** Function to print a value
 */
 class TValue;
-extern void lua_printvalue (class TValue *v);
+extern void moon_printvalue (class TValue *v);
 
 /*
 ** Function to print the stack
 */
-extern void lua_printstack (lua_State *L);
-extern int lua_printallstack (lua_State *L);
+extern void moon_printstack (moon_State *L);
+extern int moon_printallstack (moon_State *L);
 
 
 // test for lock/unlock
 
 struct L_EXTRA { int lock; int *plock; };
-#undef LUA_EXTRASPACE
-#define LUA_EXTRASPACE	sizeof(struct L_EXTRA)
-#define getlock(l)	cast(struct L_EXTRA*, lua_getextraspace(l))
-#define luai_userstateopen(l)  \
+#undef MOON_EXTRASPACE
+#define MOON_EXTRASPACE	sizeof(struct L_EXTRA)
+#define getlock(l)	cast(struct L_EXTRA*, moon_getextraspace(l))
+#define mooni_userstateopen(l)  \
 	(getlock(l)->lock = 0, getlock(l)->plock = &(getlock(l)->lock))
-#define luai_userstateclose(l)  \
-  lua_assert(getlock(l)->lock == 1 && getlock(l)->plock == &(getlock(l)->lock))
-#define luai_userstatethread(l,l1) \
-  lua_assert(getlock(l1)->plock == getlock(l)->plock)
-#define luai_userstatefree(l,l1) \
-  lua_assert(getlock(l)->plock == getlock(l1)->plock)
-#define lua_lock(l)     lua_assert((*getlock(l)->plock)++ == 0)
-#define lua_unlock(l)   lua_assert(--(*getlock(l)->plock) == 0)
+#define mooni_userstateclose(l)  \
+  moon_assert(getlock(l)->lock == 1 && getlock(l)->plock == &(getlock(l)->lock))
+#define mooni_userstatethread(l,l1) \
+  moon_assert(getlock(l1)->plock == getlock(l)->plock)
+#define mooni_userstatefree(l,l1) \
+  moon_assert(getlock(l)->plock == getlock(l1)->plock)
+#define moon_lock(l)     moon_assert((*getlock(l)->plock)++ == 0)
+#define moon_unlock(l)   moon_assert(--(*getlock(l)->plock) == 0)
 
 
 
-LUA_API int luaB_opentests (lua_State *L);
+MOON_API int moonB_opentests (moon_State *L);
 
-LUA_API void *debug_realloc (void *ud, void *block,
+MOON_API void *debug_realloc (void *ud, void *block,
                              size_t osize, size_t nsize);
 
 
-#define luaL_newstate()  \
-	lua_newstate(debug_realloc, &l_memcontrol, luaL_makeseed(nullptr))
-#define luai_openlibs(L)  \
-  {  luaL_openlibs(L); \
-     luaL_requiref(L, "T", luaB_opentests, 1); \
-     lua_pop(L, 1); }
+#define moonL_newstate()  \
+	moon_newstate(debug_realloc, &l_memcontrol, moonL_makeseed(nullptr))
+#define mooni_openlibs(L)  \
+  {  moonL_openlibs(L); \
+     moonL_requiref(L, "T", moonB_opentests, 1); \
+     moon_pop(L, 1); }
 
 
 
 
 // change some sizes to give some bugs a chance
 
-#undef LUAL_BUFFERSIZE
-#define LUAL_BUFFERSIZE		23
+#undef MOONL_BUFFERSIZE
+#define MOONL_BUFFERSIZE		23
 #define MINSTRTABSIZE		2
 #define MAXIWTHABS		3
 
@@ -157,17 +157,17 @@ LUA_API void *debug_realloc (void *ud, void *block,
 ** Reduce maximum stack size to make stack-overflow tests run faster.
 ** (But value is still large enough to overflow smaller integers.)
 */
-#define LUAI_MAXSTACK   68000
+#define MOONI_MAXSTACK   68000
 
 
 // test mode uses more stack space
-#undef LUAI_MAXCCALLS
-#define LUAI_MAXCCALLS	180
+#undef MOONI_MAXCCALLS
+#define MOONI_MAXCCALLS	180
 
 
 // force Lua to use its own implementations
-#undef lua_strx2number
-#undef lua_number2strx
+#undef moon_strx2number
+#undef moon_number2strx
 
 
 #endif

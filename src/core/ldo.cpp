@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -34,7 +34,7 @@
 
 
 inline constexpr bool errorstatus(int s) noexcept {
-	return (s) > LUA_YIELD;
+	return (s) > MOON_YIELD;
 }
 
 
@@ -42,12 +42,12 @@ inline constexpr bool errorstatus(int s) noexcept {
 ** these macros allow user-specific actions when a thread is
 ** resumed/yielded.
 */
-#if !defined(luai_userstateresume)
-#define luai_userstateresume(L,n)	((void)L)
+#if !defined(mooni_userstateresume)
+#define mooni_userstateresume(L,n)	((void)L)
 #endif
 
-#if !defined(luai_userstateyield)
-#define luai_userstateyield(L,n)	((void)L)
+#if !defined(mooni_userstateyield)
+#define mooni_userstateyield(L,n)	((void)L)
 #endif
 
 
@@ -61,11 +61,11 @@ inline constexpr bool errorstatus(int s) noexcept {
 ** Pure C++ exception handling
 **
 ** MODERNIZATION: Replaced C-style setjmp/longjmp with proper C++ exceptions:
-** - Removed jmp_buf from LuaLongJmp struct
-** - Removed LUAI_THROW/LUAI_TRY macros
+** - Removed jmp_buf from MoonLongJmp struct
+** - Removed MOONI_THROW/MOONI_TRY macros
 ** - Removed conditional compilation for POSIX/ISO C variants
 ** - Removed #include <setjmp.h>
-** - Created LuaException class to carry error status
+** - Created MoonException class to carry error status
 ** - Updated doThrow() to use C++ throw statements
 ** - Updated rawRunProtected() to use C++ try-catch blocks
 **
@@ -79,37 +79,37 @@ inline constexpr bool errorstatus(int s) noexcept {
 ** 3. Better compiler optimizations: Compilers can optimize normal (non-exception) paths
 ** 4. No need to save/restore register state manually
 **
-** The LuaException class encapsulates the error status and handler chain pointer.
+** The MoonException class encapsulates the error status and handler chain pointer.
 ** This maintains compatibility with Lua's error handling model while using modern C++.
 */
-class LuaException {
+class MoonException {
 private:
   TStatus status_;
-  struct LuaLongJmp *handler_;  // for chain compatibility
+  struct MoonLongJmp *handler_;  // for chain compatibility
 
 public:
-  explicit LuaException(TStatus status, struct LuaLongJmp *handler = nullptr) noexcept
+  explicit MoonException(TStatus status, struct MoonLongJmp *handler = nullptr) noexcept
     : status_(status), handler_(handler) {}
 
   TStatus status() const noexcept { return status_; }
-  struct LuaLongJmp* handler() const noexcept { return handler_; }
+  struct MoonLongJmp* handler() const noexcept { return handler_; }
 };
 
 // Error handler chain node (simplified from old longjmp version)
-struct LuaLongJmp {
-  struct LuaLongJmp *previous;
+struct MoonLongJmp {
+  struct MoonLongJmp *previous;
   TStatus status;  // error code
 };
 
 
-// Convert to lua_State method
-void lua_State::setErrorObj(TStatus errcode, StkId oldtop) {
-  if (errcode == LUA_ERRMEM) {  // memory error?
+// Convert to moon_State method
+void moon_State::setErrorObj(TStatus errcode, StkId oldtop) {
+  if (errcode == MOON_ERRMEM) {  // memory error?
     setsvalue2s(this, oldtop, G(this)->getMemErrMsg());  // reuse preregistered msg.
   }
   else {
-    lua_assert(errorstatus(errcode));  // must be a real error
-    lua_assert(!ttisnil(s2v(getTop().p - 1)));  // with a non-nil object
+    moon_assert(errorstatus(errcode));  // must be a real error
+    moon_assert(!ttisnil(s2v(getTop().p - 1)));  // with a non-nil object
     *s2v(oldtop) = *s2v(getTop().p - 1);  /* move it to 'oldtop' - use operator= */
   }
   getStackSubsystem().setTopPtr(oldtop + 1);  // top goes back to old top plus error object
@@ -120,15 +120,15 @@ void lua_State::setErrorObj(TStatus errcode, StkId oldtop) {
 ** Throw a Lua error with the given error code.
 **
 ** EXCEPTION PROPAGATION STRATEGY:
-** 1. If current thread has an error handler (errorJmp), throw LuaException
+** 1. If current thread has an error handler (errorJmp), throw MoonException
 ** 2. If no handler in current thread, try to propagate to main thread
 ** 3. If main thread has no handler, call panic function and abort
 **
 ** ERROR CODES:
-** - LUA_ERRRUN: Runtime error (e.g., type error, nil indexing)
-** - LUA_ERRMEM: Memory allocation failure
-** - LUA_ERRERR: Error in error handler (recursive error)
-** - LUA_ERRSYNTAX: Syntax error during compilation
+** - MOON_ERRRUN: Runtime error (e.g., type error, nil indexing)
+** - MOON_ERRMEM: Memory allocation failure
+** - MOON_ERRERR: Error in error handler (recursive error)
+** - MOON_ERRSYNTAX: Syntax error during compilation
 **
 ** COROUTINE HANDLING:
 ** When a coroutine errors without a protected call in its own stack,
@@ -138,17 +138,17 @@ void lua_State::setErrorObj(TStatus errcode, StkId oldtop) {
 ** PANIC FUNCTION:
 ** The panic function is the last chance for the application to handle
 ** the error before abort(). It can longjmp out or exit gracefully.
-** This is set via lua_atpanic() in the C API.
+** This is set via moon_atpanic() in the C API.
 */
-l_noret lua_State::doThrow(TStatus errcode) {
+l_noret moon_State::doThrow(TStatus errcode) {
   if (getErrorJmp()) {  // thread has an error handler?
     getErrorJmp()->status = errcode;  // set status
-    throw LuaException(errcode, getErrorJmp());  // throw C++ exception
+    throw MoonException(errcode, getErrorJmp());  // throw C++ exception
   }
   else {  // thread has no error handler
     GlobalState *g = G(this);
-    lua_State *mainth = mainthread(g);
-    errcode = luaE_resetthread(this, errcode);  // close all upvalues
+    moon_State *mainth = mainthread(g);
+    errcode = moonE_resetthread(this, errcode);  // close all upvalues
     setStatus(errcode);
     if (mainth->getErrorJmp()) {  // main thread has a handler?
       *s2v(mainth->getTop().p) = *s2v(getTop().p - 1);  /* copy error obj. - use operator= */
@@ -157,7 +157,7 @@ l_noret lua_State::doThrow(TStatus errcode) {
     }
     else {  // no handler at all; abort
       if (g->getPanic()) {  // panic function?
-        lua_unlock(this);
+        moon_unlock(this);
         g->getPanic()(this);  // call panic function (last chance to jump out)
       }
       abort();
@@ -166,8 +166,8 @@ l_noret lua_State::doThrow(TStatus errcode) {
 }
 
 
-// Convert to lua_State method
-l_noret lua_State::throwBaseLevel(TStatus errcode) {
+// Convert to moon_State method
+l_noret moon_State::throwBaseLevel(TStatus errcode) {
   if (errorJmp) {
     // unroll error entries up to the first level
     while (errorJmp->previous != nullptr)
@@ -181,17 +181,17 @@ l_noret lua_State::throwBaseLevel(TStatus errcode) {
 ** Execute a function in protected mode using C++ exception handling.
 **
 ** PARAMETERS:
-** - f: Function pointer to execute (Pfunc = void (*)(lua_State*, void*))
+** - f: Function pointer to execute (Pfunc = void (*)(moon_State*, void*))
 ** - ud: User data to pass to the function
 **
 ** RETURN VALUE:
-** - LUA_OK (0) if function executed successfully
-** - Error code (LUA_ERRRUN, LUA_ERRMEM, etc.) if an error was thrown
+** - MOON_OK (0) if function executed successfully
+** - Error code (MOON_ERRRUN, MOON_ERRMEM, etc.) if an error was thrown
 **
 ** MECHANISM:
-** 1. Set up a new error handler (LuaLongJmp) in a chain
+** 1. Set up a new error handler (MoonLongJmp) in a chain
 ** 2. Execute function f() inside a try block
-** 3. Catch LuaException and extract error code
+** 3. Catch MoonException and extract error code
 ** 4. Restore previous error handler from chain
 ** 5. Return status code to caller
 **
@@ -201,25 +201,25 @@ l_noret lua_State::throwBaseLevel(TStatus errcode) {
 ** until caught by the appropriate handler.
 **
 ** Example call stack:
-**   lua_pcall() -> rawRunProtected() -> f() -> error() -> doThrow()
-**   doThrow() throws LuaException -> caught here -> returns error status
+**   moon_pcall() -> rawRunProtected() -> f() -> error() -> doThrow()
+**   doThrow() throws MoonException -> caught here -> returns error status
 **
 ** ENCAPSULATION NOTE:
-** This is now a lua_State method rather than a free function, following
+** This is now a moon_State method rather than a free function, following
 ** the C++ modernization. All state manipulation uses accessor
 ** methods (getNumberOfCCalls, setErrorJmp, etc.) rather than direct field access.
 */
-TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
+TStatus moon_State::rawRunProtected(Pfunc f, void *ud) {
   l_uint32 oldnCcalls = getNumberOfCCalls();
-  LuaLongJmp lj;
-  lj.status = LUA_OK;
+  MoonLongJmp lj;
+  lj.status = MOON_OK;
   lj.previous = getErrorJmp();  // chain new error handler
   setErrorJmp(&lj);
 
   try {
     f(this, ud);  // call function protected
   }
-  catch (const LuaException& ex) {  // Lua error
+  catch (const MoonException& ex) {  // Lua error
     if (ex.handler() != &lj && ex.handler() != nullptr)  // not the correct level?
       throw;  // rethrow to upper level
     lj.status = ex.status();
@@ -249,8 +249,8 @@ TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
 ** POINTER INVALIDATION:
 ** When the stack is reallocated, ALL pointers into the stack become
 ** invalid. We must either:
-** 1. Convert all pointers to offsets before reallocation (LUAI_STRICT_ADDRESS=1)
-** 2. Adjust all pointers by the difference between old and new stack (LUAI_STRICT_ADDRESS=0)
+** 1. Convert all pointers to offsets before reallocation (MOONI_STRICT_ADDRESS=1)
+** 2. Adjust all pointers by the difference between old and new stack (MOONI_STRICT_ADDRESS=0)
 **
 ** The strict mode (option 1) is slower but more correct according to ISO C.
 ** The non-strict mode (option 2) works on all real platforms but is technically UB.
@@ -265,15 +265,15 @@ TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
 
 
 /*
-** LUAI_MAXSTACK limits the size of the Lua stack.
+** MOONI_MAXSTACK limits the size of the Lua stack.
 ** It must fit into INT_MAX/2.
 */
 
-#if !defined(LUAI_MAXSTACK)
+#if !defined(MOONI_MAXSTACK)
 #if 1000000 < (std::numeric_limits<int>::max() / 2)
-#define LUAI_MAXSTACK           1000000
+#define MOONI_MAXSTACK           1000000
 #else
-#define LUAI_MAXSTACK           (std::numeric_limits<int>::max() / 2u)
+#define MOONI_MAXSTACK           (std::numeric_limits<int>::max() / 2u)
 #endif
 #endif
 
@@ -282,11 +282,11 @@ TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
 #define MAXSTACK_BYSIZET  ((MAX_SIZET / sizeof(StackValue)) - STACKERRSPACE)
 
 /*
-** Minimum between LUAI_MAXSTACK and MAXSTACK_BYSIZET
+** Minimum between MOONI_MAXSTACK and MAXSTACK_BYSIZET
 ** (Maximum size for the stack must respect size_t.)
 */
-#define MAXSTACK	cast_int(LUAI_MAXSTACK < MAXSTACK_BYSIZET  \
-			        ? LUAI_MAXSTACK : MAXSTACK_BYSIZET)
+#define MAXSTACK	cast_int(MOONI_MAXSTACK < MAXSTACK_BYSIZET  \
+			        ? MOONI_MAXSTACK : MAXSTACK_BYSIZET)
 
 
 // stack size with extra space for error handling
@@ -294,12 +294,12 @@ TStatus lua_State::rawRunProtected(Pfunc f, void *ud) {
 
 
 // raise a stack error while running the message handler
-// Convert to lua_State method
-l_noret lua_State::errorError() {
+// Convert to moon_State method
+l_noret moon_State::errorError() {
   TString *msg = TString::create(this, "error in error handling", 23);
   setsvalue2s(this, getTop().p, msg);
   getStackSubsystem().push();  // assume EXTRA_STACK
-  doThrow(LUA_ERRERR);
+  doThrow(MOON_ERRERR);
 }
 
 
@@ -313,12 +313,12 @@ l_noret lua_State::errorError() {
 ** That is not strict ISO C, but seems to work fine everywhere.
 ** The following macro chooses how strict is the code.
 */
-#if !defined(LUAI_STRICT_ADDRESS)
-#define LUAI_STRICT_ADDRESS	1
+#if !defined(MOONI_STRICT_ADDRESS)
+#define MOONI_STRICT_ADDRESS	1
 #endif
 
 /*
-** relstack() and correctstack() moved to LuaStack class (lstack.cpp)
+** relstack() and correctstack() moved to MoonStack class (lstack.cpp)
 ** as relPointers() and correctPointers() methods
 */
 
@@ -331,15 +331,15 @@ l_noret lua_State::errorError() {
 ** called. (Both 'L->hook' and 'L->hookmask', which trigger this
 ** function, can be changed asynchronously by signals.)
 */
-// Convert to lua_State method
-void lua_State::callHook(int event, int line,
+// Convert to moon_State method
+void moon_State::callHook(int event, int line,
                               int ftransfer, int ntransfer) {
-  lua_Hook hook_func = getHook();
+  moon_Hook hook_func = getHook();
   if (hook_func && getAllowHook()) {  // make sure there is a hook
     CallInfo *ci_local = callInfo;
     ptrdiff_t top_saved = this->saveStack(getTop().p);  // preserve original 'top'
     ptrdiff_t ci_top = this->saveStack(ci_local->topRef().p);  // idem for 'callInfo->getTop()'
-    lua_Debug ar;
+    moon_Debug ar;
     ar.event = event;
     ar.currentline = line;
     ar.i_ci = ci_local;
@@ -347,15 +347,15 @@ void lua_State::callHook(int event, int line,
     transferinfo.ntransfer = ntransfer;
     if (ci_local->isLua() && getTop().p < ci_local->topRef().p)
       getStackSubsystem().setTopPtr(ci_local->topRef().p);  // protect entire activation register
-    luaD_checkstack(this, LUA_MINSTACK);  // ensure minimum stack size
-    if (ci_local->topRef().p < getTop().p + LUA_MINSTACK)
-      ci_local->topRef().p = getTop().p + LUA_MINSTACK;
+    moonD_checkstack(this, MOON_MINSTACK);  // ensure minimum stack size
+    if (ci_local->topRef().p < getTop().p + MOON_MINSTACK)
+      ci_local->topRef().p = getTop().p + MOON_MINSTACK;
     setAllowHook(0);  // cannot call hooks inside a hook
     ci_local->callStatusRef() |= CIST_HOOKED;
-    lua_unlock(this);
+    moon_unlock(this);
     (*hook_func)(this, &ar);
-    lua_lock(this);
-    lua_assert(!getAllowHook());
+    moon_lock(this);
+    moon_assert(!getAllowHook());
     setAllowHook(1);
     ci_local->topRef().p = this->restoreStack(ci_top);
     getStackSubsystem().setTopPtr(this->restoreStack(top_saved));
@@ -369,12 +369,12 @@ void lua_State::callHook(int event, int line,
 ** whenever 'hookmask' is not zero, so it checks whether call hooks are
 ** active.
 */
-// Convert to lua_State method
-void lua_State::hookCall(CallInfo *ci_arg) {
+// Convert to moon_State method
+void moon_State::hookCall(CallInfo *ci_arg) {
   setOldPC(0);  // set 'oldpc' for new function
-  if (getHookMask() & LUA_MASKCALL) {  // is call hook on?
-    int event = (ci_arg->callStatusRef() & CIST_TAIL) ? LUA_HOOKTAILCALL
-                                             : LUA_HOOKCALL;
+  if (getHookMask() & MOON_MASKCALL) {  // is call hook on?
+    int event = (ci_arg->callStatusRef() & CIST_TAIL) ? MOON_HOOKTAILCALL
+                                             : MOON_HOOKCALL;
     Proto *p = ci_arg->getFunc()->getProto();
     (*ci_arg->getSavedPCPtr())++;  // hooks assume 'pc' is already incremented
     callHook(event, -1, 1, p->getNumParams());
@@ -388,10 +388,10 @@ void lua_State::hookCall(CallInfo *ci_arg) {
 ** 'oldpc'. (Note that this correction is needed by the line hook, so it
 ** is done even when return hooks are off.)
 */
-// Convert to private lua_State method
-void lua_State::retHook(CallInfo *ci_arg, int nres) {
-  if (getHookMask() & LUA_MASKRET) {  // is return hook on?
-    lua_assert(getTop().p >= getStack().p + nres);  // ensure nres is in bounds
+// Convert to private moon_State method
+void moon_State::retHook(CallInfo *ci_arg, int nres) {
+  if (getHookMask() & MOON_MASKRET) {  // is return hook on?
+    moon_assert(getTop().p >= getStack().p + nres);  // ensure nres is in bounds
     auto firstres = getTop().p - nres;  // index of first result
     auto delta = 0;  // correction for vararg functions
     if (ci_arg->isLua()) {
@@ -401,7 +401,7 @@ void lua_State::retHook(CallInfo *ci_arg, int nres) {
     }
     ci_arg->funcRef().p += delta;  // if vararg, back to virtual 'func'
     auto ftransfer = cast_int(firstres - ci_arg->funcRef().p);
-    callHook(LUA_HOOKRET, -1, ftransfer, nres);  // call it
+    callHook(MOON_HOOKRET, -1, ftransfer, nres);  // call it
     ci_arg->funcRef().p -= delta;
   }
   if ((ci_arg = ci_arg->getPrevious())->isLua())
@@ -411,40 +411,40 @@ void lua_State::retHook(CallInfo *ci_arg, int nres) {
 
 /*
 ** Check whether 'func' has a '__call' metafield. If so, put it in the
-** stack, below original 'func', so that 'luaD_precall' can call it.
+** stack, below original 'func', so that 'moonD_precall' can call it.
 ** Raise an error if there is no '__call' metafield.
 ** Bits CIST_CCMT in status count how many _call metamethods were
 ** invoked and how many corresponding extra arguments were pushed.
 ** (This count will be saved in the 'callstatus' of the call).
 **  Raise an error if this counter overflows.
 */
-// Convert to private lua_State method
-unsigned lua_State::tryFuncTM(StkId func, unsigned status_val) {
+// Convert to private moon_State method
+unsigned moon_State::tryFuncTM(StkId func, unsigned status_val) {
   StkId p;
-  const TValue *metamethod = luaT_gettmbyobj(this, s2v(func), TMS::TM_CALL);
+  const TValue *metamethod = moonT_gettmbyobj(this, s2v(func), TMS::TM_CALL);
   if (l_unlikely(ttisnil(metamethod)))  // no metamethod?
-    luaG_callerror(this, s2v(func));
-  lua_assert(func >= getStack().p && getTop().p > func);  // ensure valid bounds
+    moonG_callerror(this, s2v(func));
+  moon_assert(func >= getStack().p && getTop().p > func);  // ensure valid bounds
   for (p = getTop().p; p > func; p--)  // open space for metamethod
     *s2v(p) = *s2v(p-1);  /* shift stack - use operator= */
   getStackSubsystem().push();  // stack space pre-allocated by the caller
   getStackSubsystem().setSlot(func, metamethod);  // metamethod is the new function to be called
   if ((status_val & MAX_CCMT) == MAX_CCMT)  // is counter full?
-    luaG_runerror(this, "'__call' chain too long");
+    moonG_runerror(this, "'__call' chain too long");
   return status_val + (1u << CIST_CCMT);  // increment counter
 }
 
 
 // Generic case for 'moveresult'
-// Convert to private lua_State method
-void lua_State::genMoveResults(StkId res, int nres,
+// Convert to private moon_State method
+void moon_State::genMoveResults(StkId res, int nres,
                                              int wanted) {
-  lua_assert(nres >= 0 && getTop().p >= getStack().p + nres);  // ensure nres valid
+  moon_assert(nres >= 0 && getTop().p >= getStack().p + nres);  // ensure nres valid
   StkId firstresult = getTop().p - nres;  // index of first result
   int i;
   if (nres > wanted)  // extra results?
     nres = wanted;  // don't need them
-  lua_assert(firstresult >= getStack().p && res >= getStack().p);  // ensure valid pointers
+  moon_assert(firstresult >= getStack().p && res >= getStack().p);  // ensure valid pointers
   for (i = 0; i < nres; i++)  // move all results to correct place
     *s2v(res + i) = *s2v(firstresult + i);  /* use operator= */
   for (; i < wanted; i++)  // complete wanted number of results
@@ -460,8 +460,8 @@ void lua_State::genMoveResults(StkId res, int nres,
 ** parameters) separated. The flag CIST_TBC in 'fwanted', if set,
 ** forces the switch to go to the default case.
 */
-// Convert to private lua_State method
-void lua_State::moveResults(StkId res, int nres,
+// Convert to private moon_State method
+void moon_State::moveResults(StkId res, int nres,
                                           l_uint32 fwanted) {
   switch (fwanted) {  // handle typical cases separately
     case 0 + 1:  // no values needed
@@ -474,7 +474,7 @@ void lua_State::moveResults(StkId res, int nres,
         *s2v(res) = *s2v(getTop().p - nres);  /* move it to proper place - use operator= */
       getStackSubsystem().setTopPtr(res + 1);
       return;
-    case LUA_MULTRET + 1:
+    case MOON_MULTRET + 1:
       genMoveResults( res, nres, nres);  // we want all results
       break;
     default: {  // two/more results and/or to-be-closed variables
@@ -482,14 +482,14 @@ void lua_State::moveResults(StkId res, int nres,
       if (fwanted & CIST_TBC) {  // to-be-closed variables?
         callInfo->setNRes(nres);
         callInfo->callStatusRef() |= CIST_CLSRET;  // in case of yields
-        res = luaF_close(this, res, CLOSEKTOP, 1);
+        res = moonF_close(this, res, CLOSEKTOP, 1);
         callInfo->callStatusRef() &= ~CIST_CLSRET;
         if (hookmask) {  // if needed, call hook after '__close's
           ptrdiff_t savedres = this->saveStack(res);
           retHook(callInfo, nres);
           res = this->restoreStack(savedres);  // hook can move stack
         }
-        if (wanted == LUA_MULTRET)
+        if (wanted == MOON_MULTRET)
           wanted = nres;  // we want all results
       }
       genMoveResults( res, nres, wanted);
@@ -505,23 +505,23 @@ void lua_State::moveResults(StkId res, int nres,
 ** info. If function has to close variables, hook must be called after
 ** that.
 */
-// Convert to lua_State method
-void lua_State::postCall(CallInfo *ci_arg, int nres) {
+// Convert to moon_State method
+void moon_State::postCall(CallInfo *ci_arg, int nres) {
   l_uint32 fwanted = ci_arg->callStatusRef() & (CIST_TBC | CIST_NRESULTS);
   if (l_unlikely(getHookMask()) && !(fwanted & CIST_TBC))
     retHook(ci_arg, nres);
   // move results to proper place
   moveResults(ci_arg->funcRef().p, nres, fwanted);
   // function cannot be in any of these cases when returning
-  lua_assert(!(ci_arg->callStatusRef() &
+  moon_assert(!(ci_arg->callStatusRef() &
         (CIST_HOOKED | CIST_YPCALL | CIST_FIN | CIST_CLSRET)));
   setCI(ci_arg->getPrevious());  // back to caller (after closing variables)
 }
 
 
 
-inline CallInfo* next_ci(lua_State* L) {
-	return L->getCI()->getNext() ? L->getCI()->getNext() : luaE_extendCI(L);
+inline CallInfo* next_ci(moon_State* L) {
+	return L->getCI()->getNext() ? L->getCI()->getNext() : moonE_extendCI(L);
 }
 
 
@@ -531,12 +531,12 @@ inline CallInfo* next_ci(lua_State* L) {
 ** CIST_C (if it's a C function), and number of extra arguments.
 ** (All these bit-fields fit in 16-bit values.)
 */
-// Convert to private lua_State method
-CallInfo* lua_State::prepareCallInfo(StkId func, unsigned status_val,
+// Convert to private moon_State method
+CallInfo* moon_State::prepareCallInfo(StkId func, unsigned status_val,
                                                 StkId top_arg) {
   CallInfo *ci_new = setCI(next_ci(this));  // new frame
   ci_new->funcRef().p = func;
-  lua_assert((status_val & ~(CIST_NRESULTS | CIST_C | MAX_CCMT)) == 0);
+  moon_assert((status_val & ~(CIST_NRESULTS | CIST_C | MAX_CCMT)) == 0);
   ci_new->callStatusRef() = status_val;
   ci_new->topRef().p = top_arg;
   return ci_new;
@@ -546,22 +546,22 @@ CallInfo* lua_State::prepareCallInfo(StkId func, unsigned status_val,
 /*
 ** precall for C functions
 */
-// Convert to private lua_State method
-int lua_State::preCallC(StkId func, unsigned status_val,
-                                            lua_CFunction f) {
+// Convert to private moon_State method
+int moon_State::preCallC(StkId func, unsigned status_val,
+                                            moon_CFunction f) {
   int n;  // number of returns
   CallInfo *ci_new;
-  checkstackp(this, LUA_MINSTACK, func);  // ensure minimum stack size
+  checkstackp(this, MOON_MINSTACK, func);  // ensure minimum stack size
   ci_new = setCI(prepareCallInfo(func, status_val | CIST_C,
-                               getTop().p + LUA_MINSTACK));
-  lua_assert(ci_new->topRef().p <= getStackLast().p);
-  if (l_unlikely(hookmask & LUA_MASKCALL)) {
+                               getTop().p + MOON_MINSTACK));
+  moon_assert(ci_new->topRef().p <= getStackLast().p);
+  if (l_unlikely(hookmask & MOON_MASKCALL)) {
     int narg = cast_int(getTop().p - func) - 1;
-    callHook(LUA_HOOKCALL, -1, 1, narg);
+    callHook(MOON_HOOKCALL, -1, 1, narg);
   }
-  lua_unlock(this);
+  moon_unlock(this);
   n = (*f)(this);  // do the actual call
-  lua_lock(this);
+  moon_lock(this);
   api_checknelems(this, n);
   postCall(ci_new, n);
   return n;
@@ -574,17 +574,17 @@ int lua_State::preCallC(StkId func, unsigned status_val,
 ** (so that it includes the function itself). Return the number of
 ** results, if it was a C function, or -1 for a Lua function.
 */
-// Convert to lua_State method
-int lua_State::preTailCall(CallInfo *ci_arg, StkId func,
+// Convert to moon_State method
+int moon_State::preTailCall(CallInfo *ci_arg, StkId func,
                                     int narg1, int delta) {
-  unsigned status_val = LUA_MULTRET + 1;
+  unsigned status_val = MOON_MULTRET + 1;
  retry:
   switch (ttypetag(s2v(func))) {
-    case LuaT::CCL:  // C closure
+    case MoonT::CCL:  // C closure
       return preCallC(func, status_val, clCvalue(s2v(func))->getFunction());
-    case LuaT::LCF:  // light C function
+    case MoonT::LCF:  // light C function
       return preCallC(func, status_val, fvalue(s2v(func)));
-    case LuaT::LCL: {  // Lua function
+    case MoonT::LCL: {  // Lua function
       Proto *p = clLvalue(s2v(func))->getProto();
       auto fsize = p->getMaxStackSize();  // frame size
       auto nfixparams = p->getNumParams();
@@ -596,7 +596,7 @@ int lua_State::preTailCall(CallInfo *ci_arg, StkId func,
       for (; narg1 <= nfixparams; narg1++)
         setnilvalue(s2v(func + narg1));  // complete missing arguments
       ci_arg->topRef().p = func + 1 + fsize;  // top for new function
-      lua_assert(ci_arg->topRef().p <= getStackLast().p);
+      moon_assert(ci_arg->topRef().p <= getStackLast().p);
       ci_arg->setSavedPC(p->getCode());  // starting point
       ci_arg->callStatusRef() |= CIST_TAIL;
       getStackSubsystem().setTopPtr(func + narg1);  // set top
@@ -620,19 +620,19 @@ int lua_State::preTailCall(CallInfo *ci_arg, StkId func,
 ** returns nullptr, with all the results on the stack, starting at the
 ** original function position.
 */
-// Convert to lua_State method
-CallInfo* lua_State::preCall(StkId func, int nresults) {
+// Convert to moon_State method
+CallInfo* moon_State::preCall(StkId func, int nresults) {
   unsigned status_val = cast_uint(nresults + 1);
-  lua_assert(status_val <= MAXRESULTS + 1);
+  moon_assert(status_val <= MAXRESULTS + 1);
  retry:
   switch (ttypetag(s2v(func))) {
-    case LuaT::CCL:  // C closure
+    case MoonT::CCL:  // C closure
       preCallC(func, status_val, clCvalue(s2v(func))->getFunction());
       return nullptr;
-    case LuaT::LCF:  // light C function
+    case MoonT::LCF:  // light C function
       preCallC(func, status_val, fvalue(s2v(func)));
       return nullptr;
-    case LuaT::LCL: {  // Lua function
+    case MoonT::LCL: {  // Lua function
       CallInfo *ci_new;
       Proto *p = clLvalue(s2v(func))->getProto();
       auto narg = cast_int(getTop().p - func) - 1;  // number of real arguments
@@ -645,7 +645,7 @@ CallInfo* lua_State::preCall(StkId func, int nresults) {
         setnilvalue(s2v(getTop().p));  // complete missing arguments
         getStackSubsystem().push();
       }
-      lua_assert(ci_new->topRef().p <= getStackLast().p);
+      moon_assert(ci_new->topRef().p <= getStackLast().p);
       return ci_new;
     }
     default: {  // not a function
@@ -662,16 +662,16 @@ CallInfo* lua_State::preCall(StkId func, int nresults) {
 ** number of recursive invocations in the C stack) or nyci (the same
 ** plus increment number of non-yieldable calls).
 ** This function can be called with some use of EXTRA_STACK, so it should
-** check the stack before doing anything else. 'luaD_precall' already
+** check the stack before doing anything else. 'moonD_precall' already
 ** does that.
 */
-// Convert to private lua_State method
-void lua_State::cCall(StkId func, int nResults, l_uint32 inc) {
+// Convert to private moon_State method
+void moon_State::cCall(StkId func, int nResults, l_uint32 inc) {
   CallInfo *ci_result;
   getNumberOfCCallsRef() += inc;
-  if (l_unlikely(getCcalls(this) >= LUAI_MAXCCALLS)) {
+  if (l_unlikely(getCcalls(this) >= MOONI_MAXCCALLS)) {
     checkstackp(this, 0, func);  // free any use of EXTRA_STACK
-    luaE_checkcstack(this);
+    moonE_checkcstack(this);
   }
   if ((ci_result = preCall(func, nResults)) != nullptr) {  // Lua function?
     ci_result->callStatusRef() |= CIST_FRESH;  // mark that it is a "fresh" execute
@@ -684,8 +684,8 @@ void lua_State::cCall(StkId func, int nResults, l_uint32 inc) {
 /*
 ** External interface for 'ccall'
 */
-// Convert to lua_State method
-void lua_State::call(StkId func, int nResults) {
+// Convert to moon_State method
+void moon_State::call(StkId func, int nResults) {
   cCall( func, nResults, 1);
 }
 
@@ -693,44 +693,44 @@ void lua_State::call(StkId func, int nResults) {
 /*
 ** Similar to 'call', but does not allow yields during the call.
 */
-// Convert to lua_State method
-void lua_State::callNoYield(StkId func, int nResults) {
+// Convert to moon_State method
+void moon_State::callNoYield(StkId func, int nResults) {
   cCall( func, nResults, nyci);
 }
 
 
 /*
-** Finish the job of 'lua_pcallk' after it was interrupted by an yield.
+** Finish the job of 'moon_pcallk' after it was interrupted by an yield.
 ** (The caller, 'finishCcall', does the final call to 'adjustresults'.)
-** The main job is to complete the 'luaD_pcall' called by 'lua_pcallk'.
+** The main job is to complete the 'moonD_pcall' called by 'moon_pcallk'.
 ** If a '__close' method yields here, eventually control will be back
 ** to 'finishCcall' (when that '__close' method finally returns) and
 ** 'finishpcallk' will run again and close any still pending '__close'
 ** methods. Similarly, if a '__close' method errs, 'precover' calls
 ** 'unroll' which calls ''finishCcall' and we are back here again, to
 ** close any pending '__close' methods.
-** Note that, up to the call to 'luaF_close', the corresponding
+** Note that, up to the call to 'moonF_close', the corresponding
 ** 'CallInfo' is not modified, so that this repeated run works like the
 ** first one (except that it has at least one less '__close' to do). In
 ** particular, field CIST_RECST preserves the error status across these
 ** multiple runs, changing only if there is a new error.
 */
-// Convert to private lua_State method
-TStatus lua_State::finishPCallK(CallInfo *ci_arg) {
+// Convert to private moon_State method
+TStatus moon_State::finishPCallK(CallInfo *ci_arg) {
   TStatus status_val = static_cast<TStatus>(ci_arg->getRecoverStatus());  // get original status
-  if (l_likely(status_val == LUA_OK))  // no error?
-    status_val = LUA_YIELD;  // was interrupted by an yield
+  if (l_likely(status_val == MOON_OK))  // no error?
+    status_val = MOON_YIELD;  // was interrupted by an yield
   else {  // error
     StkId func = this->restoreStack(ci_arg->getFuncIdx());
     setAllowHook(static_cast<lu_byte>(ci_arg->getOAH()));  // restore 'allowhook'
-    func = luaF_close(this, func, status_val, 1);  // can yield or raise an error
+    func = moonF_close(this, func, status_val, 1);  // can yield or raise an error
     setErrorObj(status_val, func);
     shrinkStack();  // restore stack size in case of overflow
-    ci_arg->setRecoverStatus(LUA_OK);  // clear original status
+    ci_arg->setRecoverStatus(MOON_OK);  // clear original status
   }
   ci_arg->callStatusRef() &= ~CIST_YPCALL;
   setErrFunc(ci_arg->getOldErrFunc());
-  /* if it is here, there were errors or yields; unlike 'lua_pcallk',
+  /* if it is here, there were errors or yields; unlike 'moon_pcallk',
      do not change status */
   return status_val;
 }
@@ -740,37 +740,37 @@ TStatus lua_State::finishPCallK(CallInfo *ci_arg) {
 ** Completes the execution of a C function interrupted by an yield.
 ** The interruption must have happened while the function was either
 ** closing its tbc variables in 'moveresults' or executing
-** 'lua_callk'/'lua_pcallk'. In the first case, it just redoes
-** 'luaD_poscall'. In the second case, the call to 'finishpcallk'
-** finishes the interrupted execution of 'lua_pcallk'.  After that, it
+** 'moon_callk'/'moon_pcallk'. In the first case, it just redoes
+** 'moonD_poscall'. In the second case, the call to 'finishpcallk'
+** finishes the interrupted execution of 'moon_pcallk'.  After that, it
 ** calls the continuation of the interrupted function and finally it
-** completes the job of the 'luaD_call' that called the function.  In
+** completes the job of the 'moonD_call' that called the function.  In
 ** the call to 'adjustresults', we do not know the number of results
-** of the function called by 'lua_callk'/'lua_pcallk', so we are
-** conservative and use LUA_MULTRET (always adjust).
+** of the function called by 'moon_callk'/'moon_pcallk', so we are
+** conservative and use MOON_MULTRET (always adjust).
 */
-// Convert to private lua_State method
-void lua_State::finishCCall(CallInfo *ci_arg) {
+// Convert to private moon_State method
+void moon_State::finishCCall(CallInfo *ci_arg) {
   int n;  // actual number of results from C function
   if (ci_arg->callStatusRef() & CIST_CLSRET) {  // was closing TBC variable?
-    lua_assert(ci_arg->callStatusRef() & CIST_TBC);
-    n = ci_arg->getNRes();  // just redo 'luaD_poscall'
+    moon_assert(ci_arg->callStatusRef() & CIST_TBC);
+    n = ci_arg->getNRes();  // just redo 'moonD_poscall'
     // don't need to reset CIST_CLSRET, as it will be set again anyway
   }
   else {
-    TStatus status_val = LUA_YIELD;  // default if there were no errors
-    lua_KFunction kf = ci_arg->getK();  // continuation function
+    TStatus status_val = MOON_YIELD;  // default if there were no errors
+    moon_KFunction kf = ci_arg->getK();  // continuation function
     // must have a continuation and must be able to call it
-    lua_assert(kf != nullptr && yieldable(this));
-    if (ci_arg->callStatusRef() & CIST_YPCALL)  // was inside a 'lua_pcallk'?
+    moon_assert(kf != nullptr && yieldable(this));
+    if (ci_arg->callStatusRef() & CIST_YPCALL)  // was inside a 'moon_pcallk'?
       status_val = finishPCallK(ci_arg);  // finish it
-    adjustresults(this, LUA_MULTRET);  // finish 'lua_callk'
-    lua_unlock(this);
+    adjustresults(this, MOON_MULTRET);  // finish 'moon_callk'
+    moon_unlock(this);
     n = (*kf)(this, APIstatus(status_val), ci_arg->getCtx());  // call continuation
-    lua_lock(this);
+    moon_lock(this);
     api_checknelems(this, n);
   }
-  postCall(ci_arg, n);  // finish 'luaD_call'
+  postCall(ci_arg, n);  // finish 'moonD_call'
 }
 
 
@@ -779,8 +779,8 @@ void lua_State::finishCCall(CallInfo *ci_arg) {
 ** previously interrupted coroutine until the stack is empty (or another
 ** interruption long-jumps out of the loop).
 */
-// Convert to private lua_State method
-void lua_State::unrollContinuation(void *ud) {
+// Convert to private moon_State method
+void moon_State::unrollContinuation(void *ud) {
   CallInfo *ci_current;
   UNUSED(ud);
   while ((ci_current = getCI()) != getBaseCI()) {  // something in the stack
@@ -797,7 +797,7 @@ void lua_State::unrollContinuation(void *ud) {
 /*
 ** Static wrapper for unrollContinuation to be used as Pfunc callback
 */
-static void unroll (lua_State *L, void *ud) {
+static void unroll (moon_State *L, void *ud) {
   L->unrollContinuation(ud);
 }
 
@@ -806,8 +806,8 @@ static void unroll (lua_State *L, void *ud) {
 ** Try to find a suspended protected call (a "recover point") for the
 ** given thread.
 */
-// Convert to private lua_State method
-CallInfo* lua_State::findPCall() {
+// Convert to private moon_State method
+CallInfo* moon_State::findPCall() {
   for (CallInfo *ci_iter = getCI(); ci_iter != nullptr; ci_iter = ci_iter->getPrevious()) {  // search for a pcall
     if (ci_iter->callStatusRef() & CIST_YPCALL)
       return ci_iter;
@@ -817,52 +817,52 @@ CallInfo* lua_State::findPCall() {
 
 
 /*
-** Signal an error in the call to 'lua_resume', not in the execution
+** Signal an error in the call to 'moon_resume', not in the execution
 ** of the coroutine itself. (Such errors should not be handled by any
 ** coroutine error handler and should not kill the coroutine.)
 */
-static int resume_error (lua_State *L, const char *msg, int narg) {
+static int resume_error (moon_State *L, const char *msg, int narg) {
   api_checkpop(L, narg);
   L->getStackSubsystem().popN(narg);  // remove args from the stack
   setsvalue2s(L, L->getTop().p, TString::create(L, msg));  // push error message
   api_incr_top(L);
-  lua_unlock(L);
-  return LUA_ERRRUN;
+  moon_unlock(L);
+  return MOON_ERRRUN;
 }
 
 
 /*
-** Do the work for 'lua_resume' in protected mode. Most of the work
+** Do the work for 'moon_resume' in protected mode. Most of the work
 ** depends on the status of the coroutine: initial state, suspended
 ** inside a hook, or regularly suspended (optionally with a continuation
 ** function), plus erroneous cases: non-suspended coroutine or dead
 ** coroutine.
 */
-static void resume (lua_State *L, void *ud) {
+static void resume (moon_State *L, void *ud) {
   int n = *static_cast<int*>(ud);  // number of arguments
   StkId firstArg = L->getTop().p - n;  // first argument
   CallInfo *callInfo = L->getCI();
-  if (L->getStatus() == LUA_OK)  // starting a coroutine?
-    L->cCall( firstArg - 1, LUA_MULTRET, 0);  // just call its body
+  if (L->getStatus() == MOON_OK)  // starting a coroutine?
+    L->cCall( firstArg - 1, MOON_MULTRET, 0);  // just call its body
   else {  // resuming from previous yield
-    lua_assert(L->getStatus() == LUA_YIELD);
-    L->setStatus(LUA_OK);  // mark that it is running (again)
+    moon_assert(L->getStatus() == MOON_YIELD);
+    L->setStatus(MOON_OK);  // mark that it is running (again)
     if (callInfo->isLua()) {  // yielded inside a hook?
-      /* undo increment made by 'luaG_traceexec': instruction was not
+      /* undo increment made by 'moonG_traceexec': instruction was not
          executed yet */
-      lua_assert(callInfo->getCallStatus() & CIST_HOOKYIELD);
+      moon_assert(callInfo->getCallStatus() & CIST_HOOKYIELD);
       (*callInfo->getSavedPCPtr())--;
       L->getStackSubsystem().setTopPtr(firstArg);  // discard arguments
       L->getVM().execute(callInfo);  // just continue running Lua code
     }
     else {  // 'common' yield
       if (callInfo->getK() != nullptr) {  // does it have a continuation function?
-        lua_unlock(L);
-        n = (*callInfo->getK())(L, LUA_YIELD, callInfo->getCtx());  // call continuation
-        lua_lock(L);
+        moon_unlock(L);
+        n = (*callInfo->getK())(L, MOON_YIELD, callInfo->getCtx());  // call continuation
+        moon_lock(L);
         api_checknelems(L, n);
       }
-      L->postCall( callInfo, n);  // finish 'luaD_call'
+      L->postCall( callInfo, n);  // finish 'moonD_call'
     }
     L->unrollContinuation( nullptr);  // run continuation
   }
@@ -873,11 +873,11 @@ static void resume (lua_State *L, void *ud) {
 ** Unrolls a coroutine in protected mode while there are recoverable
 ** errors, that is, errors inside a protected call. (Any error
 ** interrupts 'unroll', and this loop protects it again so it can
-** continue.) Stops with a normal end (status == LUA_OK), an yield
-** (status == LUA_YIELD), or an unprotected error ('findpcall' doesn't
+** continue.) Stops with a normal end (status == MOON_OK), an yield
+** (status == MOON_YIELD), or an unprotected error ('findpcall' doesn't
 ** find a recover point).
 */
-static TStatus precover (lua_State *L, TStatus status) {
+static TStatus precover (moon_State *L, TStatus status) {
   CallInfo *callInfo;
   while (errorstatus(status) && (callInfo = L->findPCall()) != nullptr) {
     L->setCI(callInfo);  // go down to recovery functions
@@ -888,79 +888,79 @@ static TStatus precover (lua_State *L, TStatus status) {
 }
 
 
-LUA_API int lua_resume (lua_State *L, lua_State *from, int nargs,
+MOON_API int moon_resume (moon_State *L, moon_State *from, int nargs,
                                       int *nresults) {
   TStatus status;
-  lua_lock(L);
-  if (L->getStatus() == LUA_OK) {  // may be starting a coroutine
+  moon_lock(L);
+  if (L->getStatus() == MOON_OK) {  // may be starting a coroutine
     if (L->getCI() != L->getBaseCI())  // not in base level?
       return resume_error(L, "cannot resume non-suspended coroutine", nargs);
     else if (L->getTop().p - (L->getCI()->funcRef().p + 1) == nargs)  // no function?
       return resume_error(L, "cannot resume dead coroutine", nargs);
   }
-  else if (L->getStatus() != LUA_YIELD)  // ended with errors?
+  else if (L->getStatus() != MOON_YIELD)  // ended with errors?
     return resume_error(L, "cannot resume dead coroutine", nargs);
   L->setNumberOfCCalls((from) ? getCcalls(from) : 0);
-  if (getCcalls(L) >= LUAI_MAXCCALLS)
+  if (getCcalls(L) >= MOONI_MAXCCALLS)
     return resume_error(L, "C stack overflow", nargs);
   L->getNumberOfCCallsRef()++;
-  luai_userstateresume(L, nargs);
-  api_checkpop(L, (L->getStatus() == LUA_OK) ? nargs + 1 : nargs);
+  mooni_userstateresume(L, nargs);
+  api_checkpop(L, (L->getStatus() == MOON_OK) ? nargs + 1 : nargs);
   status = L->rawRunProtected( resume, &nargs);
    // continue running after recoverable errors
   status = precover(L, status);
   if (l_likely(!errorstatus(status)))
-    lua_assert(status == L->getStatus());  // normal end or yield
+    moon_assert(status == L->getStatus());  // normal end or yield
   else {  // unrecoverable error
     L->setStatus(status);  // mark thread as 'dead'
     L->setErrorObj( status, L->getTop().p);  // push error message
     L->getCI()->topRef().p = L->getTop().p;
   }
-  *nresults = (status == LUA_YIELD) ? L->getCI()->getNYield()
+  *nresults = (status == MOON_YIELD) ? L->getCI()->getNYield()
                                     : cast_int(L->getTop().p - (L->getCI()->funcRef().p + 1));
-  lua_unlock(L);
+  moon_unlock(L);
   return APIstatus(status);
 }
 
 
-LUA_API int lua_isyieldable (lua_State *L) {
+MOON_API int moon_isyieldable (moon_State *L) {
   return yieldable(L);
 }
 
 
-LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
-                        lua_KFunction k) {
+MOON_API int moon_yieldk (moon_State *L, int nresults, moon_KContext ctx,
+                        moon_KFunction k) {
   CallInfo *callInfo;
-  luai_userstateyield(L, nresults);
-  lua_lock(L);
+  mooni_userstateyield(L, nresults);
+  moon_lock(L);
   callInfo = L->getCI();
   api_checkpop(L, nresults);
   if (l_unlikely(!yieldable(L))) {
     if (L != mainthread(G(L)))
-      luaG_runerror(L, "attempt to yield across a C-call boundary");
+      moonG_runerror(L, "attempt to yield across a C-call boundary");
     else
-      luaG_runerror(L, "attempt to yield from outside a coroutine");
+      moonG_runerror(L, "attempt to yield from outside a coroutine");
   }
-  L->setStatus(LUA_YIELD);
+  L->setStatus(MOON_YIELD);
   callInfo->setNYield(nresults);  // save number of results
   if (callInfo->isLua()) {  // inside a hook?
-    lua_assert(!callInfo->isLuaCode());
+    moon_assert(!callInfo->isLuaCode());
     api_check(L, nresults == 0, "hooks cannot yield values");
     api_check(L, k == nullptr, "hooks cannot continue after yielding");
   }
   else {
     if ((callInfo->setK(k), k) != nullptr)  // is there a continuation?
       callInfo->setCtx(ctx);  // save context
-    L->doThrow( LUA_YIELD);
+    L->doThrow( MOON_YIELD);
   }
-  lua_assert(callInfo->getCallStatus() & CIST_HOOKED);  // must be inside a hook
-  lua_unlock(L);
-  return 0;  // return to 'luaD_hook'
+  moon_assert(callInfo->getCallStatus() & CIST_HOOKED);  // must be inside a hook
+  moon_unlock(L);
+  return 0;  // return to 'moonD_hook'
 }
 
 
 /*
-** Auxiliary structure to call 'luaF_close' in protected mode.
+** Auxiliary structure to call 'moonF_close' in protected mode.
 */
 struct CloseP {
   StkId level;
@@ -969,27 +969,27 @@ struct CloseP {
 
 
 /*
-** Auxiliary function to call 'luaF_close' in protected mode.
+** Auxiliary function to call 'moonF_close' in protected mode.
 */
-static void closepaux (lua_State *L, void *ud) {
+static void closepaux (moon_State *L, void *ud) {
   CloseP *pcl = static_cast<CloseP*>(ud);
-  pcl->level = luaF_close(L, pcl->level, pcl->status, 0);
+  pcl->level = moonF_close(L, pcl->level, pcl->status, 0);
 }
 
 
 /*
-** Calls 'luaF_close' in protected mode. Return the original status
+** Calls 'moonF_close' in protected mode. Return the original status
 ** or, in case of errors, the new status.
 */
-// Convert to lua_State method
-TStatus lua_State::closeProtected(ptrdiff_t level, TStatus status_arg) {
+// Convert to moon_State method
+TStatus moon_State::closeProtected(ptrdiff_t level, TStatus status_arg) {
   CallInfo *old_ci = getCI();
   lu_byte old_allowhooks = getAllowHook();
   for (;;) {  // keep closing upvalues until no more errors
     struct CloseP pcl;
     pcl.level = this->restoreStack(level); pcl.status = status_arg;
     status_arg = rawRunProtected(&closepaux, &pcl);
-    if (l_likely(status_arg == LUA_OK))  // no more errors?
+    if (l_likely(status_arg == MOON_OK))  // no more errors?
       return pcl.status;
     else {  // an error occurred; restore saved state and repeat
       setCI(old_ci);
@@ -1004,8 +1004,8 @@ TStatus lua_State::closeProtected(ptrdiff_t level, TStatus status_arg) {
 ** thread information ('allowhook', etc.) and in particular
 ** its stack level in case of errors.
 */
-// Convert to lua_State method
-TStatus lua_State::pCall(Pfunc func, void *u, ptrdiff_t old_top,
+// Convert to moon_State method
+TStatus moon_State::pCall(Pfunc func, void *u, ptrdiff_t old_top,
                                   ptrdiff_t ef) {
   TStatus status_result;
   CallInfo *old_ci = getCI();
@@ -1013,7 +1013,7 @@ TStatus lua_State::pCall(Pfunc func, void *u, ptrdiff_t old_top,
   ptrdiff_t old_errfunc = getErrFunc();
   setErrFunc(ef);
   status_result = rawRunProtected(func, u);
-  if (l_unlikely(status_result != LUA_OK)) {  // an error occurred?
+  if (l_unlikely(status_result != MOON_OK)) {  // an error occurred?
     setCI(old_ci);
     setAllowHook(old_allowhooks);
     status_result = closeProtected(old_top, status_result);
@@ -1037,53 +1037,53 @@ struct SParser {  // data to 'f_parser'
   const char *name;
 
   // Constructor to properly initialize Dyndata
-  explicit SParser(lua_State* L)
+  explicit SParser(moon_State* L)
     : z(nullptr), buff(), dyd(L), mode(nullptr), name(nullptr) {}
 };
 
 
-static void checkmode (lua_State *L, const char *mode, const char *x) {
+static void checkmode (moon_State *L, const char *mode, const char *x) {
   if (strchr(mode, x[0]) == nullptr) {
-    luaO_pushfstring(L,
+    moonO_pushfstring(L,
        "attempt to load a %s chunk (mode is '%s')", x, mode);
-    L->doThrow( LUA_ERRSYNTAX);
+    L->doThrow( MOON_ERRSYNTAX);
   }
 }
 
 
-static void f_parser (lua_State *L, void *ud) {
+static void f_parser (moon_State *L, void *ud) {
   LClosure *cl;
   SParser *p = static_cast<SParser*>(ud);
   const char *mode = p->mode ? p->mode : "bt";
   int c = zgetc(p->z);  // read first character
-  if (c == LUA_SIGNATURE[0]) {
+  if (c == MOON_SIGNATURE[0]) {
     int fixed = 0;
     if (strchr(mode, 'B') != nullptr)
       fixed = 1;
     else
       checkmode(L, mode, "binary");
-    cl = luaU_undump(L, p->z, p->name, fixed);
+    cl = moonU_undump(L, p->z, p->name, fixed);
   }
   else {
     checkmode(L, mode, "text");
-    cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);
+    cl = moonY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);
   }
-  lua_assert(cl->getNumUpvalues() == cl->getProto()->getUpvaluesSize());
+  moon_assert(cl->getNumUpvalues() == cl->getProto()->getUpvaluesSize());
   cl->initUpvals(L);
 }
 
 
-// Convert to lua_State method
-TStatus lua_State::protectedParser(ZIO *z, const char *name,
+// Convert to moon_State method
+TStatus moon_State::protectedParser(ZIO *z, const char *name,
                                             const char *mode) {
-  SParser p(this);  // Initialize with lua_State - Dyndata uses LuaVector now
+  SParser p(this);  // Initialize with moon_State - Dyndata uses MoonVector now
   TStatus status_result;
   incnny(this);  // cannot yield during parsing
   p.z = z; p.name = name; p.mode = mode;
-  // Dyndata (gt, label, actvar) auto-initialized via LuaVector - no manual setup
-  luaZ_initbuffer(this, &p.buff);
+  // Dyndata (gt, label, actvar) auto-initialized via MoonVector - no manual setup
+  moonZ_initbuffer(this, &p.buff);
   status_result = pCall(f_parser, &p, this->saveStack(getTop().p), getErrFunc());
-  luaZ_freebuffer(this, &p.buff);
+  moonZ_freebuffer(this, &p.buff);
   // Dyndata auto-cleaned via RAII - no manual free needed
   decnny(this);
   return status_result;
@@ -1091,8 +1091,8 @@ TStatus lua_State::protectedParser(ZIO *z, const char *name,
 
 
 /*
-** Stack operation methods moved to LuaStack class (lstack.cpp)
-** lua_State now delegates to stack_ subsystem via inline methods
+** Stack operation methods moved to MoonStack class (lstack.cpp)
+** moon_State now delegates to stack_ subsystem via inline methods
 */
 
 

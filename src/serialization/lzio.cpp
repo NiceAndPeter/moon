@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -19,13 +19,13 @@
 #include "lzio.h"
 
 
-int luaZ_fill (ZIO *z) {
+int moonZ_fill (ZIO *z) {
   size_t size;
-  lua_State *L = z->L;
+  moon_State *L = z->L;
   const char *buff;
-  lua_unlock(L);
+  moon_unlock(L);
   buff = z->reader(L, z->data, &size);
-  lua_lock(L);
+  moon_lock(L);
   if (buff == nullptr || size == 0)
     return EOZ;
   z->n = size - 1;  // discount char being returned
@@ -34,7 +34,7 @@ int luaZ_fill (ZIO *z) {
 }
 
 
-void luaZ_init (lua_State *L, ZIO *z, lua_Reader reader, void *data) {
+void moonZ_init (moon_State *L, ZIO *z, moon_Reader reader, void *data) {
   new (z) ZIO(L, reader, data);
 }
 
@@ -43,10 +43,10 @@ void luaZ_init (lua_State *L, ZIO *z, lua_Reader reader, void *data) {
 
 static bool checkbuffer (ZIO *z) {
   if (z->n == 0) {  // no bytes in buffer?
-    if (luaZ_fill(z) == EOZ)  // try to read more
+    if (moonZ_fill(z) == EOZ)  // try to read more
       return false;  // no more input
     else {
-      z->n++;  // luaZ_fill consumed first byte; put it back
+      z->n++;  // moonZ_fill consumed first byte; put it back
       z->p--;
     }
   }
@@ -54,7 +54,7 @@ static bool checkbuffer (ZIO *z) {
 }
 
 
-size_t luaZ_read (ZIO *z, void *b, size_t n) {
+size_t moonZ_read (ZIO *z, void *b, size_t n) {
   while (n) {
     if (!checkbuffer(z))
       return n;  // no more input; return number of missing bytes
@@ -69,7 +69,7 @@ size_t luaZ_read (ZIO *z, void *b, size_t n) {
 }
 
 
-const void *luaZ_getaddr (ZIO* z, size_t n) {
+const void *moonZ_getaddr (ZIO* z, size_t n) {
   const void *res;
   if (!checkbuffer(z))
     return nullptr;  // no more input

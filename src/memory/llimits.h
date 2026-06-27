@@ -21,10 +21,10 @@
 ** computations.) 'lu_mem' is a corresponding unsigned type.  Usually,
 ** 'ptrdiff_t' should work, but we use 'long' for 16-bit machines.
 */
-#if defined(LUAI_MEM)  // { external definitions?
-typedef LUAI_MEM l_mem;
-typedef LUAI_UMEM lu_mem;
-#elif LUAI_IS32INT  // }{
+#if defined(MOONI_MEM)  // { external definitions?
+typedef MOONI_MEM l_mem;
+typedef MOONI_UMEM lu_mem;
+#elif MOONI_IS32INT  // }{
 typedef ptrdiff_t l_mem;
 typedef size_t lu_mem;
 #else  /* 16-bit ints */	/* }{ */
@@ -50,7 +50,7 @@ inline constexpr size_t MAX_SIZET = ((size_t)(~(size_t)0));
 
 /*
 ** Maximum size for strings and userdata visible for Lua; should be
-** representable as a lua_Integer and as a size_t.
+** representable as a moon_Integer and as a size_t.
 ** Defined later in this file after cast functions.
 */
 
@@ -107,7 +107,7 @@ inline constexpr size_t LL(const char (&)[N]) noexcept {
 ** value. (In strict ISO C this may cause undefined behavior, but no
 ** actual machine seems to bother.)
 */
-#if !defined(LUA_USE_C89) && defined(__STDC_VERSION__) && \
+#if !defined(MOON_USE_C89) && defined(__STDC_VERSION__) && \
     __STDC_VERSION__ >= 199901L
 #include <cstdint>
 #if defined(UINTPTR_MAX)  // even in C99 this type is optional
@@ -121,30 +121,30 @@ inline constexpr size_t LL(const char (&)[N]) noexcept {
 
 
 
-// types of 'usual argument conversions' for lua_Number and lua_Integer
-typedef LUAI_UACNUMBER l_uacNumber;
-typedef LUAI_UACINT l_uacInt;
+// types of 'usual argument conversions' for moon_Number and moon_Integer
+typedef MOONI_UACNUMBER l_uacNumber;
+typedef MOONI_UACINT l_uacInt;
 
 
 /*
 ** Internal assertions for in-house debugging
 */
-#if defined LUAI_ASSERT
+#if defined MOONI_ASSERT
 #undef NDEBUG
 #include <assert.h>
-#define lua_assert(c)           assert(c)
+#define moon_assert(c)           assert(c)
 #define assert_code(c)		c
 #endif
 
-#if defined(lua_assert)
+#if defined(moon_assert)
 #else
-#define lua_assert(c)		((void)0)
+#define moon_assert(c)		((void)0)
 #define assert_code(c)		((void)0)
 #endif
 
-#define check_exp(c,e)		(lua_assert(c), (e))
+#define check_exp(c,e)		(moon_assert(c), (e))
 // to avoid problems with conditions too long
-#define lua_longassert(c)	assert_code((c) ? (void)0 : lua_assert(0))
+#define moon_longassert(c)	assert_code((c) ? (void)0 : moon_assert(0))
 
 
 // macro to avoid warnings about unused variables
@@ -179,8 +179,8 @@ typedef LUAI_UACINT l_uacInt;
 // cast_void kept as macro - used in comma expressions and ternary operators
 #define cast_void(i)	static_cast<void>(i)
 
-constexpr inline lua_Number cast_num(auto i) noexcept {
-    return static_cast<lua_Number>(i);
+constexpr inline moon_Number cast_num(auto i) noexcept {
+    return static_cast<moon_Number>(i);
 }
 
 constexpr inline int cast_int(auto i) noexcept {
@@ -212,8 +212,8 @@ constexpr inline char cast_char(auto i) noexcept {
     return static_cast<char>(i);
 }
 
-constexpr inline lua_Integer cast_Integer(auto i) noexcept {
-    return static_cast<lua_Integer>(i);
+constexpr inline moon_Integer cast_Integer(auto i) noexcept {
+    return static_cast<moon_Integer>(i);
 }
 
 // cast_sizet kept as macro - used in contexts where result may be passed to
@@ -242,36 +242,36 @@ inline constexpr int log2maxs() noexcept {
 	return l_numbits<T>() - 2;
 }
 
-inline constexpr size_t MAX_SIZE = (sizeof(size_t) < sizeof(lua_Integer) ? MAX_SIZET
-			  : cast_sizet(LUA_MAXINTEGER));
+inline constexpr size_t MAX_SIZE = (sizeof(size_t) < sizeof(moon_Integer) ? MAX_SIZET
+			  : cast_sizet(MOON_MAXINTEGER));
 
 inline constexpr l_mem MAX_LMEM = cast(l_mem, (cast(lu_mem, 1) << (l_numbits<l_mem>() - 1)) - 1);
 
 
-// cast a signed lua_Integer to lua_Unsigned
+// cast a signed moon_Integer to moon_Unsigned
 #if !defined(l_castS2U)
-inline constexpr lua_Unsigned l_castS2U(lua_Integer i) noexcept {
-	return static_cast<lua_Unsigned>(i);
+inline constexpr moon_Unsigned l_castS2U(moon_Integer i) noexcept {
+	return static_cast<moon_Unsigned>(i);
 }
 #endif
 
 /*
-** cast a lua_Unsigned to a signed lua_Integer; this cast is
+** cast a moon_Unsigned to a signed moon_Integer; this cast is
 ** not strict ISO C, but two-complement architectures should
 ** work fine.
 */
 #if !defined(l_castU2S)
-inline constexpr lua_Integer l_castU2S(lua_Unsigned i) noexcept {
-	return static_cast<lua_Integer>(i);
+inline constexpr moon_Integer l_castU2S(moon_Unsigned i) noexcept {
+	return static_cast<moon_Integer>(i);
 }
 #endif
 
 /*
-** cast a size_t to lua_Integer: These casts are always valid for
+** cast a size_t to moon_Integer: These casts are always valid for
 ** sizes of Lua objects (see MAX_SIZE)
 */
-inline constexpr lua_Integer cast_st2S(size_t sz) noexcept {
-	return static_cast<lua_Integer>(sz);
+inline constexpr moon_Integer cast_st2S(size_t sz) noexcept {
+	return static_cast<moon_Integer>(sz);
 }
 
 /* Cast a ptrdiff_t to size_t, when it is known that the minuend
@@ -281,8 +281,8 @@ inline constexpr size_t ct_diff2sz(ptrdiff_t df) noexcept {
 	return static_cast<size_t>(df);
 }
 
-// ptrdiff_t to lua_Integer
-inline constexpr lua_Integer ct_diff2S(ptrdiff_t df) noexcept {
+// ptrdiff_t to moon_Integer
+inline constexpr moon_Integer ct_diff2S(ptrdiff_t df) noexcept {
 	return cast_st2S(ct_diff2sz(df));
 }
 
@@ -329,7 +329,7 @@ typedef void (*voidf)(void);
 /*
 ** An unsigned with (at least) 4 bytes
 */
-#if LUAI_IS32INT
+#if MOONI_IS32INT
 typedef unsigned int l_uint32;
 #else
 typedef unsigned long l_uint32;
@@ -337,21 +337,21 @@ typedef unsigned long l_uint32;
 
 
 /*
-** The luai_num* operations define the primitive operations over numbers.
+** The mooni_num* operations define the primitive operations over numbers.
 ** Converted from macros to inline functions for better type safety and debugging.
 */
 
 // float division
-#if !defined(luai_numdiv)
-inline lua_Number luai_numdiv([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
+#if !defined(mooni_numdiv)
+inline moon_Number mooni_numdiv([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b) {
     return a / b;
 }
 #endif
 
 // floor division (defined as 'floor(a/b)')
-#if !defined(luai_numidiv)
-inline lua_Number luai_numidiv([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
-    return l_floor(luai_numdiv(L, a, b));
+#if !defined(mooni_numidiv)
+inline moon_Number mooni_numidiv([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b) {
+    return l_floor(mooni_numdiv(L, a, b));
 }
 #endif
 
@@ -366,8 +366,8 @@ inline lua_Number luai_numidiv([[maybe_unused]] lua_State *L, lua_Number a, lua_
 ** 'b' with different signs, or 'm' and 'b' with different signs
 ** (as the result 'm' of 'fmod' has the same sign of 'a').
 */
-#if !defined(luai_nummod)
-inline void luai_nummod([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b, lua_Number &m) {
+#if !defined(mooni_nummod)
+inline void mooni_nummod([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b, moon_Number &m) {
     m = l_mathop(fmod)(a, b);
     if ((m > 0) ? (b < 0) : (m < 0 && b > 0))
         m += b;
@@ -375,70 +375,70 @@ inline void luai_nummod([[maybe_unused]] lua_State *L, lua_Number a, lua_Number 
 #endif
 
 // exponentiation
-#if !defined(luai_numpow)
-inline lua_Number luai_numpow([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
+#if !defined(mooni_numpow)
+inline moon_Number mooni_numpow([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b) {
     return (b == 2) ? a * a : l_mathop(pow)(a, b);
 }
 #endif
 
 // the others are quite standard operations
-#if !defined(luai_numadd)
-inline lua_Number luai_numadd([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
+#if !defined(mooni_numadd)
+inline moon_Number mooni_numadd([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b) {
     return a + b;
 }
 
-inline lua_Number luai_numsub([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
+inline moon_Number mooni_numsub([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b) {
     return a - b;
 }
 
-inline lua_Number luai_nummul([[maybe_unused]] lua_State *L, lua_Number a, lua_Number b) {
+inline moon_Number mooni_nummul([[maybe_unused]] moon_State *L, moon_Number a, moon_Number b) {
     return a * b;
 }
 
-inline lua_Number luai_numunm([[maybe_unused]] lua_State *L, lua_Number a) {
+inline moon_Number mooni_numunm([[maybe_unused]] moon_State *L, moon_Number a) {
     return -a;
 }
 
-inline bool luai_numeq(lua_Number a, lua_Number b) {
+inline bool mooni_numeq(moon_Number a, moon_Number b) {
     return a == b;
 }
 
-inline bool luai_numlt(lua_Number a, lua_Number b) {
+inline bool mooni_numlt(moon_Number a, moon_Number b) {
     return a < b;
 }
 
-inline bool luai_numle(lua_Number a, lua_Number b) {
+inline bool mooni_numle(moon_Number a, moon_Number b) {
     return a <= b;
 }
 
-inline bool luai_numgt(lua_Number a, lua_Number b) {
+inline bool mooni_numgt(moon_Number a, moon_Number b) {
     return a > b;
 }
 
-inline bool luai_numge(lua_Number a, lua_Number b) {
+inline bool mooni_numge(moon_Number a, moon_Number b) {
     return a >= b;
 }
 
-inline bool luai_numisnan(lua_Number a) {
-    return !luai_numeq(a, a);
+inline bool mooni_numisnan(moon_Number a) {
+    return !mooni_numeq(a, a);
 }
 #endif
 
 
 
 /*
-** lua_numbertointeger converts a float number with an integral value
+** moon_numbertointeger converts a float number with an integral value
 ** to an integer, or returns false if the float is not within the range of
-** a lua_Integer.  (The range comparisons are tricky because of
+** a moon_Integer.  (The range comparisons are tricky because of
 ** rounding. The tests here assume a two-complement representation,
 ** where MININTEGER always has an exact representation as a float;
 ** MAXINTEGER may not have one, and therefore its conversion to float
 ** may have an ill-defined value.)
 */
-inline bool lua_numbertointeger(lua_Number n, lua_Integer* p) noexcept {
-	if (n >= static_cast<lua_Number>(LUA_MININTEGER) &&
-	    n < -static_cast<lua_Number>(LUA_MININTEGER)) {
-		*p = static_cast<lua_Integer>(n);
+inline bool moon_numbertointeger(moon_Number n, moon_Integer* p) noexcept {
+	if (n >= static_cast<moon_Number>(MOON_MININTEGER) &&
+	    n < -static_cast<moon_Number>(MOON_MININTEGER)) {
+		*p = static_cast<moon_Integer>(n);
 		return true;
 	}
 	return false;
@@ -447,11 +447,11 @@ inline bool lua_numbertointeger(lua_Number n, lua_Integer* p) noexcept {
 
 
 /*
-** LUAI_FUNC is a mark for all extern functions that are not to be
+** MOONI_FUNC is a mark for all extern functions that are not to be
 ** exported to outside modules.
-** LUAI_DDEF and LUAI_DDEC are marks for all extern (const) variables,
-** none of which to be exported to outside modules (LUAI_DDEF for
-** definitions and LUAI_DDEC for declarations).
+** MOONI_DDEF and MOONI_DDEC are marks for all extern (const) variables,
+** none of which to be exported to outside modules (MOONI_DDEF for
+** definitions and MOONI_DDEC for declarations).
 ** Elf/gcc (versions 3.2 and later) mark them as "hidden" to optimize
 ** access when Lua is compiled as a shared library. Not all elf targets
 ** support this attribute. Unfortunately, gcc does not offer a way to
@@ -459,24 +459,24 @@ inline bool lua_numbertointeger(lua_Number n, lua_Integer* p) noexcept {
 ** support give a warning about it. To avoid these warnings, change to
 ** the default definition.
 */
-#if !defined(LUAI_FUNC)
+#if !defined(MOONI_FUNC)
 
 #if defined(__GNUC__) && ((__GNUC__*100 + __GNUC_MINOR__) >= 302) && \
     defined(__ELF__)  // {
-#define LUAI_FUNC	__attribute__((visibility("internal"))) extern
+#define MOONI_FUNC	__attribute__((visibility("internal"))) extern
 #else  // }{
-#define LUAI_FUNC	extern
+#define MOONI_FUNC	extern
 #endif  // }
 
-#define LUAI_DDEC(dec)	LUAI_FUNC dec
-#define LUAI_DDEF  // empty
+#define MOONI_DDEC(dec)	MOONI_FUNC dec
+#define MOONI_DDEF  // empty
 
 #endif
 
 
 // Give these macros simpler names for internal use
-#define l_likely(x)	luai_likely(x)
-#define l_unlikely(x)	luai_unlikely(x)
+#define l_likely(x)	mooni_likely(x)
+#define l_unlikely(x)	mooni_unlikely(x)
 
 /*
 ** {==================================================================
@@ -485,18 +485,18 @@ inline bool lua_numbertointeger(lua_Number n, lua_Integer* p) noexcept {
 */
 
 // print a string
-#if !defined(lua_writestring)
-#define lua_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)
+#if !defined(moon_writestring)
+#define moon_writestring(s,l)   fwrite((s), sizeof(char), (l), stdout)
 #endif
 
 // print a newline and flush the output
-#if !defined(lua_writeline)
-#define lua_writeline()        (lua_writestring("\n", 1), fflush(stdout))
+#if !defined(moon_writeline)
+#define moon_writeline()        (moon_writestring("\n", 1), fflush(stdout))
 #endif
 
 // print an error message
-#if !defined(lua_writestringerror)
-#define lua_writestringerror(s,p) \
+#if !defined(moon_writestringerror)
+#define moon_writestringerror(s,p) \
         (fprintf(stderr, (s), (p)), fflush(stderr))
 #endif
 

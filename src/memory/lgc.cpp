@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -132,8 +132,8 @@ inline void linkgclistTable(Table *h, GCObject *&p) {
   linkgclist_(obj2gco(h), h->getGclistPtr(), &p);
 }
 
-// Specialized version for lua_State (with encapsulated gclist)
-inline void linkgclistThread(lua_State *th, GCObject *&p) {
+// Specialized version for moon_State (with encapsulated gclist)
+inline void linkgclistThread(moon_State *th, GCObject *&p) {
   linkgclist_(obj2gco(th), th->getGclistPtr(), &p);
 }
 
@@ -161,18 +161,18 @@ inline void linkobjgclist(T* o, GCObject*& p) {
 ** be done is generational mode, as its sweep does not distinguish
 ** white from dead.)
 */
-void luaC_barrier_ (lua_State& L, GCObject *o, GCObject *v) {
+void moonC_barrier_ (moon_State& L, GCObject *o, GCObject *v) {
   GlobalState *g = G(L);
-  lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
+  moon_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
   if (g->keepInvariant()) {  // must keep invariant?
     reallymarkobject(*g, v);  // restore invariant
     if (isold(o)) {
-      lua_assert(!isold(v));  // white object could not be old
+      moon_assert(!isold(v));  // white object could not be old
       setage(v, GCAge::Old0);  // restore generational invariant
     }
   }
   else {  // sweep phase
-    lua_assert(g->isSweepPhase());
+    moon_assert(g->isSweepPhase());
     if (g->getGCKind() != GCKind::GenerationalMinor)  // incremental mode?
       makewhite(g, o);  // mark 'o' as white to avoid other barriers
   }
@@ -183,10 +183,10 @@ void luaC_barrier_ (lua_State& L, GCObject *o, GCObject *v) {
 ** barrier that moves collector backward, that is, mark the black object
 ** pointing to a white object as gray again.
 */
-void luaC_barrierback_ (lua_State& L, GCObject *o) {
+void moonC_barrierback_ (moon_State& L, GCObject *o) {
   GlobalState *g = G(L);
-  lua_assert(isblack(o) && !isdead(g, o));
-  lua_assert((g->getGCKind() != GCKind::GenerationalMinor)
+  moon_assert(isblack(o) && !isdead(g, o));
+  moon_assert((g->getGCKind() != GCKind::GenerationalMinor)
           || (isold(o) && getage(o) != GCAge::Touched1));
   if (getage(o) == GCAge::Touched2)  // already in gray list?
     set2gray(o);  // make it gray to become touched1
@@ -203,9 +203,9 @@ void luaC_barrierback_ (lua_State& L, GCObject *o) {
 ** create a new collectable object (with given type, size, and offset)
 ** and link it to 'allgc' list.
 */
-GCObject *luaC_newobjdt (lua_State& L, LuaT tt, size_t sz, size_t offset) {
+GCObject *moonC_newobjdt (moon_State& L, MoonT tt, size_t sz, size_t offset) {
   GlobalState *g = G(L);
-  char *p = cast_charp(luaM_newobject(&L, novariant(tt), sz));
+  char *p = cast_charp(moonM_newobject(&L, novariant(tt), sz));
   GCObject *o = reinterpret_cast<GCObject*>(p + offset);
   o->setMarked(g->getWhite());
   o->setType(tt);
@@ -218,8 +218,8 @@ GCObject *luaC_newobjdt (lua_State& L, LuaT tt, size_t sz, size_t offset) {
 /*
 ** create a new collectable object with no offset.
 */
-GCObject *luaC_newobj (lua_State& L, LuaT tt, size_t sz) {
-  return luaC_newobjdt(L, tt, sz, 0);
+GCObject *moonC_newobj (moon_State& L, MoonT tt, size_t sz) {
+  return moonC_newobjdt(L, tt, sz, 0);
 }
 
 // }======================================================
@@ -248,12 +248,12 @@ GCObject *luaC_newobj (lua_State& L, LuaT tt, size_t sz) {
 static void reallymarkobject (GlobalState& g, GCObject *o) {
   g.setGCMarked(g.getGCMarked() + objsize(o));
   switch (static_cast<int>(o->getType())) {
-    case static_cast<int>(ctb(LuaT::SHRSTR)):
-    case static_cast<int>(ctb(LuaT::LNGSTR)): {
+    case static_cast<int>(ctb(MoonT::SHRSTR)):
+    case static_cast<int>(ctb(MoonT::LNGSTR)): {
       set2black(o);  // nothing to visit
       break;
     }
-    case static_cast<int>(ctb(LuaT::UPVAL)): {
+    case static_cast<int>(ctb(MoonT::UPVAL)): {
       UpVal *upvalue = gco2upv(o);
       if (upvalue->isOpen())
         set2gray(upvalue);  // open upvalues are kept gray
@@ -262,7 +262,7 @@ static void reallymarkobject (GlobalState& g, GCObject *o) {
       markvalue(g, upvalue->getVP());  // mark its content
       break;
     }
-    case static_cast<int>(ctb(LuaT::USERDATA)): {
+    case static_cast<int>(ctb(MoonT::USERDATA)): {
       Udata *u = gco2u(o);
       if (u->getNumUserValues() == 0) {  // no user values?
         markobjectN(g, u->getMetatable());  // mark its metatable
@@ -271,12 +271,12 @@ static void reallymarkobject (GlobalState& g, GCObject *o) {
       }
       // else...
     }  // FALLTHROUGH
-    case static_cast<int>(ctb(LuaT::LCL)): case static_cast<int>(ctb(LuaT::CCL)): case static_cast<int>(ctb(LuaT::TABLE)):
-    case static_cast<int>(ctb(LuaT::THREAD)): case static_cast<int>(ctb(LuaT::PROTO)): {
+    case static_cast<int>(ctb(MoonT::LCL)): case static_cast<int>(ctb(MoonT::CCL)): case static_cast<int>(ctb(MoonT::TABLE)):
+    case static_cast<int>(ctb(MoonT::THREAD)): case static_cast<int>(ctb(MoonT::PROTO)): {
       linkobjgclist(o, *g.getGrayPtr());  // to be visited later
       break;
     }
-    default: lua_assert(0); break;
+    default: moon_assert(0); break;
   }
 }
 
@@ -365,74 +365,74 @@ void propagateall (GlobalState& g) {
 
 
 // Wrapper for GCCore::freeupval - now in gc_core module
-static void freeupval(lua_State* L, UpVal* upvalue) {
+static void freeupval(moon_State* L, UpVal* upvalue) {
   GCCore::freeupval(L, upvalue);
 }
 
 
 // Call destructors before freeing memory (proper RAII)
 // Made non-static for use by gc_sweeping module
-void freeobj (lua_State& L, GCObject *o) {
+void freeobj (moon_State& L, GCObject *o) {
   assert_code(l_mem newmem = G(L)->getTotalBytes() - objsize(o));
   switch (static_cast<int>(o->getType())) {
-    case static_cast<int>(ctb(LuaT::PROTO)): {
+    case static_cast<int>(ctb(MoonT::PROTO)): {
       Proto *p = gco2p(o);
       p->free(&L);  // frees internal arrays
       // Proto destructor is trivial, but call it for completeness
       p->~Proto();
       break;
     }
-    case static_cast<int>(ctb(LuaT::UPVAL)): {
+    case static_cast<int>(ctb(MoonT::UPVAL)): {
       UpVal *upvalue = gco2upv(o);
       freeupval(&L, upvalue);  // Note: freeupval calls destructor internally
       break;
     }
-    case static_cast<int>(ctb(LuaT::LCL)): {
+    case static_cast<int>(ctb(MoonT::LCL)): {
       LClosure *cl = gco2lcl(o);
       cl->~LClosure();  // Call destructor
-      luaM_freemem(&L, cl, sizeLclosure(cl->getNumUpvalues()));
+      moonM_freemem(&L, cl, sizeLclosure(cl->getNumUpvalues()));
       break;
     }
-    case static_cast<int>(ctb(LuaT::CCL)): {
+    case static_cast<int>(ctb(MoonT::CCL)): {
       CClosure *cl = gco2ccl(o);
       cl->~CClosure();  // Call destructor
-      luaM_freemem(&L, cl, sizeCclosure(cl->getNumUpvalues()));
+      moonM_freemem(&L, cl, sizeCclosure(cl->getNumUpvalues()));
       break;
     }
-    case static_cast<int>(ctb(LuaT::TABLE)): {
+    case static_cast<int>(ctb(MoonT::TABLE)): {
       Table *t = gco2t(o);
       t->destroy(&L);  // Destroy table and cleanup
       break;
     }
-    case static_cast<int>(ctb(LuaT::THREAD)):
-      luaE_freethread(&L, gco2th(o));
+    case static_cast<int>(ctb(MoonT::THREAD)):
+      moonE_freethread(&L, gco2th(o));
       break;
-    case static_cast<int>(ctb(LuaT::USERDATA)): {
+    case static_cast<int>(ctb(MoonT::USERDATA)): {
       Udata *u = gco2u(o);
       u->~Udata();  // Call destructor
-      luaM_freemem(&L, o, sizeudata(u->getNumUserValues(), u->getLen()));
+      moonM_freemem(&L, o, sizeudata(u->getNumUserValues(), u->getLen()));
       break;
     }
-    case static_cast<int>(ctb(LuaT::SHRSTR)): {
+    case static_cast<int>(ctb(MoonT::SHRSTR)): {
       TString *tstring = gco2ts(o);
       size_t sz = sizestrshr(cast_uint(tstring->getShrlen()));
       tstring->remove(&L);  // use method instead of free function
       // DON'T call destructor for TString - it's empty and might cause issues with variable-size objects
       // tstring->~TString();
-      luaM_freemem(&L, tstring, sz);
+      moonM_freemem(&L, tstring, sz);
       break;
     }
-    case static_cast<int>(ctb(LuaT::LNGSTR)): {
+    case static_cast<int>(ctb(MoonT::LNGSTR)): {
       TString *tstring = gco2ts(o);
       if (tstring->getShrlen() == LSTRMEM)  // must free external string?
         (*tstring->getFalloc())(tstring->getUserData(), tstring->getContentsField(), tstring->getLnglen() + 1, 0);
       tstring->~TString();  // Call destructor
-      luaM_freemem(&L, tstring, TString::calculateLongStringSize(tstring->getLnglen(), tstring->getShrlen()));
+      moonM_freemem(&L, tstring, TString::calculateLongStringSize(tstring->getLnglen(), tstring->getShrlen()));
       break;
     }
-    default: lua_assert(0);
+    default: moon_assert(0);
   }
-  lua_assert(G(L)->getTotalBytes() == newmem);
+  moon_assert(G(L)->getTotalBytes() == newmem);
 }
 
 
@@ -489,7 +489,7 @@ void freeobj (lua_State& L, GCObject *o) {
 ** Wrapper for callallpendingfinalizers - delegates to GCFinalizer module.
 ** See gc_finalizer.cpp for implementation.
 */
-static void callallpendingfinalizers (lua_State& L) {
+static void callallpendingfinalizers (moon_State& L) {
   GCFinalizer::callallpendingfinalizers(&L);
 }
 
@@ -568,17 +568,17 @@ static GCObject **correctgraylist (GCObject **p) {
     if (iswhite(curr))
       goto remove;  // remove all white objects
     else if (getage(curr) == GCAge::Touched1) {  // touched in this cycle?
-      lua_assert(isgray(curr));
+      moon_assert(isgray(curr));
       nw2black(curr);  // make it black, for next barrier
       setage(curr, GCAge::Touched2);
       goto remain;  // keep it in the list and go to next element
     }
-    else if (curr->getType() == ctb(LuaT::THREAD)) {
-      lua_assert(isgray(curr));
+    else if (curr->getType() == ctb(MoonT::THREAD)) {
+      moon_assert(isgray(curr));
       goto remain;  // keep non-white threads on the list
     }
     else {  // everything else is removed
-      lua_assert(isold(curr));  // young objects should be white here
+      moon_assert(isold(curr));  // young objects should be white here
       if (getage(curr) == GCAge::Touched2)  // advance from TOUCHED2...
         setage(curr, GCAge::Old);  // ... to OLD
       nw2black(curr);  // make object black (to be removed)
@@ -603,7 +603,7 @@ static GCObject **correctgraylist (GCObject **p) {
 /*
 ** Wrapper for GCCollector::minor2inc() - now in gc_collector module
 */
-static void minor2inc (lua_State *L, GlobalState *g, GCKind kind) {
+static void minor2inc (moon_State *L, GlobalState *g, GCKind kind) {
   GCCollector::minor2inc(L, g, kind);
 }
 
@@ -613,7 +613,7 @@ static void minor2inc (lua_State *L, GlobalState *g, GCKind kind) {
 /*
 ** Wrapper for GCCollector::youngcollection() - now in gc_collector module
 */
-static void youngcollection (lua_State& L, GlobalState& g) {
+static void youngcollection (moon_State& L, GlobalState& g) {
   GCCollector::youngcollection(&L, &g);
 }
 
@@ -636,7 +636,7 @@ static void setminordebt(GlobalState* g) {
 /*
 ** Wrapper for GCCollector::entergen() - now in gc_collector module
 */
-static void entergen (lua_State& L, GlobalState& g) {
+static void entergen (moon_State& L, GlobalState& g) {
   GCCollector::entergen(&L, &g);
 }
 
@@ -644,7 +644,7 @@ static void entergen (lua_State& L, GlobalState& g) {
 /*
 ** Change collector mode to 'newmode'.
 */
-void luaC_changemode (lua_State& L, GCKind newmode) {
+void moonC_changemode (moon_State& L, GCKind newmode) {
   GlobalState *g = G(L);
   if (g->getGCKind() == GCKind::GenerationalMajor)  // doing major collections?
     g->setGCKind(GCKind::Incremental);  // already incremental but in name
@@ -652,7 +652,7 @@ void luaC_changemode (lua_State& L, GCKind newmode) {
     if (newmode == GCKind::Incremental)  // entering incremental mode?
       minor2inc(&L, g, GCKind::Incremental);  // entering incremental mode
     else {
-      lua_assert(newmode == GCKind::GenerationalMinor);
+      moon_assert(newmode == GCKind::GenerationalMinor);
       entergen(L, *g);
     }
   }
@@ -662,7 +662,7 @@ void luaC_changemode (lua_State& L, GCKind newmode) {
 /*
 ** Wrapper for GCCollector::fullgen() - now in gc_collector module
 */
-static void fullgen (lua_State& L, GlobalState& g) {
+static void fullgen (moon_State& L, GlobalState& g) {
   GCCollector::fullgen(&L, &g);
 }
 
@@ -686,7 +686,7 @@ static void fullgen (lua_State& L, GlobalState& g) {
 ** Wrapper for deletelist - delegates to GCSweeping module.
 ** See gc_sweeping.cpp for implementation.
 */
-static void deletelist (lua_State& L, GCObject *p, GCObject *limit) {
+static void deletelist (moon_State& L, GCObject *p, GCObject *limit) {
   GCSweeping::deletelist(&L, p, limit);
 }
 
@@ -695,17 +695,17 @@ static void deletelist (lua_State& L, GCObject *p, GCObject *limit) {
 ** Call all finalizers of the objects in the given Lua state, and
 ** then free all objects, except for the main thread.
 */
-void luaC_freeallobjects (lua_State& L) {
+void moonC_freeallobjects (moon_State& L) {
   GlobalState *g = G(L);
   g->setGCStp(GCSTPCLS);  // no extra finalizers after here
-  luaC_changemode(L, GCKind::Incremental);
+  moonC_changemode(L, GCKind::Incremental);
   separatetobefnz(*g, 1);  // separate all objects with finalizers
-  lua_assert(g->getFinObj() == nullptr);
+  moon_assert(g->getFinObj() == nullptr);
   callallpendingfinalizers(L);
   deletelist(L, g->getAllGC(), obj2gco(mainthread(g)));
-  lua_assert(g->getFinObj() == nullptr);  // no new finalizers
+  moon_assert(g->getFinObj() == nullptr);  // no new finalizers
   deletelist(L, g->getFixedGC(), nullptr);  // collect fixed objects
-  lua_assert(g->getStringTable()->getNumElements() == 0);
+  moon_assert(g->getStringTable()->getNumElements() == 0);
 }
 
 
@@ -718,7 +718,7 @@ void luaC_freeallobjects (lua_State& L) {
 /*
 ** Wrapper for GCCollector::singlestep() - now in gc_collector module
 */
-static l_mem singlestep (lua_State& L, int fast) {
+static l_mem singlestep (moon_State& L, int fast) {
   return GCCollector::singlestep(&L, fast);
 }
 
@@ -733,9 +733,9 @@ static l_mem singlestep (lua_State& L, int fast) {
 ** (The option 'fast' is only for testing; in normal code, 'fast'
 ** here is always true.)
 */
-void luaC_runtilstate (lua_State& L, GCState state, int fast) {
+void moonC_runtilstate (moon_State& L, GCState state, int fast) {
   GlobalState *g = G(L);
-  lua_assert(g->getGCKind() == GCKind::Incremental);
+  moon_assert(g->getGCKind() == GCKind::Incremental);
   while (state != g->getGCState())
     singlestep(L, fast);
 }
@@ -745,13 +745,13 @@ void luaC_runtilstate (lua_State& L, GCState state, int fast) {
 /*
 ** Wrapper for GCCollector::incstep() - now in gc_collector module
 */
-static void incstep (lua_State& L, GlobalState& g) {
+static void incstep (moon_State& L, GlobalState& g) {
   GCCollector::incstep(&L, &g);
 }
 
 
-#if !defined(luai_tracegc)
-#define luai_tracegc(L,f)		((void)0)
+#if !defined(mooni_tracegc)
+#define mooni_tracegc(L,f)		((void)0)
 #endif
 
 /*
@@ -759,15 +759,15 @@ static void incstep (lua_State& L, GlobalState& g) {
 ** stopped by the user, set a reasonable debt to avoid it being called
 ** at every single check.)
 */
-void luaC_step (lua_State& L) {
+void moonC_step (moon_State& L) {
   GlobalState *g = G(L);
-  lua_assert(!g->getGCEmergency());
+  moon_assert(!g->getGCEmergency());
   if (!g->isGCRunning()) {  // not running?
     if (g->getGCStp() & GCSTPUSR)  // stopped by the user?
-      luaE_setdebt(g, 20000);
+      moonE_setdebt(g, 20000);
   }
   else {
-    luai_tracegc(&L, 1);  // for internal debugging
+    mooni_tracegc(&L, 1);  // for internal debugging
     switch (g->getGCKind()) {
       case GCKind::Incremental: case GCKind::GenerationalMajor:
         incstep(L, *g);
@@ -777,7 +777,7 @@ void luaC_step (lua_State& L) {
         setminordebt(g);
         break;
     }
-    luai_tracegc(&L, 0);  // for internal debugging
+    mooni_tracegc(&L, 0);  // for internal debugging
   }
 }
 
@@ -785,7 +785,7 @@ void luaC_step (lua_State& L) {
 /*
 ** Wrapper for GCCollector::fullinc() - now in gc_collector module
 */
-static void fullinc (lua_State& L, GlobalState& g) {
+static void fullinc (moon_State& L, GlobalState& g) {
   GCCollector::fullinc(&L, &g);
 }
 
@@ -795,9 +795,9 @@ static void fullinc (lua_State& L, GlobalState& g) {
 ** some operations which could change the interpreter state in some
 ** unexpected ways (running finalizers and shrinking some structures).
 */
-void luaC_fullgc (lua_State& L, int isemergency) {
+void moonC_fullgc (moon_State& L, int isemergency) {
   GlobalState *g = G(L);
-  lua_assert(!g->getGCEmergency());
+  moon_assert(!g->getGCEmergency());
   g->setGCEmergency(cast_byte(isemergency));  // set flag
   switch (g->getGCKind()) {
     case GCKind::GenerationalMinor: fullgen(L, *g); break;
@@ -838,7 +838,7 @@ void GlobalState::setPause() {
   l_mem threshold = applygcparam(this, PAUSE, getGCMarked());
   l_mem debt = threshold - getTotalBytes();
   if (debt < 0) debt = 0;
-  luaE_setdebt(this, debt);
+  moonE_setdebt(this, debt);
 }
 
 
@@ -847,7 +847,7 @@ void GlobalState::setPause() {
 ** Collection triggers when memory grows genminormul% relative to base.
 */
 void GlobalState::setMinorDebt() {
-  luaE_setdebt(this, applygcparam(this, MINORMUL, getGCMajorMinor()));
+  moonE_setdebt(this, applygcparam(this, MINORMUL, getGCMajorMinor()));
 }
 
 
@@ -883,9 +883,9 @@ void GlobalState::correctGrayLists() {
 /*
 ** GCObject method implementations
 */
-void GCObject::fix(lua_State* L) const {  // const - only modifies mutable GC fields
+void GCObject::fix(moon_State* L) const {  // const - only modifies mutable GC fields
   GlobalState *g = G(L);
-  lua_assert(g->getAllGC() == this);  // object must be 1st in 'allgc' list!
+  moon_assert(g->getAllGC() == this);  // object must be 1st in 'allgc' list!
   set2gray(this);  // they will be gray forever
   setage(this, GCAge::Old);  // and old forever
   g->setAllGC(getNext());  // remove object from 'allgc' list
@@ -893,7 +893,7 @@ void GCObject::fix(lua_State* L) const {  // const - only modifies mutable GC fi
   g->setFixedGC(this);
 }
 
-void GCObject::checkFinalizer(lua_State* L, Table* mt) {
+void GCObject::checkFinalizer(moon_State* L, Table* mt) {
   GlobalState *g = G(L);
   if (tofinalize(this) ||  // obj. is already marked...
       gfasttm(g, mt, TMS::TM_GC) == nullptr ||  // or has no finalizer...

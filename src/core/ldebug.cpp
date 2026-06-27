@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -31,19 +31,19 @@
 
 
 // Both CClosure and LClosure have tt at same offset (from GCBase)
-inline bool LuaClosure(const Closure* f) noexcept {
-    return f != nullptr && f->c.getType() == ctb(LuaT::LCL);
+inline bool MoonClosure(const Closure* f) noexcept {
+    return f != nullptr && f->c.getType() == ctb(MoonT::LCL);
 }
 
 static const char strlocal[] = "local";
 static const char strupval[] = "upvalue";
 
-static const char *funcnamefromcall (lua_State *L, CallInfo *callInfo,
+static const char *funcnamefromcall (moon_State *L, CallInfo *callInfo,
                                                    const char **name);
 
 
 static int currentpc (CallInfo *callInfo) {
-  lua_assert(callInfo->isLua());
+  moon_assert(callInfo->isLua());
   return callInfo->getFunc()->getProto()->getPCRelative(callInfo->getSavedPC());
 }
 
@@ -75,7 +75,7 @@ static int getbaseline (const Proto *f, int pc, int *basepc) {
                                [](int target_pc, const AbsLineInfo& info) {
                                  return target_pc < info.getPC();
                                });
-    lua_assert(it != absLineInfoSpan.begin());  // we know there's at least one element with PC <= pc
+    moon_assert(it != absLineInfoSpan.begin());  // we know there's at least one element with PC <= pc
     --it;  // go back to last element with PC <= pc
     *basepc = it->getPC();
     return it->getLine();
@@ -89,7 +89,7 @@ static int getbaseline (const Proto *f, int pc, int *basepc) {
 ** the desired instruction.
 */
 // Use span accessors
-int luaG_getfuncline (const Proto *f, int pc) {
+int moonG_getfuncline (const Proto *f, int pc) {
   auto lineInfoSpan = f->getDebugInfo().getLineInfoSpan();
   if (lineInfoSpan.empty())  // no debug information?
     return -1;
@@ -98,7 +98,7 @@ int luaG_getfuncline (const Proto *f, int pc) {
     int baseline = getbaseline(f, pc, &basepc);
     // Walk from basepc+1 to pc (inclusive), accumulating line deltas
     for (size_t i = static_cast<size_t>(basepc + 1); i <= static_cast<size_t>(pc); i++) {
-      lua_assert(lineInfoSpan[i] != ABSLINEINFO);
+      moon_assert(lineInfoSpan[i] != ABSLINEINFO);
       baseline += lineInfoSpan[i];  // correct line
     }
     return baseline;
@@ -107,7 +107,7 @@ int luaG_getfuncline (const Proto *f, int pc) {
 
 
 static int getcurrentline (CallInfo *callInfo) {
-  return luaG_getfuncline(callInfo->getFunc()->getProto(), currentpc(callInfo));
+  return moonG_getfuncline(callInfo->getFunc()->getProto(), currentpc(callInfo));
 }
 
 
@@ -137,9 +137,9 @@ static void settraps (CallInfo *callInfo) {
 ** values (causes at most one wrong hook call). 'hookmask' is an atomic
 ** value. We assume that pointers are atomic too (e.g., gcc ensures that
 ** for all platforms where it runs). Moreover, 'hook' is always checked
-** before being called (see 'luaD_hook').
+** before being called (see 'moonD_hook').
 */
-LUA_API void lua_sethook (lua_State *L, lua_Hook func, int mask, int count) {
+MOON_API void moon_sethook (moon_State *L, moon_Hook func, int mask, int count) {
   if (func == nullptr || mask == 0) {  // turn off hooks?
     mask = 0;
     func = nullptr;
@@ -149,29 +149,29 @@ LUA_API void lua_sethook (lua_State *L, lua_Hook func, int mask, int count) {
   L->resetHookCount();
   L->setHookMask(cast_byte(mask));
   if (mask)
-    settraps(L->getCI());  // to trace inside 'luaV_execute'
+    settraps(L->getCI());  // to trace inside 'moonV_execute'
 }
 
 
-LUA_API lua_Hook lua_gethook (lua_State *L) {
+MOON_API moon_Hook moon_gethook (moon_State *L) {
   return L->getHook();
 }
 
 
-LUA_API int lua_gethookmask (lua_State *L) {
+MOON_API int moon_gethookmask (moon_State *L) {
   return L->getHookMask();
 }
 
 
-LUA_API int lua_gethookcount (lua_State *L) {
+MOON_API int moon_gethookcount (moon_State *L) {
   return L->getBaseHookCount();
 }
 
 
-LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar) {
+MOON_API int moon_getstack (moon_State *L, int level, moon_Debug *ar) {
   int status;
   if (level < 0) return 0;  // invalid (negative) level
-  lua_lock(L);
+  moon_lock(L);
   CallInfo *callInfo;
   for (callInfo = L->getCI(); level > 0 && callInfo != L->getBaseCI(); callInfo = callInfo->getPrevious())
     level--;
@@ -180,7 +180,7 @@ LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar) {
     ar->i_ci = callInfo;
   }
   else status = 0;  // no such level
-  lua_unlock(L);
+  moon_unlock(L);
   return status;
 }
 
@@ -204,8 +204,8 @@ static const char *findvararg (CallInfo *callInfo, int n, StkId *pos) {
 }
 
 
-// lua_State method
-const char *lua_State::findLocal(CallInfo *ci_arg, int n, StkId *pos) {
+// moon_State method
+const char *moon_State::findLocal(CallInfo *ci_arg, int n, StkId *pos) {
   StkId base = ci_arg->funcRef().p + 1;
   const char *name = nullptr;
   if (ci_arg->isLua()) {
@@ -227,14 +227,14 @@ const char *lua_State::findLocal(CallInfo *ci_arg, int n, StkId *pos) {
   return name;
 }
 
-const char *luaG_findlocal (lua_State *L, CallInfo *callInfo, int n, StkId *pos) {
+const char *moonG_findlocal (moon_State *L, CallInfo *callInfo, int n, StkId *pos) {
   return L->findLocal(callInfo, n, pos);
 }
 
 
-LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
+MOON_API const char *moon_getlocal (moon_State *L, const moon_Debug *ar, int n) {
   const char *name;
-  lua_lock(L);
+  moon_lock(L);
   if (ar == nullptr) {  // information about non-active function?
     if (!isLfunction(s2v(L->getTop().p - 1)))  // not a Lua function?
       name = nullptr;
@@ -242,33 +242,33 @@ LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n) {
       name = clLvalue(s2v(L->getTop().p - 1))->getProto()->getLocalName(n, 0);  }
   else {  // active function; get information through 'ar'
     StkId pos = nullptr;  // to avoid warnings
-    name = luaG_findlocal(L, ar->i_ci, n, &pos);
+    name = moonG_findlocal(L, ar->i_ci, n, &pos);
     if (name) {
       *s2v(L->getTop().p) = *s2v(pos);  /* use operator= */
       api_incr_top(L);
     }
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return name;
 }
 
 
-LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n) {
+MOON_API const char *moon_setlocal (moon_State *L, const moon_Debug *ar, int n) {
   StkId pos = nullptr;  // to avoid warnings
-  lua_lock(L);
-  const char *name = luaG_findlocal(L, ar->i_ci, n, &pos);
+  moon_lock(L);
+  const char *name = moonG_findlocal(L, ar->i_ci, n, &pos);
   if (name) {
     api_checkpop(L, 1);
     *s2v(pos) = *s2v(L->getTop().p - 1);  /* use operator= */
     L->getStackSubsystem().pop();  // pop value
   }
-  lua_unlock(L);
+  moon_unlock(L);
   return name;
 }
 
 
-static void funcinfo (lua_Debug *ar, Closure *cl) {
-  if (!LuaClosure(cl)) {
+static void funcinfo (moon_Debug *ar, Closure *cl) {
+  if (!MoonClosure(cl)) {
     ar->source = "=[C]";
     ar->srclen = LL("=[C]");
     ar->linedefined = -1;
@@ -288,7 +288,7 @@ static void funcinfo (lua_Debug *ar, Closure *cl) {
     ar->lastlinedefined = p->getLastLineDefined();
     ar->what = (ar->linedefined == 0) ? "main" : "Lua";
   }
-  luaO_chunkid(ar->short_src, ar->source, ar->srclen);
+  moonO_chunkid(ar->short_src, ar->source, ar->srclen);
 }
 
 
@@ -298,12 +298,12 @@ static int nextline (const Proto *p, int currentline, size_t pc) {
   if (lineInfoSpan[pc] != ABSLINEINFO)
     return currentline + lineInfoSpan[pc];
   else
-    return luaG_getfuncline(p, static_cast<int>(pc));
+    return moonG_getfuncline(p, static_cast<int>(pc));
 }
 
 
-static void collectvalidlines (lua_State *L, Closure *f) {
-  if (!LuaClosure(f)) {
+static void collectvalidlines (moon_State *L, Closure *f) {
+  if (!MoonClosure(f)) {
     setnilvalue(s2v(L->getTop().p));
     api_incr_top(L);
   }
@@ -322,7 +322,7 @@ static void collectvalidlines (lua_State *L, Closure *f) {
         i = 0;  // consider all instructions
       else {  // vararg function
         auto codeSpan = p->getCodeSpan();
-        lua_assert(InstructionView(codeSpan[0]).opcode() == OP_VARARGPREP);
+        moon_assert(InstructionView(codeSpan[0]).opcode() == OP_VARARGPREP);
         currentline = nextline(p, currentline, 0);
         i = 1;  // skip first instruction (OP_VARARGPREP)
       }
@@ -335,7 +335,7 @@ static void collectvalidlines (lua_State *L, Closure *f) {
 }
 
 
-static const char *getfuncname (lua_State *L, CallInfo *callInfo, const char **name) {
+static const char *getfuncname (moon_State *L, CallInfo *callInfo, const char **name) {
   // calling function is a known function?
   if (callInfo != nullptr && !(callInfo->getCallStatus() & CIST_TAIL))
     return funcnamefromcall(L, callInfo->getPrevious(), name);
@@ -343,7 +343,7 @@ static const char *getfuncname (lua_State *L, CallInfo *callInfo, const char **n
 }
 
 
-static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
+static int auxgetinfo (moon_State *L, const char *what, moon_Debug *ar,
                        Closure *f, CallInfo *callInfo) {
   int status = 1;
   for (; *what; what++) {
@@ -358,7 +358,7 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
       }
       case 'u': {
         ar->nups = (f == nullptr) ? 0 : f->c.getNumUpvalues();
-        if (!LuaClosure(f)) {
+        if (!MoonClosure(f)) {
           ar->isvararg = 1;
           ar->nparams = 0;
         }
@@ -399,7 +399,7 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
         break;
       }
       case 'L':
-      case 'f':  // handled by lua_getinfo
+      case 'f':  // handled by moon_getinfo
         break;
       default: status = 0;  // invalid option
     }
@@ -408,8 +408,8 @@ static int auxgetinfo (lua_State *L, const char *what, lua_Debug *ar,
 }
 
 
-LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar) {
-  lua_lock(L);
+MOON_API int moon_getinfo (moon_State *L, const char *what, moon_Debug *ar) {
+  moon_lock(L);
   CallInfo *callInfo;
   TValue *func;
   if (*what == '>') {
@@ -422,7 +422,7 @@ LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar) {
   else {
     callInfo = ar->i_ci;
     func = s2v(callInfo->funcRef().p);
-    lua_assert(ttisfunction(func));
+    moon_assert(ttisfunction(func));
   }
   Closure *cl = ttisclosure(func) ? clvalue(func) : nullptr;
   int status = auxgetinfo(L, what, ar, cl, callInfo);
@@ -432,7 +432,7 @@ LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar) {
   }
   if (strchr(what, 'L'))
     collectvalidlines(L, cl);
-  lua_unlock(L);
+  moon_unlock(L);
   return status;
 }
 
@@ -573,7 +573,7 @@ static const char *isEnv (const Proto *p, int pc, Instruction i, int isup) {
     if (what != strlocal && what != strupval)
       name = nullptr;  // cannot be the variable _ENV
   }
-  return (name && strcmp(name, LUA_ENV) == 0) ? "global" : "field";
+  return (name && strcmp(name, MOON_ENV) == 0) ? "global" : "field";
 }
 
 
@@ -626,7 +626,7 @@ static const char *getobjname (const Proto *p, int lastpc, int reg,
 ** Returns what the name is (e.g., "for iterator", "method",
 ** "metamethod") and sets '*name' to point to the name.
 */
-static const char *funcnamefromcode (lua_State *L, const Proto *p,
+static const char *funcnamefromcode (moon_State *L, const Proto *p,
                                      int pc, const char **name) {
   TMS metamethodEvent = (TMS)0;  // (initial value avoids warnings)
   Instruction i = p->getCode()[pc];  // calling instruction
@@ -670,7 +670,7 @@ static const char *funcnamefromcode (lua_State *L, const Proto *p,
 /*
 ** Try to find a name for a function based on how it was called.
 */
-static const char *funcnamefromcall (lua_State *L, CallInfo *callInfo,
+static const char *funcnamefromcall (moon_State *L, CallInfo *callInfo,
                                                    const char **name) {
   if (callInfo->getCallStatus() & CIST_HOOKED) {  // was it called inside a hook?
     *name = "?";
@@ -724,19 +724,19 @@ static const char *getupvalname (CallInfo *callInfo, const TValue *o,
 }
 
 
-static const char *formatvarinfo (lua_State *L, const char *kind,
+static const char *formatvarinfo (moon_State *L, const char *kind,
                                                 const char *name) {
   if (kind == nullptr)
     return "";  // no information
   else
-    return luaO_pushfstring(L, " (%s '%s')", kind, name);
+    return moonO_pushfstring(L, " (%s '%s')", kind, name);
 }
 
 /*
 ** Build a string with a "description" for the value 'o', such as
 ** "variable 'x'" or "upvalue 'y'".
 */
-static const char *varinfo (lua_State *L, const TValue *o) {
+static const char *varinfo (moon_State *L, const TValue *o) {
   CallInfo *callInfo = L->getCI();
   const char *name = nullptr;  // to avoid warnings
   const char *kind = nullptr;
@@ -755,10 +755,10 @@ static const char *varinfo (lua_State *L, const TValue *o) {
 /*
 ** Raise a type error
 */
-static l_noret typeerror (lua_State *L, const TValue *o, const char *op,
+static l_noret typeerror (moon_State *L, const TValue *o, const char *op,
                           const char *extra) {
-  const char *t = luaT_objtypename(L, o);
-  luaG_runerror(L, "attempt to %s a %s value%s", op, t, extra);
+  const char *t = moonT_objtypename(L, o);
+  moonG_runerror(L, "attempt to %s a %s value%s", op, t, extra);
 }
 
 
@@ -766,12 +766,12 @@ static l_noret typeerror (lua_State *L, const TValue *o, const char *op,
 ** Raise a type error with "standard" information about the faulty
 ** object 'o' (using 'varinfo').
 */
-// lua_State method
-l_noret lua_State::typeError(const TValue *o, const char *op) {
+// moon_State method
+l_noret moon_State::typeError(const TValue *o, const char *op) {
   typeerror(this, o, op, varinfo(this, o));
 }
 
-l_noret luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
+l_noret moonG_typeerror (moon_State *L, const TValue *o, const char *op) {
   L->typeError(o, op);
 }
 
@@ -781,49 +781,49 @@ l_noret luaG_typeerror (lua_State *L, const TValue *o, const char *op) {
 ** for the object based on how it was called ('funcnamefromcall'); if it
 ** cannot get a name there, try 'varinfo'.
 */
-// lua_State method
-l_noret lua_State::callError(const TValue *o) {
+// moon_State method
+l_noret moon_State::callError(const TValue *o) {
   const char *name = nullptr;  // to avoid warnings
   const char *kind = funcnamefromcall(this, callInfo, &name);
   const char *extra = kind ? formatvarinfo(this, kind, name) : varinfo(this, o);
   typeerror(this, o, "call", extra);
 }
 
-l_noret luaG_callerror (lua_State *L, const TValue *o) {
+l_noret moonG_callerror (moon_State *L, const TValue *o) {
   L->callError(o);
 }
 
 
-// lua_State method
-l_noret lua_State::forError(const TValue *o, const char *what) {
+// moon_State method
+l_noret moon_State::forError(const TValue *o, const char *what) {
   runError("bad 'for' %s (number expected, got %s)",
-           what, luaT_objtypename(this, o));
+           what, moonT_objtypename(this, o));
 }
 
-l_noret luaG_forerror (lua_State *L, const TValue *o, const char *what) {
+l_noret moonG_forerror (moon_State *L, const TValue *o, const char *what) {
   L->forError(o, what);
 }
 
 
-// lua_State method
-l_noret lua_State::concatError(const TValue *p1, const TValue *p2) {
+// moon_State method
+l_noret moon_State::concatError(const TValue *p1, const TValue *p2) {
   if (ttisstring(p1) || cvt2str(p1)) p1 = p2;
   typeError(p1, "concatenate");
 }
 
-l_noret luaG_concaterror (lua_State *L, const TValue *p1, const TValue *p2) {
+l_noret moonG_concaterror (moon_State *L, const TValue *p1, const TValue *p2) {
   L->concatError(p1, p2);
 }
 
 
-// lua_State method
-l_noret lua_State::opinterError(const TValue *p1, const TValue *p2, const char *msg) {
+// moon_State method
+l_noret moon_State::opinterError(const TValue *p1, const TValue *p2, const char *msg) {
   if (!ttisnumber(p1))  // first operand is wrong?
     p2 = p1;  // now second is wrong
   typeError(p2, msg);
 }
 
-l_noret luaG_opinterror (lua_State *L, const TValue *p1,
+l_noret moonG_opinterror (moon_State *L, const TValue *p1,
                          const TValue *p2, const char *msg) {
   L->opinterError(p1, p2, msg);
 }
@@ -832,59 +832,59 @@ l_noret luaG_opinterror (lua_State *L, const TValue *p1,
 /*
 ** Error when both values are convertible to numbers, but not to integers
 */
-// lua_State method
-l_noret lua_State::toIntError(const TValue *p1, const TValue *p2) {
-  lua_Integer temp;
+// moon_State method
+l_noret moon_State::toIntError(const TValue *p1, const TValue *p2) {
+  moon_Integer temp;
   if (!tointegerns(p1, &temp))
     p2 = p1;
   runError("number%s has no integer representation", varinfo(this, p2));
 }
 
-l_noret luaG_tointerror (lua_State *L, const TValue *p1, const TValue *p2) {
+l_noret moonG_tointerror (moon_State *L, const TValue *p1, const TValue *p2) {
   L->toIntError(p1, p2);
 }
 
 
-// lua_State method
-l_noret lua_State::orderError(const TValue *p1, const TValue *p2) {
-  const char *t1 = luaT_objtypename(this, p1);
-  const char *t2 = luaT_objtypename(this, p2);
+// moon_State method
+l_noret moon_State::orderError(const TValue *p1, const TValue *p2) {
+  const char *t1 = moonT_objtypename(this, p1);
+  const char *t2 = moonT_objtypename(this, p2);
   if (strcmp(t1, t2) == 0)
     runError("attempt to compare two %s values", t1);
   else
     runError("attempt to compare %s with %s", t1, t2);
 }
 
-l_noret luaG_ordererror (lua_State *L, const TValue *p1, const TValue *p2) {
+l_noret moonG_ordererror (moon_State *L, const TValue *p1, const TValue *p2) {
   L->orderError(p1, p2);
 }
 
 
 // add src:line information to 'msg'
-// lua_State method
-const char *lua_State::addInfo(const char *msg, TString *src, int line) {
+// moon_State method
+const char *moon_State::addInfo(const char *msg, TString *src, int line) {
   if (src == nullptr)  // no debug information?
-    return luaO_pushfstring(this, "?:?: %s", msg);
+    return moonO_pushfstring(this, "?:?: %s", msg);
   else {
-    char buff[LUA_IDSIZE];
+    char buff[MOON_IDSIZE];
     size_t idlen;
     const char *id = getStringWithLength(src, idlen);
-    luaO_chunkid(buff, id, idlen);
-    return luaO_pushfstring(this, "%s:%d: %s", buff, line, msg);
+    moonO_chunkid(buff, id, idlen);
+    return moonO_pushfstring(this, "%s:%d: %s", buff, line, msg);
   }
 }
 
-const char *luaG_addinfo (lua_State *L, const char *msg, TString *src,
+const char *moonG_addinfo (moon_State *L, const char *msg, TString *src,
                                         int line) {
   return L->addInfo(msg, src, line);
 }
 
 
-// lua_State method
-l_noret lua_State::errorMsg() {
+// moon_State method
+l_noret moon_State::errorMsg() {
   if (getErrFunc() != 0) {  // is there an error handling function?
     StkId errfunc_ptr = this->restoreStack(getErrFunc());
-    lua_assert(ttisfunction(s2v(errfunc_ptr)));
+    moon_assert(ttisfunction(s2v(errfunc_ptr)));
     *s2v(getTop().p) = *s2v(getTop().p - 1);  /* move argument - use operator= */
     *s2v(getTop().p - 1) = *s2v(errfunc_ptr);  /* push function - use operator= */
     getStackSubsystem().push();  // assume EXTRA_STACK
@@ -894,19 +894,19 @@ l_noret lua_State::errorMsg() {
     // change it to a proper message
     setsvalue2s(this, getTop().p - 1, TString::create(this, "<no error object>", 17));
   }
-  doThrow(LUA_ERRRUN);
+  doThrow(MOON_ERRRUN);
 }
 
-l_noret luaG_errormsg (lua_State *L) {
+l_noret moonG_errormsg (moon_State *L) {
   L->errorMsg();
 }
 
 
-// lua_State method
-l_noret lua_State::runError(const char *fmt, ...) {
+// moon_State method
+l_noret moon_State::runError(const char *fmt, ...) {
   const char *msg;
   va_list argp;
-  luaC_checkGC(this);  // error message uses memory
+  moonC_checkGC(this);  // error message uses memory
   pushvfstring(this, argp, fmt, msg);
   if (callInfo->isLua()) {  // Lua function?
     // add source:line information
@@ -917,10 +917,10 @@ l_noret lua_State::runError(const char *fmt, ...) {
   errorMsg();
 }
 
-l_noret luaG_runerror (lua_State *L, const char *fmt, ...) {
+l_noret moonG_runerror (moon_State *L, const char *fmt, ...) {
   const char *msg;
   va_list argp;
-  luaC_checkGC(L);  // error message uses memory
+  moonC_checkGC(L);  // error message uses memory
   pushvfstring(L, argp, fmt, msg);
   if (L->getCI()->isLua()) {  // Lua function?
     // add source:line information
@@ -936,9 +936,9 @@ l_noret luaG_runerror (lua_State *L, const char *fmt, ...) {
 ** Check whether new instruction 'newpc' is in a different line from
 ** previous instruction 'oldpc'. More often than not, 'newpc' is only
 ** one or a few instructions after 'oldpc' (it must be after, see
-** caller), so try to avoid calling 'luaG_getfuncline'. If they are
+** caller), so try to avoid calling 'moonG_getfuncline'. If they are
 ** too far apart, there is a good chance of a ABSLINEINFO in the way,
-** so it goes directly to 'luaG_getfuncline'.
+** so it goes directly to 'moonG_getfuncline'.
 */
 // Use span accessors
 static int changedline (const Proto *p, int oldpc, int newpc) {
@@ -960,20 +960,20 @@ static int changedline (const Proto *p, int oldpc, int newpc) {
   }
   /* either instructions are too far apart or there is an absolute line
      info in the way; compute line difference explicitly */
-  return (luaG_getfuncline(p, oldpc) != luaG_getfuncline(p, newpc));
+  return (moonG_getfuncline(p, oldpc) != moonG_getfuncline(p, newpc));
 }
 
 
 /*
 ** Traces Lua calls. If code is running the first instruction of a function,
 ** and function is not vararg, and it is not coming from an yield,
-** calls 'luaD_hookcall'. (Vararg functions will call 'luaD_hookcall'
+** calls 'moonD_hookcall'. (Vararg functions will call 'moonD_hookcall'
 ** after adjusting its variable arguments; otherwise, they could call
 ** a line/count hook before the call hook. Functions coming from
-** an yield already called 'luaD_hookcall' before yielding.)
+** an yield already called 'moonD_hookcall' before yielding.)
 */
-// lua_State method
-int lua_State::traceCall() {
+// moon_State method
+int moon_State::traceCall() {
   CallInfo *ci_local = callInfo;
   Proto *p = ci_local->getFunc()->getProto();
   ci_local->getTrap() = 1;  // ensure hooks will be checked
@@ -986,7 +986,7 @@ int lua_State::traceCall() {
   return 1;  // keep 'trap' on
 }
 
-int luaG_tracecall (lua_State *L) {
+int moonG_tracecall (moon_State *L) {
   return L->traceCall();
 }
 
@@ -1003,51 +1003,51 @@ int luaG_tracecall (lua_State *L) {
 ** This function is not "Protected" when called, so it should correct
 ** 'L->getTop().p' before calling anything that can run the GC.
 */
-// lua_State method
-int lua_State::traceExec(const Instruction *pc) {
+// moon_State method
+int moon_State::traceExec(const Instruction *pc) {
   CallInfo *ci_local = callInfo;
   lu_byte mask = cast_byte(getHookMask());
   const Proto *p = ci_local->getFunc()->getProto();
-  if (!(mask & (LUA_MASKLINE | LUA_MASKCOUNT))) {  // no hooks?
+  if (!(mask & (MOON_MASKLINE | MOON_MASKCOUNT))) {  // no hooks?
     ci_local->getTrap() = 0;  // don't need to stop again
     return 0;  // turn off 'trap'
   }
   pc++;  // reference is always next instruction
   ci_local->setSavedPC(pc);  // save 'pc'
-  int counthook = (mask & LUA_MASKCOUNT) && (--getHookCountRef() == 0);
+  int counthook = (mask & MOON_MASKCOUNT) && (--getHookCountRef() == 0);
   if (counthook)
     this->resetHookCount();  // reset count
-  else if (!(mask & LUA_MASKLINE))
+  else if (!(mask & MOON_MASKLINE))
     return 1;  // no line hook and count != 0; nothing to be done now
   if (ci_local->callStatusRef() & CIST_HOOKYIELD) {  // hook yielded last time?
     ci_local->callStatusRef() &= ~CIST_HOOKYIELD;  // erase mark
     return 1;  // do not call hook again (VM yielded, so it did not move)
   }
-  if (!luaP_isIT(*(ci_local->getSavedPC() - 1)))  // top not being used?
+  if (!moonP_isIT(*(ci_local->getSavedPC() - 1)))  // top not being used?
     getStackSubsystem().setTopPtr(ci_local->topRef().p);  // correct top
   if (counthook)
-    callHook(LUA_HOOKCOUNT, -1, 0, 0);  // call count hook
-  if (mask & LUA_MASKLINE) {
+    callHook(MOON_HOOKCOUNT, -1, 0, 0);  // call count hook
+  if (mask & MOON_MASKLINE) {
     // 'oldpc' may be invalid; use zero in this case
     int oldpc_val = (getOldPC() < p->getCodeSize()) ? getOldPC() : 0;
     int npci = p->getPCRelative(pc);
     if (npci <= oldpc_val ||  // call hook when jump back (loop),
         changedline(p, oldpc_val, npci)) {  // or when enter new line
-      int newline = luaG_getfuncline(p, npci);
-      callHook(LUA_HOOKLINE, newline, 0, 0);  // call line hook
+      int newline = moonG_getfuncline(p, npci);
+      callHook(MOON_HOOKLINE, newline, 0, 0);  // call line hook
     }
     setOldPC(npci);  // 'pc' of last call to line hook
   }
-  if (getStatus() == LUA_YIELD) {  // did hook yield?
+  if (getStatus() == MOON_YIELD) {  // did hook yield?
     if (counthook)
       setHookCount(1);  // undo decrement to zero
     ci_local->callStatusRef() |= CIST_HOOKYIELD;  // mark that it yielded
-    doThrow(LUA_YIELD);
+    doThrow(MOON_YIELD);
   }
   return 1;  // keep 'trap' on
 }
 
-int luaG_traceexec (lua_State *L, const Instruction *pc) {
+int moonG_traceexec (moon_State *L, const Instruction *pc) {
   return L->traceExec(pc);
 }
 

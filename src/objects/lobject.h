@@ -96,74 +96,74 @@ constexpr const TValue* s2v(const StackValue* o) noexcept { return &(o)->val; }
 
 /*
 ** TValue assignment now uses the operator= defined in lgc.h.
-** Stack assignments use LuaStack::setSlot() and copySlot().
+** Stack assignments use MoonStack::setSlot() and copySlot().
 */
 
 /*
 ** TValue member function implementations
 ** These must be defined here after all type constants are available
 */
-inline void TValue::setNil() noexcept { setType(LuaT::NIL); }
-inline void TValue::setFalse() noexcept { setType(LuaT::VFALSE); }
-inline void TValue::setTrue() noexcept { setType(LuaT::VTRUE); }
+inline void TValue::setNil() noexcept { setType(MoonT::NIL); }
+inline void TValue::setFalse() noexcept { setType(MoonT::VFALSE); }
+inline void TValue::setTrue() noexcept { setType(MoonT::VTRUE); }
 
-inline void TValue::setInt(lua_Integer i) noexcept {
+inline void TValue::setInt(moon_Integer i) noexcept {
   value_.i = i;
-  setType(LuaT::NUMINT);
+  setType(MoonT::NUMINT);
 }
 
-inline void TValue::setFloat(lua_Number n) noexcept {
+inline void TValue::setFloat(moon_Number n) noexcept {
   value_.n = n;
-  setType(LuaT::NUMFLT);
+  setType(MoonT::NUMFLT);
 }
 
 inline void TValue::setPointer(void* p) noexcept {
   value_.p = p;
-  setType(LuaT::LIGHTUSERDATA);
+  setType(MoonT::LIGHTUSERDATA);
 }
 
-inline void TValue::setFunction(lua_CFunction f) noexcept {
+inline void TValue::setFunction(moon_CFunction f) noexcept {
   value_.f = f;
-  setType(LuaT::LCF);
+  setType(MoonT::LCF);
 }
 
-inline void TValue::setString(lua_State* L, TString* s) noexcept {
+inline void TValue::setString(moon_State* L, TString* s) noexcept {
   value_.gc = reinterpret_cast<GCObject*>(s);
   tt_ = ctb(s->getType());
   (void)L; // checkliveness removed - needs lstate.h
 }
 
-inline void TValue::setUserdata(lua_State* L, Udata* u) noexcept {
+inline void TValue::setUserdata(moon_State* L, Udata* u) noexcept {
   value_.gc = reinterpret_cast<GCObject*>(u);
-  tt_ = ctb(LuaT::USERDATA);
+  tt_ = ctb(MoonT::USERDATA);
   (void)L;
 }
 
-inline void TValue::setTable(lua_State* L, Table* t) noexcept {
+inline void TValue::setTable(moon_State* L, Table* t) noexcept {
   value_.gc = reinterpret_cast<GCObject*>(t);
-  tt_ = ctb(LuaT::TABLE);
+  tt_ = ctb(MoonT::TABLE);
   (void)L;
 }
 
-inline void TValue::setLClosure(lua_State* L, LClosure* cl) noexcept {
+inline void TValue::setLClosure(moon_State* L, LClosure* cl) noexcept {
   value_.gc = reinterpret_cast<GCObject*>(cl);
-  tt_ = ctb(LuaT::LCL);
+  tt_ = ctb(MoonT::LCL);
   (void)L;
 }
 
-inline void TValue::setCClosure(lua_State* L, CClosure* cl) noexcept {
+inline void TValue::setCClosure(moon_State* L, CClosure* cl) noexcept {
   value_.gc = reinterpret_cast<GCObject*>(cl);
-  tt_ = ctb(LuaT::CCL);
+  tt_ = ctb(MoonT::CCL);
   (void)L;
 }
 
-inline void TValue::setThread(lua_State* L, lua_State* th) noexcept {
+inline void TValue::setThread(moon_State* L, moon_State* th) noexcept {
   value_.gc = reinterpret_cast<GCObject*>(th);
-  tt_ = ctb(LuaT::THREAD);
+  tt_ = ctb(MoonT::THREAD);
   (void)L;
 }
 
-inline void TValue::setGCObject(lua_State* L, GCObject* gc) noexcept {
+inline void TValue::setGCObject(moon_State* L, GCObject* gc) noexcept {
   value_.gc = gc;
   tt_ = ctb(gc->getType());
   (void)L;
@@ -174,19 +174,19 @@ inline void TValue::setGCObject(lua_State* L, GCObject* gc) noexcept {
 ** These are thin wrappers around TValue member functions
 */
 inline void setpvalue(TValue* obj, void* p) noexcept { obj->setPointer(p); }
-inline void setfvalue(TValue* obj, lua_CFunction f) noexcept { obj->setFunction(f); }
-inline void setsvalue(lua_State* L, TValue* obj, TString* s) noexcept { obj->setString(L, s); }
-inline void setuvalue(lua_State* L, TValue* obj, Udata* u) noexcept { obj->setUserdata(L, u); }
-inline void sethvalue(lua_State* L, TValue* obj, Table* t) noexcept { obj->setTable(L, t); }
-inline void setthvalue(lua_State* L, TValue* obj, lua_State* th) noexcept { obj->setThread(L, th); }
-inline void setclLvalue(lua_State* L, TValue* obj, LClosure* cl) noexcept { obj->setLClosure(L, cl); }
-inline void setclCvalue(lua_State* L, TValue* obj, CClosure* cl) noexcept { obj->setCClosure(L, cl); }
-inline void setgcovalue(lua_State* L, TValue* obj, GCObject* gc) noexcept { obj->setGCObject(L, gc); }
+inline void setfvalue(TValue* obj, moon_CFunction f) noexcept { obj->setFunction(f); }
+inline void setsvalue(moon_State* L, TValue* obj, TString* s) noexcept { obj->setString(L, s); }
+inline void setuvalue(moon_State* L, TValue* obj, Udata* u) noexcept { obj->setUserdata(L, u); }
+inline void sethvalue(moon_State* L, TValue* obj, Table* t) noexcept { obj->setTable(L, t); }
+inline void setthvalue(moon_State* L, TValue* obj, moon_State* th) noexcept { obj->setThread(L, th); }
+inline void setclLvalue(moon_State* L, TValue* obj, LClosure* cl) noexcept { obj->setLClosure(L, cl); }
+inline void setclCvalue(moon_State* L, TValue* obj, CClosure* cl) noexcept { obj->setCClosure(L, cl); }
+inline void setgcovalue(moon_State* L, TValue* obj, GCObject* gc) noexcept { obj->setGCObject(L, gc); }
 
 /*
 ** Additional TValue setter wrapper (TValue -> TValue)
 */
-inline void setsvalue2n(lua_State* L, TValue* obj, TString* s) noexcept {
+inline void setsvalue2n(moon_State* L, TValue* obj, TString* s) noexcept {
 	setsvalue(L, obj, s);
 }
 
@@ -194,19 +194,19 @@ inline void setsvalue2n(lua_State* L, TValue* obj, TString* s) noexcept {
 ** Convenience wrappers for setting TValues on the stack (StackValue -> TValue)
 ** These convert StackValue* to TValue* and call the base setters
 */
-inline void sethvalue2s(lua_State* L, StackValue* o, Table* h) noexcept {
+inline void sethvalue2s(moon_State* L, StackValue* o, Table* h) noexcept {
 	sethvalue(L, s2v(o), h);
 }
 
-inline void setthvalue2s(lua_State* L, StackValue* o, lua_State* t) noexcept {
+inline void setthvalue2s(moon_State* L, StackValue* o, moon_State* t) noexcept {
 	setthvalue(L, s2v(o), t);
 }
 
-inline void setsvalue2s(lua_State* L, StackValue* o, TString* s) noexcept {
+inline void setsvalue2s(moon_State* L, StackValue* o, TString* s) noexcept {
 	setsvalue(L, s2v(o), s);
 }
 
-inline void setclLvalue2s(lua_State* L, StackValue* o, LClosure* cl) noexcept {
+inline void setclLvalue2s(moon_State* L, StackValue* o, LClosure* cl) noexcept {
 	setclLvalue(L, s2v(o), cl);
 }
 
@@ -237,48 +237,48 @@ inline void setclLvalue2s(lua_State* L, StackValue* o, LClosure* cl) noexcept {
 ** 'module' operation for hashing (size is always a power of 2)
 */
 inline unsigned int lmod(unsigned int s, unsigned int size) noexcept {
-	lua_assert((size & (size - 1)) == 0);  // size must be power of 2
+	moon_assert((size & (size - 1)) == 0);  // size must be power of 2
 	return s & (size - 1);
 }
 
 
 
 
-// size of buffer for 'luaO_utf8esc' function
+// size of buffer for 'moonO_utf8esc' function
 inline constexpr int UTF8BUFFSZ = 8;
 
 
-// macro to call 'luaO_pushvfstring' correctly
+// macro to call 'moonO_pushvfstring' correctly
 #define pushvfstring(L, argp, fmt, msg)	\
   { va_start(argp, fmt); \
-  msg = luaO_pushvfstring(L, fmt, argp); \
+  msg = moonO_pushvfstring(L, fmt, argp); \
   va_end(argp); \
-  if (msg == nullptr) (L)->doThrow(LUA_ERRMEM);  /* only after 'va_end' */ }
+  if (msg == nullptr) (L)->doThrow(MOON_ERRMEM);  /* only after 'va_end' */ }
 
 
-[[nodiscard]] LUAI_FUNC int luaO_utf8esc (char *buff, l_uint32 x);
-[[nodiscard]] LUAI_FUNC lu_byte luaO_ceillog2 (unsigned int x);
-[[nodiscard]] LUAI_FUNC lu_byte luaO_codeparam (unsigned int p);
-[[nodiscard]] LUAI_FUNC l_mem luaO_applyparam (lu_byte p, l_mem x);
+[[nodiscard]] MOONI_FUNC int moonO_utf8esc (char *buff, l_uint32 x);
+[[nodiscard]] MOONI_FUNC lu_byte moonO_ceillog2 (unsigned int x);
+[[nodiscard]] MOONI_FUNC lu_byte moonO_codeparam (unsigned int p);
+[[nodiscard]] MOONI_FUNC l_mem moonO_applyparam (lu_byte p, l_mem x);
 
-[[nodiscard]] LUAI_FUNC int luaO_rawarith (lua_State *L, int op, const TValue *p1,
+[[nodiscard]] MOONI_FUNC int moonO_rawarith (moon_State *L, int op, const TValue *p1,
                              const TValue *p2, TValue *res);
-LUAI_FUNC void luaO_arith (lua_State *L, int op, const TValue *p1,
+MOONI_FUNC void moonO_arith (moon_State *L, int op, const TValue *p1,
                            const TValue *p2, StkId res);
-[[nodiscard]] LUAI_FUNC size_t luaO_str2num (const char *s, TValue *o);
-[[nodiscard]] LUAI_FUNC unsigned luaO_tostringbuff (const TValue *obj, char *buff);
-[[nodiscard]] LUAI_FUNC lu_byte luaO_hexavalue (int c);
-LUAI_FUNC void luaO_tostring (lua_State *L, TValue *obj);
-LUAI_FUNC const char *luaO_pushvfstring (lua_State *L, const char *fmt,
+[[nodiscard]] MOONI_FUNC size_t moonO_str2num (const char *s, TValue *o);
+[[nodiscard]] MOONI_FUNC unsigned moonO_tostringbuff (const TValue *obj, char *buff);
+[[nodiscard]] MOONI_FUNC lu_byte moonO_hexavalue (int c);
+MOONI_FUNC void moonO_tostring (moon_State *L, TValue *obj);
+MOONI_FUNC const char *moonO_pushvfstring (moon_State *L, const char *fmt,
                                                        va_list argp);
-LUAI_FUNC const char *luaO_pushfstring (lua_State *L, const char *fmt, ...);
+MOONI_FUNC const char *moonO_pushfstring (moon_State *L, const char *fmt, ...);
 
 // std::span-based string utilities
-LUAI_FUNC void luaO_chunkid (std::span<char> out, std::span<const char> source);
+MOONI_FUNC void moonO_chunkid (std::span<char> out, std::span<const char> source);
 
 // C-style wrapper for compatibility
-inline void luaO_chunkid (char *out, const char *source, size_t srclen) {
-	luaO_chunkid(std::span(out, LUA_IDSIZE), std::span(source, srclen));
+inline void moonO_chunkid (char *out, const char *source, size_t srclen) {
+	moonO_chunkid(std::span(out, MOON_IDSIZE), std::span(source, srclen));
 }
 
 
@@ -300,33 +300,33 @@ enum class F2Imod {
 
 // Forward declaration and extern declaration for VirtualMachine::flttointeger
 class VirtualMachine;
-extern int VirtualMachine_flttointeger(lua_Number n, lua_Integer *p, F2Imod mode);
+extern int VirtualMachine_flttointeger(moon_Number n, moon_Integer *p, F2Imod mode);
 
 // Forward declarations for comparison helpers (defined in lvm.cpp and lstring.h)
 // These handle mixed int/float comparisons correctly
-[[nodiscard]] LUAI_FUNC int LTintfloat (lua_Integer i, lua_Number f);
-[[nodiscard]] LUAI_FUNC int LEintfloat (lua_Integer i, lua_Number f);
-[[nodiscard]] LUAI_FUNC int LTfloatint (lua_Number f, lua_Integer i);
-[[nodiscard]] LUAI_FUNC int LEfloatint (lua_Number f, lua_Integer i);
-[[nodiscard]] LUAI_FUNC int l_strcmp (const TString* ts1, const TString* ts2);
-// luaS_eqstr and shortStringsEqual declared in lstring.h
+[[nodiscard]] MOONI_FUNC int LTintfloat (moon_Integer i, moon_Number f);
+[[nodiscard]] MOONI_FUNC int LEintfloat (moon_Integer i, moon_Number f);
+[[nodiscard]] MOONI_FUNC int LTfloatint (moon_Number f, moon_Integer i);
+[[nodiscard]] MOONI_FUNC int LEfloatint (moon_Number f, moon_Integer i);
+[[nodiscard]] MOONI_FUNC int l_strcmp (const TString* ts1, const TString* ts2);
+// moonS_eqstr and shortStringsEqual declared in lstring.h
 
 /*
 ** Operator< for TValue (numeric and string comparison only, no metamethods)
-** For general comparison with metamethods, use luaV_lessthan()
+** For general comparison with metamethods, use moonV_lessthan()
 */
 inline bool operator<(const TValue& l, const TValue& r) noexcept {
 	// Both numbers?
 	if (ttisnumber(&l) && ttisnumber(&r)) {
 		if (ttisinteger(&l)) {
-			lua_Integer li = ivalue(&l);
+			moon_Integer li = ivalue(&l);
 			if (ttisinteger(&r))
 				return li < ivalue(&r);  // both integers
 			else
 				return LTintfloat(li, fltvalue(&r));  // int < float
 		}
 		else {
-			lua_Number lf = fltvalue(&l);  // l is float
+			moon_Number lf = fltvalue(&l);  // l is float
 			if (ttisfloat(&r))
 				return lf < fltvalue(&r);  // both floats
 			else
@@ -343,20 +343,20 @@ inline bool operator<(const TValue& l, const TValue& r) noexcept {
 
 /*
 ** Operator<= for TValue (numeric and string comparison only, no metamethods)
-** For general comparison with metamethods, use luaV_lessequal()
+** For general comparison with metamethods, use moonV_lessequal()
 */
 inline bool operator<=(const TValue& l, const TValue& r) noexcept {
 	// Both numbers?
 	if (ttisnumber(&l) && ttisnumber(&r)) {
 		if (ttisinteger(&l)) {
-			lua_Integer li = ivalue(&l);
+			moon_Integer li = ivalue(&l);
 			if (ttisinteger(&r))
 				return li <= ivalue(&r);  // both integers
 			else
 				return LEintfloat(li, fltvalue(&r));  // int <= float
 		}
 		else {
-			lua_Number lf = fltvalue(&l);  // l is float
+			moon_Number lf = fltvalue(&l);  // l is float
 			if (ttisfloat(&r))
 				return lf <= fltvalue(&r);  // both floats
 			else
@@ -373,8 +373,8 @@ inline bool operator<=(const TValue& l, const TValue& r) noexcept {
 
 /*
 ** Operator== for TValue (raw equality only, no metamethods)
-** For general equality with metamethods, use luaV_equalobj()
-** This is similar to luaV_rawequalobj() but as an operator
+** For general equality with metamethods, use moonV_equalobj()
+** This is similar to moonV_rawequalobj() but as an operator
 */
 inline bool operator==(const TValue& l, const TValue& r) noexcept {
 	if (ttype(&l) != ttype(&r))  // different base types?
@@ -382,17 +382,17 @@ inline bool operator==(const TValue& l, const TValue& r) noexcept {
 	else if (ttypetag(&l) != ttypetag(&r)) {
 		// Different variants - only numbers and strings can be equal across variants
 		switch (ttypetag(&l)) {
-			case LuaT::NUMINT: {  // int == float?
-				lua_Integer i2;
+			case MoonT::NUMINT: {  // int == float?
+				moon_Integer i2;
 				return (VirtualMachine_flttointeger(fltvalue(&r), &i2, F2Imod::F2Ieq) &&
 				        ivalue(&l) == i2);
 			}
-			case LuaT::NUMFLT: {  // float == int?
-				lua_Integer i1;
+			case MoonT::NUMFLT: {  // float == int?
+				moon_Integer i1;
 				return (VirtualMachine_flttointeger(fltvalue(&l), &i1, F2Imod::F2Ieq) &&
 				        i1 == ivalue(&r));
 			}
-			case LuaT::SHRSTR: case LuaT::LNGSTR: {
+			case MoonT::SHRSTR: case MoonT::LNGSTR: {
 				// Compare strings with different variants
 				return tsvalue(&l)->equals(tsvalue(&r));
 			}
@@ -402,21 +402,21 @@ inline bool operator==(const TValue& l, const TValue& r) noexcept {
 	}
 	else {  // same variant
 		switch (ttypetag(&l)) {
-			case LuaT::NIL: case LuaT::VFALSE: case LuaT::VTRUE:
+			case MoonT::NIL: case MoonT::VFALSE: case MoonT::VTRUE:
 				return true;
-			case LuaT::NUMINT:
+			case MoonT::NUMINT:
 				return ivalue(&l) == ivalue(&r);
-			case LuaT::NUMFLT:
+			case MoonT::NUMFLT:
 				return fltvalue(&l) == fltvalue(&r);
-			case LuaT::LIGHTUSERDATA:
+			case MoonT::LIGHTUSERDATA:
 				return pvalue(&l) == pvalue(&r);
-			case LuaT::SHRSTR:
+			case MoonT::SHRSTR:
 				return shortStringsEqual(tsvalue(&l), tsvalue(&r));
-			case LuaT::LNGSTR:
+			case MoonT::LNGSTR:
 				return tsvalue(&l)->equals(tsvalue(&r));
-			case LuaT::USERDATA:
+			case MoonT::USERDATA:
 				return uvalue(&l) == uvalue(&r);
-			case LuaT::LCF:
+			case MoonT::LCF:
 				return fvalue(&l) == fvalue(&r);
 			default:  // other collectable types (tables, closures, threads)
 				return gcvalue(&l) == gcvalue(&r);
@@ -470,7 +470,7 @@ inline bool operator!=(const TString& l, const TString& r) noexcept {
 ** operations used for GC pointer conversions are safe because:
 **
 ** 1. All GC objects have a common initial sequence (GCObject fields)
-** 2. Type tags are checked before conversions (via lua_assert)
+** 2. Type tags are checked before conversions (via moon_assert)
 ** 3. Memory is allocated with proper alignment for all types
 ** 4. The CRTP pattern ensures type safety at compile time
 **
@@ -485,8 +485,8 @@ inline bool operator!=(const TString& l, const TString& r) noexcept {
 ** These are performance-critical and used throughout the VM
 ** Defined here (after ltm.h include) to access TMS enum
 */
-inline void Table::fastGeti(lua_Integer k, TValue* res, LuaT& tag) noexcept {
-  lua_Unsigned u = l_castS2U(k) - 1u;
+inline void Table::fastGeti(moon_Integer k, TValue* res, MoonT& tag) noexcept {
+  moon_Unsigned u = l_castS2U(k) - 1u;
   if (u < this->arraySize()) {
     tag = *this->getArrayTag(u);
     if (!tagisempty(tag)) {
@@ -497,10 +497,10 @@ inline void Table::fastGeti(lua_Integer k, TValue* res, LuaT& tag) noexcept {
   }
 }
 
-inline void Table::fastSeti(lua_Integer k, TValue* val, int& hres) noexcept {
-  lua_Unsigned u = l_castS2U(k) - 1u;
+inline void Table::fastSeti(moon_Integer k, TValue* val, int& hres) noexcept {
+  moon_Unsigned u = l_castS2U(k) - 1u;
   if (u < this->arraySize()) {
-    LuaT* tag = this->getArrayTag(u);
+    MoonT* tag = this->getArrayTag(u);
     if (checknoTM(this->getMetatable(), TMS::TM_NEWINDEX) || !tagisempty(*tag)) {
       fval2arr(this, u, tag, val);
       hres = HOK;

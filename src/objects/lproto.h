@@ -24,7 +24,7 @@ typedef l_uint32 Instruction;
 ** {==================================================================
 ** Prototypes
 ** ===================================================================
-** Note: LUA_VPROTO now defined in ltvalue.h
+** Note: MOON_VPROTO now defined in ltvalue.h
 */
 
 
@@ -157,7 +157,7 @@ public:
   void setLastLineDefined(int l) noexcept { lastlinedefined = l; }
   void setSource(TString* s) noexcept { source = s; }
 
-  // Reference accessors for luaM_growvector
+  // Reference accessors for moonM_growvector
   int& getLineInfoSizeRef() noexcept { return sizelineinfo; }
   int& getAbsLineInfoSizeRef() noexcept { return sizeabslineinfo; }
   int& getLocVarsSizeRef() noexcept { return sizelocvars; }
@@ -237,7 +237,7 @@ public:
   ~Proto() noexcept = default;
 
   // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
-  static void* operator new(size_t size, lua_State* L, LuaT tt);
+  static void* operator new(size_t size, moon_State* L, MoonT tt);
 
   // Disable regular new/delete (must use placement new with GC)
   static void* operator new(size_t) = delete;
@@ -332,7 +332,7 @@ public:
   TString** getSourcePtr() noexcept { return debugInfo.getSourcePtr(); }
   GCObject** getGclistPtr() noexcept { return &gclist; }
 
-  // Runtime data reference accessors for luaM_growvector
+  // Runtime data reference accessors for moonM_growvector
   int& getCodeSizeRef() noexcept { return sizecode; }
   int& getConstantsSizeRef() noexcept { return sizek; }
   int& getUpvaluesSizeRef() noexcept { return sizeupvalues; }
@@ -360,7 +360,7 @@ public:
 
   // Methods (implemented in lfunc.cpp)
   lu_mem memorySize() const;
-  void free(lua_State* L);
+  void free(moon_State* L);
   const char* getLocalName(int local_number, int pc) const;
 };
 

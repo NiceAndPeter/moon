@@ -13,7 +13,7 @@
 #include "ltm.h"
 #include "lzio.h"
 #include "llex.h"
-#include "../memory/LuaVector.h"
+#include "../memory/MoonVector.h"
 
 /*
 ** Expression and variable descriptor.
@@ -74,8 +74,8 @@ class ExpDesc {
 private:
   expkind k;
   union {
-    lua_Integer integerValue;  // for VKINT
-    lua_Number floatValue;  // for VKFLT
+    moon_Integer integerValue;  // for VKINT
+    moon_Number floatValue;  // for VKFLT
     TString *stringValue;  // for VKSTR
     int info;  // for generic use
     struct {  // for indexed variables
@@ -101,10 +101,10 @@ public:
   // Union field accessors (generic/constant values)
   int getInfo() const noexcept { return u.info; }
   void setInfo(int i) noexcept { u.info = i; }
-  lua_Integer getIntValue() const noexcept { return u.integerValue; }
-  void setIntValue(lua_Integer i) noexcept { u.integerValue = i; }
-  lua_Number getFloatValue() const noexcept { return u.floatValue; }
-  void setFloatValue(lua_Number n) noexcept { u.floatValue = n; }
+  moon_Integer getIntValue() const noexcept { return u.integerValue; }
+  void setIntValue(moon_Integer i) noexcept { u.integerValue = i; }
+  moon_Number getFloatValue() const noexcept { return u.floatValue; }
+  void setFloatValue(moon_Number n) noexcept { u.floatValue = n; }
   TString* getStringValue() const noexcept { return u.stringValue; }
   void setStringValue(TString* s) noexcept { u.stringValue = s; }
 
@@ -201,10 +201,10 @@ typedef struct Labeldesc {
 // list of labels or gotos
 class Labellist {
 private:
-  LuaVector<Labeldesc> vec;
+  MoonVector<Labeldesc> vec;
 
 public:
-  explicit Labellist(lua_State* L) : vec(L) {
+  explicit Labellist(moon_State* L) : vec(L) {
     // Pre-reserve capacity to avoid early reallocations
     vec.reserve(16);
   }
@@ -224,7 +224,7 @@ public:
   Labeldesc& operator[](int index) { return vec[static_cast<size_t>(index)]; }
   const Labeldesc& operator[](int index) const { return vec[static_cast<size_t>(index)]; }
 
-  // For luaM_growvector replacement
+  // For moonM_growvector replacement
   void ensureCapacity(int needed) {
     if (needed > getSize()) {
       vec.reserve(static_cast<size_t>(needed));
@@ -240,13 +240,13 @@ public:
 // dynamic structures used by the parser
 class Dyndata {
 private:
-  LuaVector<Vardesc> actvar_vec;
+  MoonVector<Vardesc> actvar_vec;
 
 public:
   Labellist gt;  // list of pending gotos
   Labellist label;  // list of active labels
 
-  explicit Dyndata(lua_State* L)
+  explicit Dyndata(moon_State* L)
     : actvar_vec(L), gt(L), label(L) {
     // Pre-reserve typical capacity to avoid early reallocations
     actvar_vec.reserve(32);
@@ -561,7 +561,7 @@ public:
   void nil(int from, int n);
   void reserveregs(int n);
   void checkstack(int n);
-  void intCode(int reg, lua_Integer n);
+  void intCode(int reg, moon_Integer n);
   void dischargevars(ExpDesc& e);
   int exp2anyreg(ExpDesc& e);
   void exp2anyregup(ExpDesc& e);
@@ -611,12 +611,12 @@ public:
   int addk(Proto& proto, TValue *v);
   int k2proto(TValue *key, TValue *v);
   int stringK(TString& s);
-  int intK(lua_Integer n);
-  int numberK(lua_Number r);
+  int intK(moon_Integer n);
+  int numberK(moon_Number r);
   int boolF();
   int boolT();
   int nilK();
-  void floatCode(int reg, lua_Number flt);
+  void floatCode(int reg, moon_Number flt);
   int str2K(ExpDesc& e);
   int exp2K(ExpDesc& e);
   // Expression & code generation (public for now as used by unconverted functions)
@@ -800,10 +800,10 @@ private:
 };
 
 
-LUAI_FUNC lu_byte luaY_nvarstack (FuncState *funcState);
-LUAI_FUNC void luaY_checklimit (FuncState *funcState, int v, int l,
+MOONI_FUNC lu_byte moonY_nvarstack (FuncState *funcState);
+MOONI_FUNC void moonY_checklimit (FuncState *funcState, int v, int l,
                                 const char *what);
-LUAI_FUNC LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
+MOONI_FUNC LClosure *moonY_parser (moon_State *L, ZIO *z, Mbuffer *buff,
                                  Dyndata *dyd, const char *name, int firstchar);
 
 

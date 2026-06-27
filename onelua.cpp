@@ -31,9 +31,9 @@
 ** libraries such as -ldl -lreadline -lncurses
 */
 #if 0
-#define LUA_USE_LINUX
-#define LUA_USE_MACOSX
-#define LUA_USE_POSIX
+#define MOON_USE_LINUX
+#define MOON_USE_MACOSX
+#define MOON_USE_POSIX
 #endif
 
 
@@ -41,8 +41,8 @@
 ** Other specific features
 */
 #if 0
-#define LUA_32BITS
-#define LUA_USE_C89
+#define MOON_32BITS
+#define MOON_USE_C89
 #endif
 
 
@@ -67,18 +67,18 @@
 #include <time.h>
 
 /* setup for luaconf.h */
-#define LUA_CORE
-#define LUA_LIB
+#define MOON_CORE
+#define MOON_LIB
 
 #include "luaconf.h"
 
 /* do not export internal symbols */
-#undef LUAI_FUNC
-#undef LUAI_DDEC
-#undef LUAI_DDEF
-#define LUAI_FUNC	static
-#define LUAI_DDEC(def)	/* empty */
-#define LUAI_DDEF	static
+#undef MOONI_FUNC
+#undef MOONI_DDEC
+#undef MOONI_DDEF
+#define MOONI_FUNC	static
+#define MOONI_DDEC(def)	/* empty */
+#define MOONI_DDEF	static
 
 /* core -- used by all */
 #include "lzio.c"
@@ -121,7 +121,7 @@
 #endif
 
 /* test library -- used only for internal development */
-#if defined(LUA_DEBUG)
+#if defined(MOON_DEBUG)
 #include "ltests.c"
 #endif
 

@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -26,25 +26,25 @@
 #include "../memory/lgc.h"
 
 
-#if !defined(luai_verifycode)
-#define luai_verifycode(L,f)  // empty
+#if !defined(mooni_verifycode)
+#define mooni_verifycode(L,f)  // empty
 #endif
 
 
 typedef struct {
-  lua_State *L;
+  moon_State *L;
   ZIO *Z;
   const char *name;
   Table *h;  // list for string reuse
   size_t offset;  // current position relative to beginning of dump
-  lua_Unsigned nstr;  // number of strings in the list
+  moon_Unsigned nstr;  // number of strings in the list
   lu_byte fixed;  // dump is fixed in memory
 } LoadState;
 
 
 static l_noret error (LoadState *S, const char *why) {
-  luaO_pushfstring(S->L, "%s: bad binary format (%s)", S->name, why);
-  S->L->doThrow( LUA_ERRSYNTAX);
+  moonO_pushfstring(S->L, "%s: bad binary format (%s)", S->name, why);
+  S->L->doThrow( MOON_ERRSYNTAX);
 }
 
 
@@ -58,7 +58,7 @@ inline void loadVector(LoadState* S, T* b, size_t n) {
 }
 
 static void loadBlock (LoadState *S, void *b, size_t size) {
-  if (luaZ_read(S->Z, b, size) != 0)
+  if (moonZ_read(S->Z, b, size) != 0)
     error(S, "truncated chunk");
   S->offset += size;
 }
@@ -67,15 +67,15 @@ static void loadBlock (LoadState *S, void *b, size_t size) {
 static void loadAlign (LoadState *S, unsigned align) {
   unsigned padding = align - cast_uint(S->offset % align);
   if (padding < align) {  // (padding == align) means no padding
-    lua_Integer paddingContent;
+    moon_Integer paddingContent;
     loadBlock(S, &paddingContent, padding);
-    lua_assert(S->offset % align == 0);
+    moon_assert(S->offset % align == 0);
   }
 }
 
 
 static const void *getaddr_ (LoadState *S, size_t size) {
-  const void *block = luaZ_getaddr(S->Z, size);
+  const void *block = moonZ_getaddr(S->Z, size);
   S->offset += size;
   if (block == nullptr)
     error(S, "truncated fixed buffer");
@@ -107,8 +107,8 @@ static lu_byte loadByte (LoadState *S) {
 }
 
 
-static lua_Unsigned loadVarint (LoadState *S, lua_Unsigned limit) {
-  lua_Unsigned x = 0;
+static moon_Unsigned loadVarint (LoadState *S, moon_Unsigned limit) {
+  moon_Unsigned x = 0;
   int b;
   limit >>= 7;
   do {
@@ -132,15 +132,15 @@ static int loadInt (LoadState *S) {
 
 
 
-static lua_Number loadNumber (LoadState *S) {
-  lua_Number x;
+static moon_Number loadNumber (LoadState *S) {
+  moon_Number x;
   loadVar(S, x);
   return x;
 }
 
 
-static lua_Integer loadInteger (LoadState *S) {
-  lua_Unsigned cx = loadVarint(S, LUA_MAXUNSIGNED);
+static moon_Integer loadInteger (LoadState *S) {
+  moon_Unsigned cx = loadVarint(S, MOON_MAXUNSIGNED);
   // decode unsigned to signed
   if ((cx & 1) != 0)
     return l_castU2S(~(cx >> 1));
@@ -153,47 +153,47 @@ static lua_Integer loadInteger (LoadState *S) {
 ** Load a nullable string into slot 'sl' from prototype 'p'. The
 ** assignment to the slot and the barrier must be performed before any
 ** possible GC activity, to anchor the string. (Both 'loadVector' and
-** 'luaH_setint' can call the GC.)
+** 'moonH_setint' can call the GC.)
 */
 static void loadString (LoadState *S, Proto& p, TString **sl) {
-  lua_State *L = S->L;
+  moon_State *L = S->L;
   TString *tstring;
   TValue sv;
   size_t size = loadSize(S);
   if (size == 0) {  // no string?
-    lua_assert(*sl == nullptr);  // must be prefilled
+    moon_assert(*sl == nullptr);  // must be prefilled
     return;
   }
   else if (size == 1) {  // previously saved string?
-    lua_Unsigned idx = loadVarint(S, LUA_MAXUNSIGNED);  // get its index
+    moon_Unsigned idx = loadVarint(S, MOON_MAXUNSIGNED);  // get its index
     TValue stv;
-    if (novariant(S->h->getInt(l_castU2S(idx), &stv)) != LUA_TSTRING)
+    if (novariant(S->h->getInt(l_castU2S(idx), &stv)) != MOON_TSTRING)
       error(S, "invalid string index");
     *sl = tstring = tsvalue(&stv);  /* get its value */
-    luaC_objbarrier(L, &p, tstring);
+    moonC_objbarrier(L, &p, tstring);
     return;  // do not save it again
   }
-  else if ((size -= 2) <= LUAI_MAXSHORTLEN) {  // short string?
-    char buff[LUAI_MAXSHORTLEN + 1];  // extra space for '\0'
+  else if ((size -= 2) <= MOONI_MAXSHORTLEN) {  // short string?
+    char buff[MOONI_MAXSHORTLEN + 1];  // extra space for '\0'
     loadVector(S, buff, size + 1);  // load string into buffer
     *sl = tstring = TString::create(L, buff, size);  /* create string */
-    luaC_objbarrier(L, &p, tstring);
+    moonC_objbarrier(L, &p, tstring);
   }
   else if (S->fixed) {  // for a fixed buffer, use a fixed string
     const char *s = getaddr<char>(S, size + 1);  // get content address
     *sl = tstring = TString::createExternal(L, s, size, nullptr, nullptr);
-    luaC_objbarrier(L, &p, tstring);
+    moonC_objbarrier(L, &p, tstring);
   }
   else {  // create internal copy
     *sl = tstring = TString::createLongString(L, size);  /* create string */
-    luaC_objbarrier(L, &p, tstring);
+    moonC_objbarrier(L, &p, tstring);
     loadVector(S, getLongStringContents(tstring), size + 1);  // load directly in final place
   }
   // add string to list of saved strings
   S->nstr++;
   setsvalue(L, &sv, tstring);
   S->h->setInt(L, l_castU2S(S->nstr), &sv);
-  luaC_objbarrierback(L, obj2gco(S->h), tstring);
+  moonC_objbarrierback(L, obj2gco(S->h), tstring);
 }
 
 
@@ -206,7 +206,7 @@ static void loadCode (LoadState *S, Proto& f) {
     f.setCodeSize(n);
   }
   else {
-    f.setCode(luaM_newvectorchecked<Instruction>(S->L, n));
+    f.setCode(moonM_newvectorchecked<Instruction>(S->L, n));
     f.setCodeSize(n);
     auto codeSpan = f.getCodeSpan();  // Get span after allocation
     loadVector(S, codeSpan.data(), codeSpan.size());
@@ -220,7 +220,7 @@ static void loadFunction(LoadState *S, Proto& f);
 // Use span accessors
 static void loadConstants (LoadState *S, Proto& f) {
   int n = loadInt(S);
-  f.setConstants(luaM_newvectorchecked<TValue>(S->L, n));
+  f.setConstants(moonM_newvectorchecked<TValue>(S->L, n));
   f.setConstantsSize(n);
   auto constantsSpan = f.getConstantsSpan();
   for (TValue& v : constantsSpan) {
@@ -228,26 +228,26 @@ static void loadConstants (LoadState *S, Proto& f) {
   }
   for (TValue& o_ref : constantsSpan) {
     TValue *o = &o_ref;
-    LuaT t = static_cast<LuaT>(loadByte(S));
+    MoonT t = static_cast<MoonT>(loadByte(S));
     switch (t) {
-      case LuaT::NIL:
+      case MoonT::NIL:
         setnilvalue(o);
         break;
-      case LuaT::VFALSE:
+      case MoonT::VFALSE:
         setbfvalue(o);
         break;
-      case LuaT::VTRUE:
+      case MoonT::VTRUE:
         setbtvalue(o);
         break;
-      case LuaT::NUMFLT:
+      case MoonT::NUMFLT:
         o->setFloat(loadNumber(S));
         break;
-      case LuaT::NUMINT:
+      case MoonT::NUMINT:
         o->setInt(loadInteger(S));
         break;
-      case LuaT::SHRSTR:
-      case LuaT::LNGSTR: {
-        lua_assert(f.getSource() == nullptr);
+      case MoonT::SHRSTR:
+      case MoonT::LNGSTR: {
+        moon_assert(f.getSource() == nullptr);
         loadString(S, f, f.getSourcePtr());  // use 'source' to anchor string
         if (f.getSource() == nullptr)
           error(S, "bad format for constant string");
@@ -263,12 +263,12 @@ static void loadConstants (LoadState *S, Proto& f) {
 
 static void loadProtos (LoadState *S, Proto& f) {
   int n = loadInt(S);
-  f.setProtos(luaM_newvectorchecked<Proto*>(S->L, n));
+  f.setProtos(moonM_newvectorchecked<Proto*>(S->L, n));
   f.setProtosSize(n);
   std::fill_n(f.getProtos(), n, nullptr);
   for (int i = 0; i < n; i++) {
-    f.getProtos()[i] = luaF_newproto(S->L);
-    luaC_objbarrier(S->L, &f, f.getProtos()[i]);
+    f.getProtos()[i] = moonF_newproto(S->L);
+    moonC_objbarrier(S->L, &f, f.getProtos()[i]);
     loadFunction(S, *f.getProtos()[i]);
   }
 }
@@ -283,7 +283,7 @@ static void loadProtos (LoadState *S, Proto& f) {
 // Use span accessors
 static void loadUpvalues (LoadState *S, Proto& f) {
   int n = loadInt(S);
-  f.setUpvalues(luaM_newvectorchecked<Upvaldesc>(S->L, n));
+  f.setUpvalues(moonM_newvectorchecked<Upvaldesc>(S->L, n));
   f.setUpvaluesSize(n);
   auto upvaluesSpan = f.getUpvaluesSpan();
   // make array valid for GC
@@ -306,7 +306,7 @@ static void loadDebug (LoadState *S, Proto& f) {
     f.setLineInfoSize(n);
   }
   else {
-    f.setLineInfo(luaM_newvectorchecked<ls_byte>(S->L, n));
+    f.setLineInfo(moonM_newvectorchecked<ls_byte>(S->L, n));
     f.setLineInfoSize(n);
     auto lineInfoSpan = f.getDebugInfo().getLineInfoSpan();
     loadVector(S, lineInfoSpan.data(), lineInfoSpan.size());
@@ -319,14 +319,14 @@ static void loadDebug (LoadState *S, Proto& f) {
       f.setAbsLineInfoSize(n);
     }
     else {
-      f.setAbsLineInfo(luaM_newvectorchecked<AbsLineInfo>(S->L, n));
+      f.setAbsLineInfo(moonM_newvectorchecked<AbsLineInfo>(S->L, n));
       f.setAbsLineInfoSize(n);
       auto absLineInfoSpan = f.getDebugInfo().getAbsLineInfoSpan();
       loadVector(S, absLineInfoSpan.data(), absLineInfoSpan.size());
     }
   }
   n = loadInt(S);
-  f.setLocVars(luaM_newvectorchecked<LocVar>(S->L, n));
+  f.setLocVars(moonM_newvectorchecked<LocVar>(S->L, n));
   f.setLocVarsSize(n);
   auto locVarsSpan = f.getDebugInfo().getLocVarsSpan();
   for (LocVar& lv : locVarsSpan) {
@@ -365,7 +365,7 @@ static void loadFunction (LoadState *S, Proto& f) {
 
 
 static void checkliteral (LoadState *S, const char *s, const char *msg) {
-  char buff[sizeof(LUA_SIGNATURE) + sizeof(LUAC_DATA)];  // larger than both
+  char buff[sizeof(MOON_SIGNATURE) + sizeof(MOONC_DATA)];  // larger than both
   size_t len = strlen(s);
   loadVector(S, buff, len);
   if (memcmp(s, buff, len) != 0)
@@ -374,7 +374,7 @@ static void checkliteral (LoadState *S, const char *s, const char *msg) {
 
 
 static l_noret numerror (LoadState *S, const char *what, const char *tname) {
-  const char *msg = luaO_pushfstring(S->L, "%s %s mismatch", tname, what);
+  const char *msg = moonO_pushfstring(S->L, "%s %s mismatch", tname, what);
   error(S, msg);
 }
 
@@ -399,28 +399,28 @@ static void checknumformat (LoadState *S, int eq, const char *tname) {
 
 static void checkHeader (LoadState *S) {
   // skip 1st char (already read and checked)
-  checkliteral(S, &LUA_SIGNATURE[1], "not a binary chunk");
-  if (loadByte(S) != LUAC_VERSION)
+  checkliteral(S, &MOON_SIGNATURE[1], "not a binary chunk");
+  if (loadByte(S) != MOONC_VERSION)
     error(S, "version mismatch");
-  if (loadByte(S) != LUAC_FORMAT)
+  if (loadByte(S) != MOONC_FORMAT)
     error(S, "format mismatch");
-  checkliteral(S, LUAC_DATA, "corrupted chunk");
-  checknum(S, int, LUAC_INT, "int");
-  checknum(S, Instruction, LUAC_INST, "instruction");
-  checknum(S, lua_Integer, LUAC_INT, "Lua integer");
-  checknum(S, lua_Number, LUAC_NUM, "Lua number");
+  checkliteral(S, MOONC_DATA, "corrupted chunk");
+  checknum(S, int, MOONC_INT, "int");
+  checknum(S, Instruction, MOONC_INST, "instruction");
+  checknum(S, moon_Integer, MOONC_INT, "Lua integer");
+  checknum(S, moon_Number, MOONC_NUM, "Lua number");
 }
 
 
 /*
 ** Load precompiled chunk.
 */
-LClosure *luaU_undump (lua_State *L, ZIO *Z, const char *name, int fixed) {
+LClosure *moonU_undump (moon_State *L, ZIO *Z, const char *name, int fixed) {
   LoadState S;
   LClosure *cl;
   if (*name == '@' || *name == '=')
     name = name + 1;
-  else if (*name == LUA_SIGNATURE[0])
+  else if (*name == MOON_SIGNATURE[0])
     name = "binary string";
   S.name = name;
   S.L = L;
@@ -435,12 +435,12 @@ LClosure *luaU_undump (lua_State *L, ZIO *Z, const char *name, int fixed) {
   S.nstr = 0;
   sethvalue2s(L, L->getTop().p, S.h);  // anchor it
   L->inctop();
-  cl->setProto(luaF_newproto(L));
-  luaC_objbarrier(L, cl, cl->getProto());
+  cl->setProto(moonF_newproto(L));
+  moonC_objbarrier(L, cl, cl->getProto());
   loadFunction(&S, *cl->getProto());
   if (cl->getNumUpvalues() != cl->getProto()->getUpvaluesSize())
     error(&S, "corrupted chunk");
-  luai_verifycode(L, cl->getProto());
+  mooni_verifycode(L, cl->getProto());
   L->getStackSubsystem().pop();  // pop table
   return cl;
 }

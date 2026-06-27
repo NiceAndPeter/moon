@@ -1,31 +1,31 @@
 /*
-** Type alias for std::vector with LuaAllocator
+** Type alias for std::vector with MoonAllocator
 ** See Copyright Notice in lua.h
 */
 
-#ifndef luavector_h
-#define luavector_h
+#ifndef moonvector_h
+#define moonvector_h
 
 #include <vector>
 #include "luaallocator.h"
 
 /*
-** LuaVector<T> - Convenient type alias for std::vector with LuaAllocator
+** MoonVector<T> - Convenient type alias for std::vector with MoonAllocator
 **
 ** This provides a std::vector that integrates with Lua's memory management.
 ** All allocations are tracked by Lua's GC and respect memory limits.
 **
 ** Usage example:
 **
-**   // In a function that has access to lua_State* L
-**   LuaVector<int> numbers(L);
+**   // In a function that has access to moon_State* L
+**   MoonVector<int> numbers(L);
 **   numbers.push_back(42);
 **   numbers.push_back(84);
 **
 **   // The vector automatically uses Lua's allocator
 **   // Memory is freed when the vector goes out of scope
 **
-** Benefits over manual luaM_* calls:
+** Benefits over manual moonM_* calls:
 ** - Automatic memory management (RAII)
 ** - Exception safety
 ** - Standard container interface
@@ -45,16 +45,16 @@
 ** - Fixed-size stack arrays (use native arrays)
 */
 template<typename T>
-class LuaVector {
+class MoonVector {
 public:
-    using VectorType = std::vector<T, LuaAllocator<T>>;
+    using VectorType = std::vector<T, MoonAllocator<T>>;
     using iterator = typename VectorType::iterator;
     using const_iterator = typename VectorType::const_iterator;
     using size_type = typename VectorType::size_type;
     using value_type = T;
 
-    // Construct with lua_State
-    explicit LuaVector(lua_State* L) : vec_(LuaAllocator<T>(L)) {}
+    // Construct with moon_State
+    explicit MoonVector(moon_State* L) : vec_(MoonAllocator<T>(L)) {}
 
     // Forward standard vector operations
     void push_back(const T& value) { vec_.push_back(value); }

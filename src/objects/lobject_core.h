@@ -15,53 +15,53 @@
 // Forward declarations
 enum class GCAge : lu_byte;
 class Table;
-struct lua_State;
+struct moon_State;
 
 /*
 ** Extra types for collectable non-values
-** Note: LUA_TUPVAL and LUA_TPROTO now defined in ltvalue.h
+** Note: MOON_TUPVAL and MOON_TPROTO now defined in ltvalue.h
 */
-inline constexpr int LUA_TDEADKEY = (LUA_NUMTYPES+2);  // removed keys in tables
+inline constexpr int MOON_TDEADKEY = (MOON_NUMTYPES+2);  // removed keys in tables
 
 /*
-** number of all possible types (including LUA_TNONE but excluding DEADKEY)
+** number of all possible types (including MOON_TNONE but excluding DEADKEY)
 */
-inline constexpr int LUA_TOTALTYPES = (LUA_NUMTYPES + 3);
+inline constexpr int MOON_TOTALTYPES = (MOON_NUMTYPES + 3);
 
 
 /*
 ** {==================================================================
 ** Nil
 ** ===================================================================
-** Note: LUA_VNIL, LUA_VEMPTY, LUA_VABSTKEY, LUA_VNOTABLE now defined in ltvalue.h
+** Note: MOON_VNIL, MOON_VEMPTY, MOON_VABSTKEY, MOON_VNOTABLE now defined in ltvalue.h
 */
 
 // macro to test for (any kind of) nil
-constexpr bool ttisnil(const TValue* v) noexcept { return checktype(v, LUA_TNIL); }
+constexpr bool ttisnil(const TValue* v) noexcept { return checktype(v, MOON_TNIL); }
 
-constexpr bool TValue::isNil() const noexcept { return checktype(this, LUA_TNIL); }
+constexpr bool TValue::isNil() const noexcept { return checktype(this, MOON_TNIL); }
 
 /*
 ** Macro to test the result of a table access. Formally, it should
-** distinguish between LUA_VEMPTY/LUA_VABSTKEY/LUA_VNOTABLE and
-** other tags. As currently nil is equivalent to LUA_VEMPTY, it is
+** distinguish between MOON_VEMPTY/MOON_VABSTKEY/MOON_VNOTABLE and
+** other tags. As currently nil is equivalent to MOON_VEMPTY, it is
 ** simpler to just test whether the value is nil.
 */
-constexpr bool tagisempty(int tag) noexcept { return novariant(tag) == LUA_TNIL; }
-constexpr bool tagisempty(LuaT tag) noexcept { return novariant(tag) == LUA_TNIL; }
+constexpr bool tagisempty(int tag) noexcept { return novariant(tag) == MOON_TNIL; }
+constexpr bool tagisempty(MoonT tag) noexcept { return novariant(tag) == MOON_TNIL; }
 
 
 // macro to test for a standard nil
-constexpr bool ttisstrictnil(const TValue* o) noexcept { return checktag(o, LuaT::NIL); }
+constexpr bool ttisstrictnil(const TValue* o) noexcept { return checktag(o, MoonT::NIL); }
 
-constexpr bool TValue::isStrictNil() const noexcept { return checktag(this, LuaT::NIL); }
+constexpr bool TValue::isStrictNil() const noexcept { return checktag(this, MoonT::NIL); }
 
 inline void setnilvalue(TValue* obj) noexcept { obj->setNil(); }
 
 
-constexpr bool isabstkey(const TValue* v) noexcept { return checktag(v, LuaT::ABSTKEY); }
+constexpr bool isabstkey(const TValue* v) noexcept { return checktag(v, MoonT::ABSTKEY); }
 
-constexpr bool TValue::isAbstKey() const noexcept { return checktag(this, LuaT::ABSTKEY); }
+constexpr bool TValue::isAbstKey() const noexcept { return checktag(this, MoonT::ABSTKEY); }
 
 
 /*
@@ -86,11 +86,11 @@ constexpr bool TValue::isEmpty() const noexcept { return isNil(); }
 
 
 // macro defining a value corresponding to an absent key
-#define ABSTKEYCONSTANT		{nullptr}, LuaT::ABSTKEY
+#define ABSTKEYCONSTANT		{nullptr}, MoonT::ABSTKEY
 
 
 // mark an entry as empty
-inline void setempty(TValue* v) noexcept { settt_(v, LuaT::EMPTY); }
+inline void setempty(TValue* v) noexcept { settt_(v, MoonT::EMPTY); }
 
 // }==================================================================
 
@@ -99,20 +99,20 @@ inline void setempty(TValue* v) noexcept { settt_(v, LuaT::EMPTY); }
 ** {==================================================================
 ** Booleans
 ** ===================================================================
-** Note: LUA_VFALSE, LUA_VTRUE now defined in ltvalue.h
+** Note: MOON_VFALSE, MOON_VTRUE now defined in ltvalue.h
 */
 
-constexpr bool ttisboolean(const TValue* o) noexcept { return checktype(o, LUA_TBOOLEAN); }
-constexpr bool ttisfalse(const TValue* o) noexcept { return checktag(o, LuaT::VFALSE); }
-constexpr bool ttistrue(const TValue* o) noexcept { return checktag(o, LuaT::VTRUE); }
+constexpr bool ttisboolean(const TValue* o) noexcept { return checktype(o, MOON_TBOOLEAN); }
+constexpr bool ttisfalse(const TValue* o) noexcept { return checktag(o, MoonT::VFALSE); }
+constexpr bool ttistrue(const TValue* o) noexcept { return checktag(o, MoonT::VTRUE); }
 
-constexpr bool TValue::isBoolean() const noexcept { return checktype(this, LUA_TBOOLEAN); }
-constexpr bool TValue::isFalse() const noexcept { return checktag(this, LuaT::VFALSE); }
-constexpr bool TValue::isTrue() const noexcept { return checktag(this, LuaT::VTRUE); }
+constexpr bool TValue::isBoolean() const noexcept { return checktype(this, MOON_TBOOLEAN); }
+constexpr bool TValue::isFalse() const noexcept { return checktag(this, MoonT::VFALSE); }
+constexpr bool TValue::isTrue() const noexcept { return checktag(this, MoonT::VTRUE); }
 
 constexpr bool l_isfalse(const TValue* o) noexcept { return ttisfalse(o) || ttisnil(o); }
-constexpr bool tagisfalse(LuaT t) noexcept { return (t == LuaT::VFALSE || novariant(t) == LUA_TNIL); }
-constexpr bool tagisfalse(int t) noexcept { return (t == static_cast<int>(LuaT::VFALSE) || novariant(t) == LUA_TNIL); }
+constexpr bool tagisfalse(MoonT t) noexcept { return (t == MoonT::VFALSE || novariant(t) == MOON_TNIL); }
+constexpr bool tagisfalse(int t) noexcept { return (t == static_cast<int>(MoonT::VFALSE) || novariant(t) == MOON_TNIL); }
 
 constexpr bool TValue::isFalseLike() const noexcept { return isFalse() || isNil(); }
 
@@ -128,14 +128,14 @@ inline void setbtvalue(TValue* obj) noexcept { obj->setTrue(); }
 ** {==================================================================
 ** Threads
 ** ===================================================================
-** Note: LUA_VTHREAD now defined in ltvalue.h
+** Note: MOON_VTHREAD now defined in ltvalue.h
 */
 
-constexpr bool ttisthread(const TValue* o) noexcept { return checktag(o, ctb(LuaT::THREAD)); }
+constexpr bool ttisthread(const TValue* o) noexcept { return checktag(o, ctb(MoonT::THREAD)); }
 
-constexpr bool TValue::isThread() const noexcept { return checktag(this, ctb(LuaT::THREAD)); }
+constexpr bool TValue::isThread() const noexcept { return checktag(this, ctb(MoonT::THREAD)); }
 
-inline lua_State* thvalue(const TValue* o) noexcept { return o->threadValue(); }
+inline moon_State* thvalue(const TValue* o) noexcept { return o->threadValue(); }
 
 // setthvalue now defined as inline function below
 
@@ -146,29 +146,29 @@ inline lua_State* thvalue(const TValue* o) noexcept { return o->threadValue(); }
 ** {==================================================================
 ** Numbers
 ** ===================================================================
-** Note: LUA_VNUMINT, LUA_VNUMFLT now defined in ltvalue.h
+** Note: MOON_VNUMINT, MOON_VNUMFLT now defined in ltvalue.h
 */
 
-constexpr bool ttisnumber(const TValue* o) noexcept { return checktype(o, LUA_TNUMBER); }
-constexpr bool ttisfloat(const TValue* o) noexcept { return checktag(o, LuaT::NUMFLT); }
-constexpr bool ttisinteger(const TValue* o) noexcept { return checktag(o, LuaT::NUMINT); }
+constexpr bool ttisnumber(const TValue* o) noexcept { return checktype(o, MOON_TNUMBER); }
+constexpr bool ttisfloat(const TValue* o) noexcept { return checktag(o, MoonT::NUMFLT); }
+constexpr bool ttisinteger(const TValue* o) noexcept { return checktag(o, MoonT::NUMINT); }
 
-constexpr bool TValue::isNumber() const noexcept { return checktype(this, LUA_TNUMBER); }
-constexpr bool TValue::isFloat() const noexcept { return checktag(this, LuaT::NUMFLT); }
-constexpr bool TValue::isInteger() const noexcept { return checktag(this, LuaT::NUMINT); }
+constexpr bool TValue::isNumber() const noexcept { return checktype(this, MOON_TNUMBER); }
+constexpr bool TValue::isFloat() const noexcept { return checktag(this, MoonT::NUMFLT); }
+constexpr bool TValue::isInteger() const noexcept { return checktag(this, MoonT::NUMINT); }
 
 // TValue::numberValue() implementation (needs NUMINT constant)
-inline lua_Number TValue::numberValue() const noexcept {
-  return (tt_ == LuaT::NUMINT) ? static_cast<lua_Number>(value_.i) : value_.n;
+inline moon_Number TValue::numberValue() const noexcept {
+  return (tt_ == MoonT::NUMINT) ? static_cast<moon_Number>(value_.i) : value_.n;
 }
 
-inline lua_Number nvalue(const TValue* o) noexcept { return o->numberValue(); }
+inline moon_Number nvalue(const TValue* o) noexcept { return o->numberValue(); }
 
-inline lua_Number fltvalue(const TValue* o) noexcept { return o->floatValue(); }
-inline lua_Integer ivalue(const TValue* o) noexcept { return o->intValue(); }
+inline moon_Number fltvalue(const TValue* o) noexcept { return o->floatValue(); }
+inline moon_Integer ivalue(const TValue* o) noexcept { return o->intValue(); }
 
-constexpr lua_Number fltvalueraw(const Value& v) noexcept { return v.n; }
-constexpr lua_Integer ivalueraw(const Value& v) noexcept { return v.i; }
+constexpr moon_Number fltvalueraw(const Value& v) noexcept { return v.n; }
+constexpr moon_Integer ivalueraw(const Value& v) noexcept { return v.i; }
 
 // }==================================================================
 
@@ -188,14 +188,14 @@ constexpr lua_Integer ivalueraw(const Value& v) noexcept { return v.i; }
 class GCObject {
 protected:
   mutable GCObject* next;  // GC list linkage (mutable for GC bookkeeping)
-  LuaT tt;  // Type tag (immutable)
+  MoonT tt;  // Type tag (immutable)
   mutable lu_byte marked;  // GC mark bits (mutable for GC bookkeeping)
   /*
   ** Reserve the remaining bytes of this 16-byte aligned header so that derived
   ** GC types cannot reuse GCObject's tail padding for their own members.
   **
   ** This is REQUIRED for correctness, not cosmetic. GC objects are allocated by
-  ** luaC_newobjdt(), which sets 'tt' and 'marked' BEFORE the derived type's
+  ** moonC_newobjdt(), which sets 'tt' and 'marked' BEFORE the derived type's
   ** constructor runs (placement new). If a derived type (e.g. Proto) places its
   ** first members in this tail padding, the compiler may initialise them with a
   ** store to the enclosing aligned word, clobbering 'tt'/'marked' that were just
@@ -210,20 +210,20 @@ public:
   void setNext(GCObject* n) const noexcept { next = n; }  // const - next is mutable
   // Pointer-to-pointer for efficient GC list manipulation (allows in-place removal)
   GCObject** getNextPtr() const noexcept { return &next; }  // const - next is mutable
-  LuaT getType() const noexcept { return tt; }
-  void setType(LuaT t) noexcept { tt = t; }
-  void setType(lu_byte t) noexcept { tt = static_cast<LuaT>(t); }  // for legacy code
+  MoonT getType() const noexcept { return tt; }
+  void setType(MoonT t) noexcept { tt = t; }
+  void setType(lu_byte t) noexcept { tt = static_cast<MoonT>(t); }  // for legacy code
   lu_byte getMarked() const noexcept { return marked; }
   void setMarked(lu_byte m) const noexcept { marked = m; }  // const - marked is mutable
   bool isMarked() const noexcept { return marked != 0; }
 
   // Marked field bit manipulation methods (const - marked is mutable)
   void setMarkedBit(int bit) const noexcept {
-    lua_assert(bit >= 0 && bit < 8);  // lu_byte is 8 bits
+    moon_assert(bit >= 0 && bit < 8);  // lu_byte is 8 bits
     marked |= cast_byte(1 << bit);
   }
   void clearMarkedBit(int bit) const noexcept {
-    lua_assert(bit >= 0 && bit < 8);  // lu_byte is 8 bits
+    moon_assert(bit >= 0 && bit < 8);  // lu_byte is 8 bits
     marked &= cast_byte(~(1 << bit));
   }
   void clearMarkedBits(int mask) const noexcept { marked &= cast_byte(~mask); }
@@ -240,8 +240,8 @@ public:
   inline bool isOld() const noexcept;
 
   // GC operations (implemented in lgc.cpp)
-  void fix(lua_State* L) const;  // const - only modifies mutable GC fields
-  void checkFinalizer(lua_State* L, Table* mt);
+  void fix(moon_State* L) const;  // const - only modifies mutable GC fields
+  void checkFinalizer(moon_State* L, Table* mt);
 };
 
 // Layout guard: GCObject must occupy exactly two words and have NO tail padding
@@ -274,7 +274,7 @@ static_assert(alignof(GCObject) == alignof(void*),
 ** - CClosure : public GCBase<CClosure>
 ** - UpVal : public GCBase<UpVal>
 ** - Udata : public GCBase<Udata>
-** - lua_State : public GCBase<lua_State>  (thread object)
+** - moon_State : public GCBase<moon_State>  (thread object)
 **
 ** CRITICAL INVARIANT:
 ** Memory layout MUST match GCObject exactly:
@@ -297,9 +297,9 @@ public:
     constexpr GCObject* getNext() const noexcept { return next; }
     constexpr void setNext(GCObject* n) const noexcept { next = n; }  // const - next is mutable
 
-    constexpr LuaT getType() const noexcept { return tt; }
-    constexpr void setType(LuaT t) noexcept { tt = t; }
-    constexpr void setType(lu_byte t) noexcept { tt = static_cast<LuaT>(t); }  // for legacy code
+    constexpr MoonT getType() const noexcept { return tt; }
+    constexpr void setType(MoonT t) noexcept { tt = t; }
+    constexpr void setType(lu_byte t) noexcept { tt = static_cast<MoonT>(t); }  // for legacy code
 
     constexpr lu_byte getMarked() const noexcept { return marked; }
     constexpr void setMarked(lu_byte m) const noexcept { marked = m; }  // const - marked is mutable
@@ -320,7 +320,7 @@ public:
 };
 
 constexpr bool iscollectable(const TValue* o) noexcept { return (static_cast<int>(rawtt(o)) & BIT_ISCOLLECTABLE) != 0; }
-constexpr bool iscollectable(LuaT tag) noexcept { return (static_cast<int>(tag) & BIT_ISCOLLECTABLE) != 0; }
+constexpr bool iscollectable(MoonT tag) noexcept { return (static_cast<int>(tag) & BIT_ISCOLLECTABLE) != 0; }
 
 constexpr bool TValue::isCollectable() const noexcept { return (static_cast<int>(tt_) & BIT_ISCOLLECTABLE) != 0; }
 
@@ -342,14 +342,14 @@ inline bool TValue::hasRightType() const noexcept { return typeTag() == withvari
 ** {==================================================================
 ** Userdata
 ** ===================================================================
-** Note: LUA_VLIGHTUSERDATA, LUA_VUSERDATA now defined in ltvalue.h
+** Note: MOON_VLIGHTUSERDATA, MOON_VUSERDATA now defined in ltvalue.h
 */
 
-constexpr bool ttislightuserdata(const TValue* o) noexcept { return checktag(o, LuaT::LIGHTUSERDATA); }
-constexpr bool ttisfulluserdata(const TValue* o) noexcept { return checktag(o, ctb(LuaT::USERDATA)); }
+constexpr bool ttislightuserdata(const TValue* o) noexcept { return checktag(o, MoonT::LIGHTUSERDATA); }
+constexpr bool ttisfulluserdata(const TValue* o) noexcept { return checktag(o, ctb(MoonT::USERDATA)); }
 
-constexpr bool TValue::isLightUserdata() const noexcept { return checktag(this, LuaT::LIGHTUSERDATA); }
-constexpr bool TValue::isFullUserdata() const noexcept { return checktag(this, ctb(LuaT::USERDATA)); }
+constexpr bool TValue::isLightUserdata() const noexcept { return checktag(this, MoonT::LIGHTUSERDATA); }
+constexpr bool TValue::isFullUserdata() const noexcept { return checktag(this, ctb(MoonT::USERDATA)); }
 
 inline void* pvalue(const TValue* o) noexcept { return o->pointerValue(); }
 
@@ -363,7 +363,7 @@ constexpr void* pvalueraw(const Value& v) noexcept { return v.p; }
 // Ensures that addresses after this type are always fully aligned.
 typedef union UValue {
   TValue value;
-  LUAI_MAXALIGN;  // ensures maximum alignment for udata bytes
+  MOONI_MAXALIGN;  // ensures maximum alignment for udata bytes
 } UValue;
 
 // Layout guard: a UValue must be able to hold and align a TValue (Udata stores
@@ -402,7 +402,7 @@ public:
   }
 
   // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
-  static void* operator new(size_t size, lua_State* L, LuaT tt, size_t extra = 0);
+  static void* operator new(size_t size, moon_State* L, MoonT tt, size_t extra = 0);
 
   // Disable regular new/delete (must use placement new with GC)
   static void* operator new(size_t) = delete;
@@ -445,7 +445,7 @@ typedef struct Udata0 : public GCBase<Udata0> {
   unsigned short nuvalue;  // number of user values
   size_t len;  // number of bytes
   Table *metatable;
-  union {LUAI_MAXALIGN;} bindata;
+  union {MOONI_MAXALIGN;} bindata;
 } Udata0;
 
 

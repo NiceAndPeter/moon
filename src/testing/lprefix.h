@@ -10,7 +10,7 @@
 /*
 ** Allows POSIX/XSI stuff
 */
-#if !defined(LUA_USE_C89)  // {
+#if !defined(MOON_USE_C89)  // {
 
 #if !defined(_XOPEN_SOURCE)
 #define _XOPEN_SOURCE           600
@@ -21,7 +21,7 @@
 /*
 ** Allows manipulation of large files in gcc and some other compilers
 */
-#if !defined(LUA_32BITS) && !defined(_FILE_OFFSET_BITS)
+#if !defined(MOON_32BITS) && !defined(_FILE_OFFSET_BITS)
 #define _LARGEFILE_SOURCE       1
 #define _FILE_OFFSET_BITS       64
 #endif

@@ -48,8 +48,8 @@ enum class UnOpr { OPR_MINUS, OPR_BNOT, OPR_NOT, OPR_LEN, OPR_NOUNOPR };
 inline constexpr int FIRST_RESERVED = UCHAR_MAX + 1;
 
 
-#if !defined(LUA_ENV)
-#define LUA_ENV		"_ENV"
+#if !defined(MOON_ENV)
+#define MOON_ENV		"_ENV"
 #endif
 
 
@@ -75,8 +75,8 @@ inline constexpr int NUM_RESERVED = (cast_int(static_cast<int>(RESERVED::TK_WHIL
 
 
 typedef union {
-  lua_Number r;
-  lua_Integer i;
+  moon_Number r;
+  moon_Integer i;
   TString *tstring;
 } SemInfo;  // semantics information
 
@@ -168,7 +168,7 @@ public:
 
 private:
   // Shared state (lexer + parser)
-  struct lua_State *L;
+  struct moon_State *L;
   class Dyndata *dyd;  // dynamic structures shared by lexer and parser
 
 public:
@@ -218,14 +218,14 @@ public:
   void setGlobalName(TString* gbl) noexcept { strings.setGlobalName(gbl); }
 
   // Shared state accessors
-  struct lua_State* getLuaState() const noexcept { return L; }
-  void setLuaState(struct lua_State* state) noexcept { L = state; }
+  struct moon_State* getLuaState() const noexcept { return L; }
+  void setLuaState(struct moon_State* state) noexcept { L = state; }
   class Dyndata* getDyndata() const noexcept { return dyd; }
   void setDyndata(class Dyndata* d) noexcept { dyd = d; }
 
   // Lexer method declarations (implemented in llex.cpp)
   void saveAndNext();
-  void setInput(lua_State *state, ZIO *zio, TString *src, int firstchar);
+  void setInput(moon_State *state, ZIO *zio, TString *src, int firstchar);
   TString *newString(const char *str, size_t l);
   void nextToken();
   int lookaheadToken();
@@ -272,7 +272,7 @@ private:
 };
 
 
-LUAI_FUNC void luaX_init (lua_State *L);
+MOONI_FUNC void moonX_init (moon_State *L);
 
 
 #endif

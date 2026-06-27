@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -65,7 +65,7 @@ static int tonumeral (const ExpDesc& expr, TValue *value) {
 ** Get the constant value from a constant expression
 */
 TValue *FuncState::const2val(const ExpDesc& expr) {
-  lua_assert(expr.getKind() == VCONST);
+  moon_assert(expr.getKind() == VCONST);
   return &getLexState().getDyndata()->actvar()[expr.getInfo()].k;
 }
 
@@ -102,10 +102,10 @@ int FuncState::getjump(int position) {
 void FuncState::fixjump(int position, int dest) {
   auto *jmp = &getProto().getCode()[position];
   auto offset = dest - (position + 1);
-  lua_assert(dest != NO_JUMP);
+  moon_assert(dest != NO_JUMP);
   if (!(-OFFSET_sJ <= offset && offset <= MAXARG_sJ - OFFSET_sJ))
     getLexState().syntaxError("control structure too long");
-  lua_assert(InstructionView(*jmp).opcode() == OP_JMP);
+  moon_assert(InstructionView(*jmp).opcode() == OP_JMP);
   SETARG_sJ(*jmp, offset);
 }
 
@@ -191,14 +191,14 @@ void FuncState::savelineinfo(Proto& proto, int line) {
   auto linedif = line - getPreviousLine();
   auto pcval = getPC() - 1;  // last instruction coded
   if (abs(linedif) >= LIMLINEDIFF || postIncrementInstructionsSinceAbsoluteLineInfo() >= MAXIWTHABS) {
-    luaM_growvector<AbsLineInfo>(getLexState().getLuaState(), proto.getAbsLineInfoRef(), getNumberOfAbsoluteLineInfo(),
+    moonM_growvector<AbsLineInfo>(getLexState().getLuaState(), proto.getAbsLineInfoRef(), getNumberOfAbsoluteLineInfo(),
                     proto.getAbsLineInfoSizeRef(), std::numeric_limits<int>::max(), "lines");
     proto.getAbsLineInfo()[getNumberOfAbsoluteLineInfo()].setPC(pcval);
     proto.getAbsLineInfo()[postIncrementNumberOfAbsoluteLineInfo()].setLine(line);
     linedif = ABSLINEINFO;  // signal that there is absolute information
     setInstructionsSinceAbsoluteLineInfo(1);  // restart counter
   }
-  luaM_growvector<ls_byte>(getLexState().getLuaState(), proto.getLineInfoRef(), pcval, proto.getLineInfoSizeRef(),
+  moonM_growvector<ls_byte>(getLexState().getLuaState(), proto.getLineInfoRef(), pcval, proto.getLineInfoSizeRef(),
                   std::numeric_limits<int>::max(), "opcodes");
   proto.getLineInfo()[pcval] = static_cast<ls_byte>(linedif);
   setPreviousLine(line);  // last line saved
@@ -218,7 +218,7 @@ void FuncState::removelastlineinfo() {
     decrementInstructionsSinceAbsoluteLineInfo();  // undo previous increment
   }
   else {  // absolute line information
-    lua_assert(proto.getAbsLineInfo()[getNumberOfAbsoluteLineInfo() - 1].getPC() == pcval);
+    moon_assert(proto.getAbsLineInfo()[getNumberOfAbsoluteLineInfo() - 1].getPC() == pcval);
     decrementNumberOfAbsoluteLineInfo();  // remove it
     setInstructionsSinceAbsoluteLineInfo(MAXIWTHABS + 1);  // force next line info to be absolute
   }
@@ -238,8 +238,8 @@ void FuncState::removelastinstruction() {
 */
 int FuncState::codeAsBx(OpCode o, int A, int Bc) {
   auto b = Bc + OFFSET_sBx;
-  lua_assert(getOpMode(o) == OpMode::iAsBx);
-  lua_assert(A <= MAXARG_A && b <= MAXARG_Bx);
+  moon_assert(getOpMode(o) == OpMode::iAsBx);
+  moon_assert(A <= MAXARG_A && b <= MAXARG_Bx);
   return code(CREATE_ABx(o, A, b));
 }
 
@@ -247,7 +247,7 @@ int FuncState::codeAsBx(OpCode o, int A, int Bc) {
 ** Emit an "extra argument" instruction (format 'iAx')
 */
 int FuncState::codeextraarg(int A) {
-  lua_assert(A <= MAXARG_Ax);
+  moon_assert(A <= MAXARG_Ax);
   return code(CREATE_Ax(OP_EXTRAARG, A));
 }
 
@@ -272,9 +272,9 @@ int FuncState::codek(int reg, int k) {
 )
 */
 void FuncState::freeRegister(int reg) {
-  if (reg >= luaY_nvarstack(this)) {
+  if (reg >= moonY_nvarstack(this)) {
     decrementFirstFreeRegister();
-    lua_assert(reg == getFirstFreeRegister());
+    moon_assert(reg == getFirstFreeRegister());
   }
 }
 
@@ -314,16 +314,16 @@ void FuncState::freeExpressions(ExpDesc& leftExpr, ExpDesc& rightExpr) {
 ** Add constant 'v' to prototype's list of constants (field 'k').
 */
 int FuncState::addk(Proto& proto, TValue *v) {
-  lua_State *L = getLexState().getLuaState();
+  moon_State *L = getLexState().getLuaState();
   auto oldsize = proto.getConstantsSize();
   auto k = getNumberOfConstants();
-  luaM_growvector<TValue>(L, proto.getConstantsRef(), k, proto.getConstantsSizeRef(), MAXARG_Ax, "constants");
+  moonM_growvector<TValue>(L, proto.getConstantsRef(), k, proto.getConstantsSizeRef(), MAXARG_Ax, "constants");
   auto constantsSpan = proto.getConstantsSpan();
   while (oldsize < static_cast<int>(constantsSpan.size()))
     setnilvalue(&constantsSpan[oldsize++]);
   constantsSpan[k] = *v;
   incrementNumberOfConstants();
-  luaC_barrier(L, &proto, v);
+  moonC_barrier(L, &proto, v);
   return k;
 }
 
@@ -336,11 +336,11 @@ int FuncState::addk(Proto& proto, TValue *v) {
 int FuncState::k2proto(TValue *key, TValue *v) {
   TValue val;
   Proto& proto = getProto();
-  LuaT tag = getKCache()->get(key, &val);  // query scanner table
+  MoonT tag = getKCache()->get(key, &val);  // query scanner table
   if (!tagisempty(tag)) {  // is there an index there?
     auto k = cast_int(ivalue(&val));
     // collisions can happen only for float keys
-    lua_assert(ttisfloat(key) || VirtualMachine::rawequalObj(&proto.getConstants()[k], v));
+    moon_assert(ttisfloat(key) || VirtualMachine::rawequalObj(&proto.getConstants()[k], v));
     return k;  // reuse index
   }
   else {  // constant not found; create a new entry
@@ -365,7 +365,7 @@ int FuncState::stringK(TString& s) {
 /*
 ** Add an integer to list of constants and return its index.
 */
-int FuncState::intK(lua_Integer n) {
+int FuncState::intK(moon_Integer n) {
   TValue o;
   o.setInt(n);
   return k2proto(&o, &o);  // use integer itself as key
@@ -383,7 +383,7 @@ int FuncState::intK(lua_Integer n) {
 ** cases, just generate a new entry. At worst, this only wastes an entry
 ** with a duplicate.
 */
-int FuncState::numberK(lua_Number r) {
+int FuncState::numberK(moon_Number r) {
   TValue o, kv;
   o.setFloat(r);  // value as a TValue
   if (r == 0) {  // handle zero as a special case
@@ -392,9 +392,9 @@ int FuncState::numberK(lua_Number r) {
   }
   else {
     const int nbm = l_floatatt(MANT_DIG);
-    const lua_Number q = l_mathop(ldexp)(l_mathop(1.0), -nbm + 1);
-    const lua_Number k =  r * (1 + q);  // key
-    lua_Integer ik;
+    const moon_Number q = l_mathop(ldexp)(l_mathop(1.0), -nbm + 1);
+    const moon_Number k =  r * (1 + q);  // key
+    moon_Integer ik;
     kv.setFloat(k);  // key as a TValue
     if (!VirtualMachine::flttointeger(k, &ik, F2Imod::F2Ieq)) {  // not an integer value?
       auto n = k2proto(&kv, &o);  // use key
@@ -441,19 +441,19 @@ int FuncState::nilK() {
 ** (0 <= int2sC(i) && int2sC(i) <= MAXARG_C) but without risk of
 ** overflows in the hidden addition inside 'int2sC'.
 */
-static int fitsC (lua_Integer i) {
+static int fitsC (moon_Integer i) {
   return (l_castS2U(i) + OFFSET_sC <= cast_uint(MAXARG_C));
 }
 
 /*
 ** Check whether 'i' can be stored in an 'sBx' operand.
 */
-static int fitsBx (lua_Integer i) {
+static int fitsBx (moon_Integer i) {
   return (-OFFSET_sBx <= i && i <= MAXARG_Bx - OFFSET_sBx);
 }
 
-void FuncState::floatCode(int reg, lua_Number flt) {
-  lua_Integer fi;
+void FuncState::floatCode(int reg, moon_Number flt) {
+  moon_Integer fi;
   if (VirtualMachine::flttointeger(flt, &fi, F2Imod::F2Ieq) && fitsBx(fi))
     codeAsBx(OP_LOADF, reg, cast_int(fi));  // emit instruction - position not needed
   else
@@ -465,25 +465,25 @@ void FuncState::floatCode(int reg, lua_Number flt) {
 */
 static void const2exp (TValue *value, ExpDesc& expr) {
   switch (ttypetag(value)) {
-    case LuaT::NUMINT:
+    case MoonT::NUMINT:
       expr.setKind(VKINT); expr.setIntValue(ivalue(value));
       break;
-    case LuaT::NUMFLT:
+    case MoonT::NUMFLT:
       expr.setKind(VKFLT); expr.setFloatValue(fltvalue(value));
       break;
-    case LuaT::VFALSE:
+    case MoonT::VFALSE:
       expr.setKind(VFALSE);
       break;
-    case LuaT::VTRUE:
+    case MoonT::VTRUE:
       expr.setKind(VTRUE);
       break;
-    case LuaT::NIL:
+    case MoonT::NIL:
       expr.setKind(VNIL);
       break;
-    case LuaT::SHRSTR:  case LuaT::LNGSTR:
+    case MoonT::SHRSTR:  case MoonT::LNGSTR:
       expr.setKind(VKSTR); expr.setStringValue(tsvalue(value));
       break;
-    default: lua_assert(0);
+    default: moon_assert(0);
   }
 }
 
@@ -491,7 +491,7 @@ static void const2exp (TValue *value, ExpDesc& expr) {
 ** Convert a VKSTR to a VK
 */
 int FuncState::str2K(ExpDesc& expr) {
-  lua_assert(expr.getKind() == VKSTR);
+  moon_assert(expr.getKind() == VKSTR);
   expr.setInfo(stringK(*expr.getStringValue()));
   expr.setKind(VK);
   return expr.getInfo();
@@ -543,7 +543,7 @@ void FuncState::discharge2reg(ExpDesc& expr, int targetRegister) {
       break;
     }
     default: {
-      lua_assert(expr.getKind() == VJMP);
+      moon_assert(expr.getKind() == VJMP);
       return;  // nothing to do...
     }
   }
@@ -663,7 +663,7 @@ void FuncState::codeABRK(OpCode o, int A, int B, ExpDesc& ec) {
 void FuncState::negatecondition(ExpDesc& expr) {
   Instruction *instr = getjumpcontrol(expr.getInfo());
   InstructionView view(*instr);
-  lua_assert(view.testTMode() && view.opcode() != OP_TESTSET &&
+  moon_assert(view.testTMode() && view.opcode() != OP_TESTSET &&
                                   view.opcode() != OP_TEST);
   SETARG_k(*instr, static_cast<unsigned int>(view.k() ^ 1));
 }
@@ -713,7 +713,7 @@ void FuncState::codenot(ExpDesc& expr) {
       expr.setKind(VRELOC);
       break;
     }
-    default: lua_assert(0);  // cannot happen
+    default: moon_assert(0);  // cannot happen
   }
   // interchange true and false lists
   { int temp = expr.getFalseList(); expr.setFalseList(expr.getTrueList()); expr.setTrueList(temp); }
@@ -757,7 +757,7 @@ static bool isSCint (ExpDesc& expr) {
 ** proper range to fit in a register (sB or sC).
 */
 static bool isSCnumber (ExpDesc& expr, int *intResult, int *isFloat) {
-  lua_Integer intValue;
+  moon_Integer intValue;
   if (expr.getKind() == VKINT)
     intValue = expr.getIntValue();
   else if (expr.getKind() == VKFLT && VirtualMachine::flttointeger(expr.getFloatValue(), &intValue, F2Imod::F2Ieq))
@@ -779,13 +779,13 @@ static bool isSCnumber (ExpDesc& expr, int *intResult, int *isFloat) {
 */
 static bool validop (int op, TValue *v1, TValue *v2) {
   switch (op) {
-    case LUA_OPBAND: case LUA_OPBOR: case LUA_OPBXOR:
-    case LUA_OPSHL: case LUA_OPSHR: case LUA_OPBNOT: {  // conversion errors
-      lua_Integer i;
+    case MOON_OPBAND: case MOON_OPBOR: case MOON_OPBXOR:
+    case MOON_OPSHL: case MOON_OPSHR: case MOON_OPBNOT: {  // conversion errors
+      moon_Integer i;
       return (tointegerns(v1, &i) &&
               tointegerns(v2, &i));
     }
-    case LUA_OPDIV: case LUA_OPIDIV: case LUA_OPMOD:  // division by 0
+    case MOON_OPDIV: case MOON_OPIDIV: case MOON_OPMOD:  // division by 0
       return (nvalue(v2) != 0);
     default: return true;  // everything else is valid
   }
@@ -799,15 +799,15 @@ int FuncState::constfolding(int op, ExpDesc& e1, const ExpDesc& e2) {
   TValue v1, v2, res;
   if (!tonumeral(e1, &v1) || !tonumeral(e2, &v2) || !validop(op, &v1, &v2))
     return 0;  // non-numeric operands or not safe to fold
-  if (!luaO_rawarith(getLexState().getLuaState(), op, &v1, &v2, &res))
+  if (!moonO_rawarith(getLexState().getLuaState(), op, &v1, &v2, &res))
     return 0;  // operation failed
   if (ttisinteger(&res)) {
     e1.setKind(VKINT);
     e1.setIntValue(ivalue(&res));
   }
   else {  // folds neither NaN nor 0.0 (to avoid problems with -0.0)
-    lua_Number n = fltvalue(&res);
-    if (luai_numisnan(n) || n == 0)
+    moon_Number n = fltvalue(&res);
+    if (mooni_numisnan(n) || n == 0)
       return 0;
     e1.setKind(VKFLT);
     e1.setFloatValue(n);
@@ -819,7 +819,7 @@ int FuncState::constfolding(int op, ExpDesc& e1, const ExpDesc& e2) {
 ** Convert a BinOpr to an OpCode  (ORDER OPR - ORDER OP)
 */
 static inline OpCode binopr2op (BinOpr opr, BinOpr baser, OpCode base) {
-  lua_assert(baser <= opr &&
+  moon_assert(baser <= opr &&
             ((baser == BinOpr::OPR_ADD && opr <= BinOpr::OPR_SHR) ||
              (baser == BinOpr::OPR_LT && opr <= BinOpr::OPR_LE)));
   return static_cast<OpCode>((cast_int(opr) - cast_int(baser)) + cast_int(base));
@@ -837,7 +837,7 @@ static inline OpCode unopr2op (UnOpr opr) {
 ** Convert a BinOpr to a tag method  (ORDER OPR - ORDER TM)
 */
 static inline TMS binopr2TM (BinOpr opr) {
-  lua_assert(BinOpr::OPR_ADD <= opr && opr <= BinOpr::OPR_SHR);
+  moon_assert(BinOpr::OPR_ADD <= opr && opr <= BinOpr::OPR_SHR);
   return static_cast<TMS>((cast_int(opr) - cast_int(BinOpr::OPR_ADD)) + cast_int(TMS::TM_ADD));
 }
 
@@ -880,9 +880,9 @@ void FuncState::codebinexpval(BinOpr opr, ExpDesc& leftExpr, ExpDesc& rightExpr,
   auto operation = binopr2op(opr, BinOpr::OPR_ADD, OP_ADD);
   auto rightRegister = exp2anyreg(rightExpr);  // make sure 'rightExpr' is in a register
   // 'leftExpr' must be already in a register or it is a constant
-  lua_assert((VNIL <= leftExpr.getKind() && leftExpr.getKind() <= VKSTR) ||
+  moon_assert((VNIL <= leftExpr.getKind() && leftExpr.getKind() <= VKSTR) ||
              leftExpr.getKind() == VNONRELOC || leftExpr.getKind() == VRELOC);
-  lua_assert(OP_ADD <= operation && operation <= OP_SHR);
+  moon_assert(OP_ADD <= operation && operation <= OP_SHR);
   finishbinexpval(leftExpr, rightExpr, operation, rightRegister, 0, line, OP_MMBIN, binopr2TM(opr));
 }
 
@@ -892,7 +892,7 @@ void FuncState::codebinexpval(BinOpr opr, ExpDesc& leftExpr, ExpDesc& rightExpr,
 void FuncState::codebini(OpCode operation, ExpDesc& leftExpr, ExpDesc& rightExpr, int flip,
                           int line, TMS event) {
   int rightValue = int2sC(cast_int(rightExpr.getIntValue()));  // immediate operand
-  lua_assert(rightExpr.getKind() == VKINT);
+  moon_assert(rightExpr.getKind() == VKINT);
   finishbinexpval(leftExpr, rightExpr, operation, rightValue, flip, line, OP_MMBINI, event);
 }
 
@@ -913,7 +913,7 @@ int FuncState::finishbinexpneg(ExpDesc& e1, ExpDesc& e2, OpCode op, int line, TM
   if (!isKint(e2))
     return 0;  // not an integer constant
   else {
-    lua_Integer i2 = e2.getIntValue();
+    moon_Integer i2 = e2.getIntValue();
     if (!(fitsC(i2) && fitsC(-i2)))
       return 0;  // not in the proper range
     else {  // operating a small integer constant
@@ -1016,7 +1016,7 @@ void FuncState::codeorder(BinOpr opr, ExpDesc& e1, ExpDesc& e2) {
 
 /*
 ** Emit code for equality comparisons ('==', '~=').
-** 'e1' was already put as RK by 'luaK_infix'.
+** 'e1' was already put as RK by 'moonK_infix'.
 */
 void FuncState::codeeq(BinOpr opr, ExpDesc& e1, ExpDesc& e2) {
   int r1, r2;
@@ -1024,7 +1024,7 @@ void FuncState::codeeq(BinOpr opr, ExpDesc& e1, ExpDesc& e2) {
   int isfloat = 0;  // not needed here, but kept for symmetry
   OpCode op;
   if (e1.getKind() != VNONRELOC) {
-    lua_assert(e1.getKind() == VK || e1.getKind() == VKINT || e1.getKind() == VKFLT);
+    moon_assert(e1.getKind() == VK || e1.getKind() == VKINT || e1.getKind() == VKFLT);
     swapexps(e1, e2);
   }
   r1 = exp2anyreg(e1);  // 1st expression must be in register
@@ -1054,7 +1054,7 @@ void FuncState::codeconcat(ExpDesc& e1, ExpDesc& e2, int line) {
   Instruction *ie2 = previousinstruction();
   if (InstructionView(*ie2).opcode() == OP_CONCAT) {  // is 'e2' a concatenation?
     int n = InstructionView(*ie2).b();  // # of elements concatenated in 'e2'
-    lua_assert(e1.getInfo() + 1 == InstructionView(*ie2).a());
+    moon_assert(e1.getInfo() + 1 == InstructionView(*ie2).a());
     freeExpression(e2);
     SETARG_A(*ie2, static_cast<unsigned int>(e1.getInfo()));  // correct first element ('e1')
     SETARG_B(*ie2, static_cast<unsigned int>(n + 1));  // will concatenate one more element
@@ -1084,14 +1084,14 @@ int FuncState::finaltarget(int i) {
 /*
 ** =====================================================================
 ** FuncState Method Implementations
-** Simple wrappers that forward to existing luaK_* functions
+** Simple wrappers that forward to existing moonK_* functions
 ** =====================================================================
 */
 
 int FuncState::code(Instruction i) {
   Proto& proto = getProto();
   // put new instruction in code array
-  luaM_growvector<Instruction>(getLexState().getLuaState(), proto.getCodeRef(), getPC(), proto.getCodeSizeRef(),
+  moonM_growvector<Instruction>(getLexState().getLuaState(), proto.getCodeRef(), getPC(), proto.getCodeSizeRef(),
                   std::numeric_limits<int>::max(), "opcodes");
   proto.getCode()[postIncrementPC()] = i;
   savelineinfo(proto, getLexState().getLastLine());
@@ -1100,31 +1100,31 @@ int FuncState::code(Instruction i) {
 
 int FuncState::codeABx(int o, int A, int Bx) {
   OpCode op = static_cast<OpCode>(o);
-  lua_assert(getOpMode(op) == OpMode::iABx);
-  lua_assert(A <= MAXARG_A && Bx <= MAXARG_Bx);
+  moon_assert(getOpMode(op) == OpMode::iABx);
+  moon_assert(A <= MAXARG_A && Bx <= MAXARG_Bx);
   return code(CREATE_ABx(op, A, Bx));
 }
 
 int FuncState::codeABCk(int o, int A, int B, int C, int k) {
   OpCode op = static_cast<OpCode>(o);
-  lua_assert(getOpMode(op) == OpMode::iABC);
-  lua_assert(A <= MAXARG_A && B <= MAXARG_B &&
+  moon_assert(getOpMode(op) == OpMode::iABC);
+  moon_assert(A <= MAXARG_A && B <= MAXARG_B &&
              C <= MAXARG_C && (k & ~1) == 0);
   return code(CREATE_ABCk(op, A, B, C, k));
 }
 
 int FuncState::codevABCk(int o, int A, int B, int C, int k) {
   OpCode op = static_cast<OpCode>(o);
-  lua_assert(getOpMode(op) == OpMode::ivABC);
-  lua_assert(A <= MAXARG_A && B <= MAXARG_vB &&
+  moon_assert(getOpMode(op) == OpMode::ivABC);
+  moon_assert(A <= MAXARG_A && B <= MAXARG_vB &&
              C <= MAXARG_vC && (k & ~1) == 0);
   return code(CREATE_vABCk(op, A, B, C, k));
 }
 
 int FuncState::codesJ(int o, int sj, int k) {
   int j = sj + OFFSET_sJ;
-  lua_assert(getOpMode(static_cast<OpCode>(o)) == OpMode::isJ);
-  lua_assert(j <= MAXARG_sJ && (k & ~1) == 0);
+  moon_assert(getOpMode(static_cast<OpCode>(o)) == OpMode::isJ);
+  moon_assert(j <= MAXARG_sJ && (k & ~1) == 0);
   return code(CREATE_sJ(static_cast<OpCode>(o), j, k));
 }
 
@@ -1184,12 +1184,12 @@ void FuncState::reserveregs(int n) {
 void FuncState::checkstack(int n) {
   int newstack = getFirstFreeRegister() + n;
   if (newstack > getProto().getMaxStackSize()) {
-    luaY_checklimit(this, newstack, MAX_FSTACK, "registers");
+    moonY_checklimit(this, newstack, MAX_FSTACK, "registers");
     getProto().setMaxStackSize(cast_byte(newstack));
   }
 }
 
-void FuncState::intCode(int reg, lua_Integer i) {
+void FuncState::intCode(int reg, moon_Integer i) {
   if (fitsBx(i))
     codeAsBx(OP_LOADI, reg, cast_int(i));
   else
@@ -1249,7 +1249,7 @@ int FuncState::exp2anyreg(ExpDesc& expr) {
   if (expr.getKind() == VNONRELOC) {  // expression already has a register?
     if (!hasjumps(expr))  // no jumps?
       return expr.getInfo();  // result is already in a register
-    if (expr.getInfo() >= luaY_nvarstack(this)) {  // reg. is not a local?
+    if (expr.getInfo() >= moonY_nvarstack(this)) {  // reg. is not a local?
       exp2reg(expr, expr.getInfo());  // put final result in it
       return expr.getInfo();
     }
@@ -1288,7 +1288,7 @@ void FuncState::self(ExpDesc& receiver, ExpDesc& methodKey) {
   receiver.setInfo(baseRegister);  // base register for op_self
   receiver.setKind(VNONRELOC);  // self expression has a fixed register
   reserveregs(2);  // method and 'self' produced by op_self
-  lua_assert(methodKey.getKind() == VKSTR);
+  moon_assert(methodKey.getKind() == VKSTR);
   // is method name a short string in a valid K index?
   if (strisshr(methodKey.getStringValue()) && exp2K(methodKey)) {
     // can use 'self' opcode
@@ -1304,14 +1304,14 @@ void FuncState::self(ExpDesc& receiver, ExpDesc& methodKey) {
 
 void FuncState::indexed(ExpDesc& t, ExpDesc& k) {
   int keystr = (k.getKind() == VKSTR) ? str2K(k) : -1;
-  lua_assert(!hasjumps(t) &&
+  moon_assert(!hasjumps(t) &&
              (t.getKind() == VLOCAL || t.getKind() == VNONRELOC || t.getKind() == VUPVAL));
   if (t.getKind() == VUPVAL && !isKstr(k))  // upvalue indexed by non 'Kstr'?
     exp2anyreg(t);  // put it in a register - result via t.getInfo()
   if (t.getKind() == VUPVAL) {
     lu_byte temp = cast_byte(t.getInfo());  // upvalue index
     t.setIndexedTableReg(temp);  // (can't do a direct assignment; values overlap)
-    lua_assert(isKstr(k));
+    moon_assert(isKstr(k));
     t.setIndexedKeyIndex(cast_short(k.getInfo()));  // literal short string
     t.setKind(VINDEXUP);
   }
@@ -1408,18 +1408,18 @@ void FuncState::storevar(ExpDesc& var, ExpDesc& ex) {
       codeABRK(OP_SETTABLE, var.getIndexedTableReg(), var.getIndexedKeyIndex(), ex);
       break;
     }
-    default: lua_assert(0);  // invalid var kind to store
+    default: moon_assert(0);  // invalid var kind to store
   }
   freeExpression(ex);
 }
 
 void FuncState::setreturns(ExpDesc& expr, int resultCount) {
   Instruction *instr = &getinstruction(this, expr);
-  luaY_checklimit(this, resultCount + 1, MAXARG_C, "multiple results");
+  moonY_checklimit(this, resultCount + 1, MAXARG_C, "multiple results");
   if (expr.getKind() == VCALL)  // expression is an open function call?
     SETARG_C(*instr, static_cast<unsigned int>(resultCount + 1));
   else {
-    lua_assert(expr.getKind() == VVARARG);
+    moon_assert(expr.getKind() == VVARARG);
     SETARG_C(*instr, static_cast<unsigned int>(resultCount + 1));
     SETARG_A(*instr, static_cast<unsigned int>(getFirstFreeRegister()));
     reserveregs(1);
@@ -1429,7 +1429,7 @@ void FuncState::setreturns(ExpDesc& expr, int resultCount) {
 void FuncState::setoneret(ExpDesc& expr) {
   if (expr.getKind() == VCALL) {  // expression is an open function call?
     // already returns 1 value
-    lua_assert(InstructionView(getinstruction(this, expr)).c() == 2);
+    moon_assert(InstructionView(getinstruction(this, expr)).c() == 2);
     expr.setKind(VNONRELOC);  // result has fixed position
     expr.setInfo(InstructionView(getinstruction(this, expr)).a());
   }
@@ -1450,12 +1450,12 @@ void FuncState::ret(int first, int nret) {
     case 1: op = OP_RETURN1; break;
     default: op = OP_RETURN; break;
   }
-  luaY_checklimit(this, nret + 1, MAXARG_B, "returns");
+  moonY_checklimit(this, nret + 1, MAXARG_B, "returns");
   codeABC(op, first, nret + 1, 0);
 }
 
 void FuncState::patchlist(int list, int target) {
-  lua_assert(target <= getPC());
+  moon_assert(target <= getPC());
   patchlistaux(list, target, NO_REG, target);
 }
 
@@ -1491,14 +1491,14 @@ void FuncState::prefix(UnOpr operation, ExpDesc& expr, int line) {
   dischargevars(expr);
   switch (operation) {
     case UnOpr::OPR_MINUS: case UnOpr::OPR_BNOT:  // use 'fakeOperand' as fake 2nd operand
-      if (constfolding(cast_int(operation) + LUA_OPUNM, expr, fakeOperand))
+      if (constfolding(cast_int(operation) + MOON_OPUNM, expr, fakeOperand))
         break;
       /* else */ /* FALLTHROUGH */
     case UnOpr::OPR_LEN:
       codeunexpval(unopr2op(operation), expr, line);
       break;
     case UnOpr::OPR_NOT: codenot(expr); break;
-    default: lua_assert(0);
+    default: moon_assert(0);
   }
 }
 
@@ -1542,23 +1542,23 @@ void FuncState::infix(BinOpr op, ExpDesc& v) {
       // else keep numeral, which may be an immediate operand
       break;
     }
-    default: lua_assert(0);
+    default: moon_assert(0);
   }
 }
 
 void FuncState::posfix(BinOpr op, ExpDesc& e1, ExpDesc& e2, int line) {
   dischargevars(e2);
-  if (foldbinop(op) && constfolding(cast_int(op) + LUA_OPADD, e1, e2))
+  if (foldbinop(op) && constfolding(cast_int(op) + MOON_OPADD, e1, e2))
     return;  // done by folding
   switch (op) {
     case BinOpr::OPR_AND: {
-      lua_assert(e1.getTrueList() == NO_JUMP);  // list closed by 'luaK_infix'
+      moon_assert(e1.getTrueList() == NO_JUMP);  // list closed by 'moonK_infix'
       concat(e2.getFalseListRef(), e1.getFalseList());
       e1 = e2;
       break;
     }
     case BinOpr::OPR_OR: {
-      lua_assert(e1.getFalseList() == NO_JUMP);  // list closed by 'luaK_infix'
+      moon_assert(e1.getFalseList() == NO_JUMP);  // list closed by 'moonK_infix'
       concat(e2.getTrueListRef(), e1.getTrueList());
       e1 = e2;
       break;
@@ -1617,7 +1617,7 @@ void FuncState::posfix(BinOpr op, ExpDesc& e1, ExpDesc& e2, int line) {
       codeorder(op, e1, e2);
       break;
     }
-    default: lua_assert(0);
+    default: moon_assert(0);
   }
 }
 
@@ -1626,14 +1626,14 @@ void FuncState::settablesize(int pcpos, unsigned ra, unsigned asize, unsigned hs
   int extra = asize / (MAXARG_vC + 1);  // higher bits of array size
   int rc = asize % (MAXARG_vC + 1);  // lower bits of array size
   int k = (extra > 0);  // true iff needs extra argument
-  int hsize_coded = (hsize != 0) ? luaO_ceillog2(cast_uint(hsize)) + 1 : 0;
+  int hsize_coded = (hsize != 0) ? moonO_ceillog2(cast_uint(hsize)) + 1 : 0;
   *inst = CREATE_vABCk(OP_NEWTABLE, static_cast<int>(ra), hsize_coded, rc, k);
   *(inst + 1) = CREATE_Ax(OP_EXTRAARG, extra);
 }
 
 void FuncState::setlist(int base, int nelems, int tostore) {
-  lua_assert(tostore != 0);
-  if (tostore == LUA_MULTRET)
+  moon_assert(tostore != 0);
+  if (tostore == MOON_MULTRET)
     tostore = 0;
   if (nelems <= MAXARG_vC)
     codevABCk(OP_SETLIST, base, tostore, nelems, 0);
@@ -1652,8 +1652,8 @@ void FuncState::finish() {
   for (int i = 0; i < getPC(); i++) {
     Instruction *instr = &codeSpan[i];
     // avoid "not used" warnings when assert is off (for 'onelua.c')
-    (void)luaP_isOT; (void)luaP_isIT;
-    lua_assert(i == 0 || luaP_isOT(*(instr - 1)) == luaP_isIT(*instr));
+    (void)moonP_isOT; (void)moonP_isIT;
+    moon_assert(i == 0 || moonP_isOT(*(instr - 1)) == moonP_isIT(*instr));
     switch (InstructionView(*instr).opcode()) {
       case OP_RETURN0: case OP_RETURN1: {
         if (!(getNeedClose() || (p.getFlag() & PF_ISVARARG)))

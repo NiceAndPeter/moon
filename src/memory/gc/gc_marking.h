@@ -117,7 +117,7 @@ private:
     static l_mem traverseproto(GlobalState& g, Proto* f);
     static l_mem traverseCclosure(GlobalState& g, CClosure* cl);
     static l_mem traverseLclosure(GlobalState& g, LClosure* cl);
-    static l_mem traversethread(GlobalState& g, lua_State* th);
+    static l_mem traversethread(GlobalState& g, moon_State* th);
 };
 
 /*

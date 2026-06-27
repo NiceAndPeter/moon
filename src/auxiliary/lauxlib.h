@@ -25,107 +25,107 @@ extern "C" {
 
 
 /* global table */
-#define LUA_GNAME	"_G"
+#define MOON_GNAME	"_G"
 
 
-typedef struct luaL_Buffer luaL_Buffer;
+typedef struct moonL_Buffer moonL_Buffer;
 
 
-/* extra error code for 'luaL_loadfilex' */
-#define LUA_ERRFILE     (LUA_ERRERR+1)
+/* extra error code for 'moonL_loadfilex' */
+#define MOON_ERRFILE     (MOON_ERRERR+1)
 
 
 /* key, in the registry, for table of loaded modules */
-#define LUA_LOADED_TABLE	"_LOADED"
+#define MOON_LOADED_TABLE	"_LOADED"
 
 
 /* key, in the registry, for table of preloaded loaders */
-#define LUA_PRELOAD_TABLE	"_PRELOAD"
+#define MOON_PRELOAD_TABLE	"_PRELOAD"
 
 
-typedef struct luaL_Reg {
+typedef struct moonL_Reg {
   const char *name;
-  lua_CFunction func;
-} luaL_Reg;
+  moon_CFunction func;
+} moonL_Reg;
 
 
-#define LUAL_NUMSIZES	(sizeof(lua_Integer)*16 + sizeof(lua_Number))
+#define MOONL_NUMSIZES	(sizeof(moon_Integer)*16 + sizeof(moon_Number))
 
-LUALIB_API void (luaL_checkversion_) (lua_State *L, lua_Number ver, size_t sz);
-#define luaL_checkversion(L)  \
-	  luaL_checkversion_(L, LUA_VERSION_NUM, LUAL_NUMSIZES)
+MOONLIB_API void (moonL_checkversion_) (moon_State *L, moon_Number ver, size_t sz);
+#define moonL_checkversion(L)  \
+	  moonL_checkversion_(L, MOON_VERSION_NUM, MOONL_NUMSIZES)
 
-LUALIB_API int (luaL_getmetafield) (lua_State *L, int obj, const char *e);
-LUALIB_API int (luaL_callmeta) (lua_State *L, int obj, const char *e);
-LUALIB_API const char *(luaL_tolstring) (lua_State *L, int idx, size_t *len);
-LUALIB_API int (luaL_argerror) (lua_State *L, int arg, const char *extramsg);
-LUALIB_API int (luaL_typeerror) (lua_State *L, int arg, const char *tname);
-LUALIB_API const char *(luaL_checklstring) (lua_State *L, int arg,
+MOONLIB_API int (moonL_getmetafield) (moon_State *L, int obj, const char *e);
+MOONLIB_API int (moonL_callmeta) (moon_State *L, int obj, const char *e);
+MOONLIB_API const char *(moonL_tolstring) (moon_State *L, int idx, size_t *len);
+MOONLIB_API int (moonL_argerror) (moon_State *L, int arg, const char *extramsg);
+MOONLIB_API int (moonL_typeerror) (moon_State *L, int arg, const char *tname);
+MOONLIB_API const char *(moonL_checklstring) (moon_State *L, int arg,
                                                           size_t *l);
-LUALIB_API const char *(luaL_optlstring) (lua_State *L, int arg,
+MOONLIB_API const char *(moonL_optlstring) (moon_State *L, int arg,
                                           const char *def, size_t *l);
-LUALIB_API lua_Number (luaL_checknumber) (lua_State *L, int arg);
-LUALIB_API lua_Number (luaL_optnumber) (lua_State *L, int arg, lua_Number def);
+MOONLIB_API moon_Number (moonL_checknumber) (moon_State *L, int arg);
+MOONLIB_API moon_Number (moonL_optnumber) (moon_State *L, int arg, moon_Number def);
 
-LUALIB_API lua_Integer (luaL_checkinteger) (lua_State *L, int arg);
-LUALIB_API lua_Integer (luaL_optinteger) (lua_State *L, int arg,
-                                          lua_Integer def);
+MOONLIB_API moon_Integer (moonL_checkinteger) (moon_State *L, int arg);
+MOONLIB_API moon_Integer (moonL_optinteger) (moon_State *L, int arg,
+                                          moon_Integer def);
 
-LUALIB_API void (luaL_checkstack) (lua_State *L, int sz, const char *msg);
-LUALIB_API void (luaL_checktype) (lua_State *L, int arg, int t);
-LUALIB_API void (luaL_checkany) (lua_State *L, int arg);
+MOONLIB_API void (moonL_checkstack) (moon_State *L, int sz, const char *msg);
+MOONLIB_API void (moonL_checktype) (moon_State *L, int arg, int t);
+MOONLIB_API void (moonL_checkany) (moon_State *L, int arg);
 
-LUALIB_API int   (luaL_newmetatable) (lua_State *L, const char *tname);
-LUALIB_API void  (luaL_setmetatable) (lua_State *L, const char *tname);
-LUALIB_API void *(luaL_testudata) (lua_State *L, int ud, const char *tname);
-LUALIB_API void *(luaL_checkudata) (lua_State *L, int ud, const char *tname);
+MOONLIB_API int   (moonL_newmetatable) (moon_State *L, const char *tname);
+MOONLIB_API void  (moonL_setmetatable) (moon_State *L, const char *tname);
+MOONLIB_API void *(moonL_testudata) (moon_State *L, int ud, const char *tname);
+MOONLIB_API void *(moonL_checkudata) (moon_State *L, int ud, const char *tname);
 
-LUALIB_API void (luaL_where) (lua_State *L, int lvl);
-LUALIB_API int (luaL_error) (lua_State *L, const char *fmt, ...);
+MOONLIB_API void (moonL_where) (moon_State *L, int lvl);
+MOONLIB_API int (moonL_error) (moon_State *L, const char *fmt, ...);
 
-LUALIB_API int (luaL_checkoption) (lua_State *L, int arg, const char *def,
+MOONLIB_API int (moonL_checkoption) (moon_State *L, int arg, const char *def,
                                    const char *const lst[]);
 
-LUALIB_API int (luaL_fileresult) (lua_State *L, int stat, const char *fname);
-LUALIB_API int (luaL_execresult) (lua_State *L, int stat);
+MOONLIB_API int (moonL_fileresult) (moon_State *L, int stat, const char *fname);
+MOONLIB_API int (moonL_execresult) (moon_State *L, int stat);
 
 
 /* predefined references */
-#define LUA_NOREF       (-2)
-#define LUA_REFNIL      (-1)
+#define MOON_NOREF       (-2)
+#define MOON_REFNIL      (-1)
 
-LUALIB_API int (luaL_ref) (lua_State *L, int t);
-LUALIB_API void (luaL_unref) (lua_State *L, int t, int ref);
+MOONLIB_API int (moonL_ref) (moon_State *L, int t);
+MOONLIB_API void (moonL_unref) (moon_State *L, int t, int ref);
 
-LUALIB_API int (luaL_loadfilex) (lua_State *L, const char *filename,
+MOONLIB_API int (moonL_loadfilex) (moon_State *L, const char *filename,
                                                const char *mode);
 
-#define luaL_loadfile(L,f)	luaL_loadfilex(L,f,NULL)
+#define moonL_loadfile(L,f)	moonL_loadfilex(L,f,NULL)
 
-LUALIB_API int (luaL_loadbufferx) (lua_State *L, const char *buff, size_t sz,
+MOONLIB_API int (moonL_loadbufferx) (moon_State *L, const char *buff, size_t sz,
                                    const char *name, const char *mode);
-LUALIB_API int (luaL_loadstring) (lua_State *L, const char *s);
+MOONLIB_API int (moonL_loadstring) (moon_State *L, const char *s);
 
-LUALIB_API lua_State *(luaL_newstate) (void);
+MOONLIB_API moon_State *(moonL_newstate) (void);
 
-LUALIB_API unsigned luaL_makeseed (lua_State *L);
+MOONLIB_API unsigned moonL_makeseed (moon_State *L);
 
-LUALIB_API lua_Integer (luaL_len) (lua_State *L, int idx);
+MOONLIB_API moon_Integer (moonL_len) (moon_State *L, int idx);
 
-LUALIB_API void (luaL_addgsub) (luaL_Buffer *b, const char *s,
+MOONLIB_API void (moonL_addgsub) (moonL_Buffer *b, const char *s,
                                      const char *p, const char *r);
-LUALIB_API const char *(luaL_gsub) (lua_State *L, const char *s,
+MOONLIB_API const char *(moonL_gsub) (moon_State *L, const char *s,
                                     const char *p, const char *r);
 
-LUALIB_API void (luaL_setfuncs) (lua_State *L, const luaL_Reg *l, int nup);
+MOONLIB_API void (moonL_setfuncs) (moon_State *L, const moonL_Reg *l, int nup);
 
-LUALIB_API int (luaL_getsubtable) (lua_State *L, int idx, const char *fname);
+MOONLIB_API int (moonL_getsubtable) (moon_State *L, int idx, const char *fname);
 
-LUALIB_API void (luaL_traceback) (lua_State *L, lua_State *L1,
+MOONLIB_API void (moonL_traceback) (moon_State *L, moon_State *L1,
                                   const char *msg, int level);
 
-LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
-                                 lua_CFunction openf, int glb);
+MOONLIB_API void (moonL_requiref) (moon_State *L, const char *modname,
+                                 moon_CFunction openf, int glb);
 
 /*
 ** ===============================================================
@@ -134,49 +134,49 @@ LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
 */
 
 
-#define luaL_newlibtable(L,l)	\
-  lua_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
+#define moonL_newlibtable(L,l)	\
+  moon_createtable(L, 0, sizeof(l)/sizeof((l)[0]) - 1)
 
-#define luaL_newlib(L,l)  \
-  (luaL_checkversion(L), luaL_newlibtable(L,l), luaL_setfuncs(L,l,0))
+#define moonL_newlib(L,l)  \
+  (moonL_checkversion(L), moonL_newlibtable(L,l), moonL_setfuncs(L,l,0))
 
-#define luaL_argcheck(L, cond,arg,extramsg)	\
-	((void)(luai_likely(cond) || luaL_argerror(L, (arg), (extramsg))))
+#define moonL_argcheck(L, cond,arg,extramsg)	\
+	((void)(mooni_likely(cond) || moonL_argerror(L, (arg), (extramsg))))
 
-#define luaL_argexpected(L,cond,arg,tname)	\
-	((void)(luai_likely(cond) || luaL_typeerror(L, (arg), (tname))))
+#define moonL_argexpected(L,cond,arg,tname)	\
+	((void)(mooni_likely(cond) || moonL_typeerror(L, (arg), (tname))))
 
-#define luaL_checkstring(L,n)	(luaL_checklstring(L, (n), NULL))
-#define luaL_optstring(L,n,d)	(luaL_optlstring(L, (n), (d), NULL))
+#define moonL_checkstring(L,n)	(moonL_checklstring(L, (n), NULL))
+#define moonL_optstring(L,n,d)	(moonL_optlstring(L, (n), (d), NULL))
 
-#define luaL_typename(L,i)	lua_typename(L, lua_type(L,(i)))
+#define moonL_typename(L,i)	moon_typename(L, moon_type(L,(i)))
 
-#define luaL_dofile(L, fn) \
-	(luaL_loadfile(L, fn) || lua_pcall(L, 0, LUA_MULTRET, 0))
+#define moonL_dofile(L, fn) \
+	(moonL_loadfile(L, fn) || moon_pcall(L, 0, MOON_MULTRET, 0))
 
-#define luaL_dostring(L, s) \
-	(luaL_loadstring(L, s) || lua_pcall(L, 0, LUA_MULTRET, 0))
+#define moonL_dostring(L, s) \
+	(moonL_loadstring(L, s) || moon_pcall(L, 0, MOON_MULTRET, 0))
 
-#define luaL_getmetatable(L,n)	(lua_getfield(L, LUA_REGISTRYINDEX, (n)))
+#define moonL_getmetatable(L,n)	(moon_getfield(L, MOON_REGISTRYINDEX, (n)))
 
-#define luaL_opt(L,f,n,d)	(lua_isnoneornil(L,(n)) ? (d) : f(L,(n)))
+#define moonL_opt(L,f,n,d)	(moon_isnoneornil(L,(n)) ? (d) : f(L,(n)))
 
-#define luaL_loadbuffer(L,s,sz,n)	luaL_loadbufferx(L,s,sz,n,NULL)
+#define moonL_loadbuffer(L,s,sz,n)	moonL_loadbufferx(L,s,sz,n,NULL)
 
 
 /*
-** Perform arithmetic operations on lua_Integer values with wrap-around
+** Perform arithmetic operations on moon_Integer values with wrap-around
 ** semantics, as the Lua core does.
 */
-#define luaL_intop(op,v1,v2)  \
-	((lua_Integer)((lua_Unsigned)(v1) op (lua_Unsigned)(v2)))
+#define moonL_intop(op,v1,v2)  \
+	((moon_Integer)((moon_Unsigned)(v1) op (moon_Unsigned)(v2)))
 
 
 /* push the value used to represent failure/error */
-#if defined(LUA_FAILISFALSE)
-#define luaL_pushfail(L)	lua_pushboolean(L, 0)
+#if defined(MOON_FAILISFALSE)
+#define moonL_pushfail(L)	moon_pushboolean(L, 0)
 #else
-#define luaL_pushfail(L)	lua_pushnil(L)
+#define moonL_pushfail(L)	moon_pushnil(L)
 #endif
 
 
@@ -187,40 +187,40 @@ LUALIB_API void (luaL_requiref) (lua_State *L, const char *modname,
 ** =======================================================
 */
 
-struct luaL_Buffer {
+struct moonL_Buffer {
   char *b;  /* buffer address */
   size_t size;  /* buffer size */
   size_t n;  /* number of characters in buffer */
-  lua_State *L;
+  moon_State *L;
   union {
-    LUAI_MAXALIGN;  /* ensure maximum alignment for buffer */
-    char b[LUAL_BUFFERSIZE];  /* initial buffer */
+    MOONI_MAXALIGN;  /* ensure maximum alignment for buffer */
+    char b[MOONL_BUFFERSIZE];  /* initial buffer */
   } init;
 };
 
 
-#define luaL_bufflen(bf)	((bf)->n)
-#define luaL_buffaddr(bf)	((bf)->b)
+#define moonL_bufflen(bf)	((bf)->n)
+#define moonL_buffaddr(bf)	((bf)->b)
 
 
-#define luaL_addchar(B,c) \
-  ((void)((B)->n < (B)->size || luaL_prepbuffsize((B), 1)), \
+#define moonL_addchar(B,c) \
+  ((void)((B)->n < (B)->size || moonL_prepbuffsize((B), 1)), \
    ((B)->b[(B)->n++] = (c)))
 
-#define luaL_addsize(B,s)	((B)->n += (s))
+#define moonL_addsize(B,s)	((B)->n += (s))
 
-#define luaL_buffsub(B,s)	((B)->n -= (s))
+#define moonL_buffsub(B,s)	((B)->n -= (s))
 
-LUALIB_API void (luaL_buffinit) (lua_State *L, luaL_Buffer *B);
-LUALIB_API char *(luaL_prepbuffsize) (luaL_Buffer *B, size_t sz);
-LUALIB_API void (luaL_addlstring) (luaL_Buffer *B, const char *s, size_t l);
-LUALIB_API void (luaL_addstring) (luaL_Buffer *B, const char *s);
-LUALIB_API void (luaL_addvalue) (luaL_Buffer *B);
-LUALIB_API void (luaL_pushresult) (luaL_Buffer *B);
-LUALIB_API void (luaL_pushresultsize) (luaL_Buffer *B, size_t sz);
-LUALIB_API char *(luaL_buffinitsize) (lua_State *L, luaL_Buffer *B, size_t sz);
+MOONLIB_API void (moonL_buffinit) (moon_State *L, moonL_Buffer *B);
+MOONLIB_API char *(moonL_prepbuffsize) (moonL_Buffer *B, size_t sz);
+MOONLIB_API void (moonL_addlstring) (moonL_Buffer *B, const char *s, size_t l);
+MOONLIB_API void (moonL_addstring) (moonL_Buffer *B, const char *s);
+MOONLIB_API void (moonL_addvalue) (moonL_Buffer *B);
+MOONLIB_API void (moonL_pushresult) (moonL_Buffer *B);
+MOONLIB_API void (moonL_pushresultsize) (moonL_Buffer *B, size_t sz);
+MOONLIB_API char *(moonL_buffinitsize) (moon_State *L, moonL_Buffer *B, size_t sz);
 
-#define luaL_prepbuffer(B)	luaL_prepbuffsize(B, LUAL_BUFFERSIZE)
+#define moonL_prepbuffer(B)	moonL_prepbuffsize(B, MOONL_BUFFERSIZE)
 
 /* }====================================================== */
 
@@ -233,18 +233,18 @@ LUALIB_API char *(luaL_buffinitsize) (lua_State *L, luaL_Buffer *B, size_t sz);
 */
 
 /*
-** A file handle is a userdata with metatable 'LUA_FILEHANDLE' and
-** initial structure 'luaL_Stream' (it may contain other fields
+** A file handle is a userdata with metatable 'MOON_FILEHANDLE' and
+** initial structure 'moonL_Stream' (it may contain other fields
 ** after that initial structure).
 */
 
-#define LUA_FILEHANDLE          "FILE*"
+#define MOON_FILEHANDLE          "FILE*"
 
 
-typedef struct luaL_Stream {
+typedef struct moonL_Stream {
   FILE *f;  /* stream (NULL for incompletely created streams) */
-  lua_CFunction closef;  /* to close stream (NULL for closed streams) */
-} luaL_Stream;
+  moon_CFunction closef;  /* to close stream (NULL for closed streams) */
+} moonL_Stream;
 
 /* }====================================================== */
 
@@ -254,17 +254,17 @@ typedef struct luaL_Stream {
 ** Compatibility with deprecated conversions
 ** =============================================================
 */
-#if defined(LUA_COMPAT_APIINTCASTS)
+#if defined(MOON_COMPAT_APIINTCASTS)
 
-#define luaL_checkunsigned(L,a)	((lua_Unsigned)luaL_checkinteger(L,a))
-#define luaL_optunsigned(L,a,d)	\
-	((lua_Unsigned)luaL_optinteger(L,a,(lua_Integer)(d)))
+#define moonL_checkunsigned(L,a)	((moon_Unsigned)moonL_checkinteger(L,a))
+#define moonL_optunsigned(L,a,d)	\
+	((moon_Unsigned)moonL_optinteger(L,a,(moon_Integer)(d)))
 
-#define luaL_checkint(L,n)	((int)luaL_checkinteger(L, (n)))
-#define luaL_optint(L,n,d)	((int)luaL_optinteger(L, (n), (d)))
+#define moonL_checkint(L,n)	((int)moonL_checkinteger(L, (n)))
+#define moonL_optint(L,n,d)	((int)moonL_optinteger(L, (n), (d)))
 
-#define luaL_checklong(L,n)	((long)luaL_checkinteger(L, (n)))
-#define luaL_optlong(L,n,d)	((long)luaL_optinteger(L, (n), (d)))
+#define moonL_checklong(L,n)	((long)moonL_checkinteger(L, (n)))
+#define moonL_optlong(L,n,d)	((long)moonL_optinteger(L, (n), (d)))
 
 #endif
 /* }============================================================ */
@@ -277,11 +277,11 @@ typedef struct luaL_Stream {
 /* Phase 115.1: C++ std::span overloads (outside extern "C") */
 #ifdef __cplusplus
 // std::span-based buffer functions (internal C++ API)
-LUALIB_API void luaL_addlstring (luaL_Buffer *B, std::span<const char> s);
+MOONLIB_API void moonL_addlstring (moonL_Buffer *B, std::span<const char> s);
 
 // C-style wrapper for compatibility (inline, calls span version)
-inline void luaL_addlstring (luaL_Buffer *B, const char *s, size_t l) {
-	luaL_addlstring(B, std::span(s, l));
+inline void moonL_addlstring (moonL_Buffer *B, const char *s, size_t l) {
+	moonL_addlstring(B, std::span(s, l));
 }
 #endif
 

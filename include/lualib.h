@@ -5,8 +5,8 @@
 */
 
 
-#ifndef lualib_h
-#define lualib_h
+#ifndef moonlib_h
+#define moonlib_h
 
 #include "lua.h"
 
@@ -17,54 +17,54 @@ extern "C" {
 
 
 /* version suffix for environment variable names */
-#define LUA_VERSUFFIX          "_" LUA_VERSION_MAJOR "_" LUA_VERSION_MINOR
+#define MOON_VERSUFFIX          "_" MOON_VERSION_MAJOR "_" MOON_VERSION_MINOR
 
-#define LUA_GLIBK		1
-LUAMOD_API int (luaopen_base) (lua_State *L);
+#define MOON_GLIBK		1
+MOONMOD_API int (moonopen_base) (moon_State *L);
 
-#define LUA_LOADLIBNAME	"package"
-#define LUA_LOADLIBK	(LUA_GLIBK << 1)
-LUAMOD_API int (luaopen_package) (lua_State *L);
+#define MOON_LOADLIBNAME	"package"
+#define MOON_LOADLIBK	(MOON_GLIBK << 1)
+MOONMOD_API int (moonopen_package) (moon_State *L);
 
 
-#define LUA_COLIBNAME	"coroutine"
-#define LUA_COLIBK	(LUA_LOADLIBK << 1)
-LUAMOD_API int (luaopen_coroutine) (lua_State *L);
+#define MOON_COLIBNAME	"coroutine"
+#define MOON_COLIBK	(MOON_LOADLIBK << 1)
+MOONMOD_API int (moonopen_coroutine) (moon_State *L);
 
-#define LUA_DBLIBNAME	"debug"
-#define LUA_DBLIBK	(LUA_COLIBK << 1)
-LUAMOD_API int (luaopen_debug) (lua_State *L);
+#define MOON_DBLIBNAME	"debug"
+#define MOON_DBLIBK	(MOON_COLIBK << 1)
+MOONMOD_API int (moonopen_debug) (moon_State *L);
 
-#define LUA_IOLIBNAME	"io"
-#define LUA_IOLIBK	(LUA_DBLIBK << 1)
-LUAMOD_API int (luaopen_io) (lua_State *L);
+#define MOON_IOLIBNAME	"io"
+#define MOON_IOLIBK	(MOON_DBLIBK << 1)
+MOONMOD_API int (moonopen_io) (moon_State *L);
 
-#define LUA_MATHLIBNAME	"math"
-#define LUA_MATHLIBK	(LUA_IOLIBK << 1)
-LUAMOD_API int (luaopen_math) (lua_State *L);
+#define MOON_MATHLIBNAME	"math"
+#define MOON_MATHLIBK	(MOON_IOLIBK << 1)
+MOONMOD_API int (moonopen_math) (moon_State *L);
 
-#define LUA_OSLIBNAME	"os"
-#define LUA_OSLIBK	(LUA_MATHLIBK << 1)
-LUAMOD_API int (luaopen_os) (lua_State *L);
+#define MOON_OSLIBNAME	"os"
+#define MOON_OSLIBK	(MOON_MATHLIBK << 1)
+MOONMOD_API int (moonopen_os) (moon_State *L);
 
-#define LUA_STRLIBNAME	"string"
-#define LUA_STRLIBK	(LUA_OSLIBK << 1)
-LUAMOD_API int (luaopen_string) (lua_State *L);
+#define MOON_STRLIBNAME	"string"
+#define MOON_STRLIBK	(MOON_OSLIBK << 1)
+MOONMOD_API int (moonopen_string) (moon_State *L);
 
-#define LUA_TABLIBNAME	"table"
-#define LUA_TABLIBK	(LUA_STRLIBK << 1)
-LUAMOD_API int (luaopen_table) (lua_State *L);
+#define MOON_TABLIBNAME	"table"
+#define MOON_TABLIBK	(MOON_STRLIBK << 1)
+MOONMOD_API int (moonopen_table) (moon_State *L);
 
-#define LUA_UTF8LIBNAME	"utf8"
-#define LUA_UTF8LIBK	(LUA_TABLIBK << 1)
-LUAMOD_API int (luaopen_utf8) (lua_State *L);
+#define MOON_UTF8LIBNAME	"utf8"
+#define MOON_UTF8LIBK	(MOON_TABLIBK << 1)
+MOONMOD_API int (moonopen_utf8) (moon_State *L);
 
 
 /* open selected libraries */
-LUALIB_API void (luaL_openselectedlibs) (lua_State *L, int load, int preload);
+MOONLIB_API void (moonL_openselectedlibs) (moon_State *L, int load, int preload);
 
 /* open all libraries */
-#define luaL_openlibs(L)	luaL_openselectedlibs(L, ~0, 0)
+#define moonL_openlibs(L)	moonL_openselectedlibs(L, ~0, 0)
 
 
 #ifdef __cplusplus

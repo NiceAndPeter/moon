@@ -69,7 +69,7 @@ public:
     ** - L: Lua state
     ** - upvalue: Upvalue to free
     */
-    static void freeupval(lua_State* L, UpVal* upvalue);
+    static void freeupval(moon_State* L, UpVal* upvalue);
 };
 
 #endif  // gc_core_h

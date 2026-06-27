@@ -46,7 +46,7 @@ public:
     ** - Separates finalizable objects
     ** - Flips white color for next cycle
     */
-    static void atomic(lua_State* L);
+    static void atomic(moon_State* L);
 
     /*
     ** INCREMENTAL STEPPING
@@ -54,14 +54,14 @@ public:
     ** Returns: work done in units, or special values for state changes.
     ** - fast=true: skip propagation, do everything in atomic phase
     */
-    static l_mem singlestep(lua_State* L, int fast);
+    static l_mem singlestep(moon_State* L, int fast);
 
     /*
     ** INCREMENTAL STEP WITH WORK CALCULATION
     ** Performs a basic incremental step with automatic work sizing.
     ** Loops until sufficient work is done or cycle completes.
     */
-    static void incstep(lua_State* L, GlobalState* g);
+    static void incstep(moon_State* L, GlobalState* g);
 
     /*
     ** GENERATIONAL YOUNG COLLECTION
@@ -71,14 +71,14 @@ public:
     ** - Sweep young generation
     ** - Decide whether to shift to major mode
     */
-    static void youngcollection(lua_State* L, GlobalState* g);
+    static void youngcollection(moon_State* L, GlobalState* g);
 
     /*
     ** TRANSITION: ATOMIC TO GENERATIONAL
     ** Converts from incremental mode after atomic phase.
     ** Sweeps all objects to old, sets up generational sublists.
     */
-    static void atomic2gen(lua_State* L, GlobalState* g);
+    static void atomic2gen(moon_State* L, GlobalState* g);
 
     /*
     ** ENTER GENERATIONAL MODE
@@ -87,28 +87,28 @@ public:
     ** - Converts all objects to old
     ** - Sets up generational parameters
     */
-    static void entergen(lua_State* L, GlobalState* g);
+    static void entergen(moon_State* L, GlobalState* g);
 
     /*
     ** TRANSITION: MINOR TO INCREMENTAL
     ** Shifts from minor (generational) to major (incremental) collection.
     ** Sets up for sweep-all phase to handle black objects.
     */
-    static void minor2inc(lua_State* L, GlobalState* g, GCKind kind);
+    static void minor2inc(moon_State* L, GlobalState* g, GCKind kind);
 
     /*
     ** FULL INCREMENTAL COLLECTION
     ** Performs a complete GC cycle in incremental mode.
     ** Used for explicit collection requests.
     */
-    static void fullinc(lua_State* L, GlobalState* g);
+    static void fullinc(moon_State* L, GlobalState* g);
 
     /*
     ** FULL GENERATIONAL COLLECTION
     ** Performs a complete collection in generational mode.
     ** Temporarily switches to incremental for full sweep.
     */
-    static void fullgen(lua_State* L, GlobalState* g);
+    static void fullgen(moon_State* L, GlobalState* g);
 
     /*
     ** FINISH YOUNG COLLECTION
@@ -117,14 +117,14 @@ public:
     ** - Checks sizes
     ** - Runs pending finalizers
     */
-    static void finishgencycle(lua_State* L, GlobalState* g);
+    static void finishgencycle(moon_State* L, GlobalState* g);
 
     /*
     ** CHECK MAJOR-TO-MINOR TRANSITION
     ** After atomic phase in major mode, check if can return to minor mode.
     ** Returns 1 if transitioned back to minor, 0 if staying in major.
     */
-    static int checkmajorminor(lua_State* L, GlobalState* g);
+    static int checkmajorminor(moon_State* L, GlobalState* g);
 
     // Special return values for singlestep()
     static constexpr l_mem STEP_2_PAUSE = -3;  // finished collection; entered pause state

@@ -11,7 +11,7 @@
 #include "lobject_core.h"  // GCBase, TValue, GCObject
 
 // Forward declarations
-struct lua_State;
+struct moon_State;
 class TString;
 typedef union StackValue *StkId;
 
@@ -20,12 +20,12 @@ typedef union StackValue *StkId;
 ** {==================================================================
 ** Tables
 ** ===================================================================
-** Note: LUA_VTABLE now defined in ltvalue.h
+** Note: MOON_VTABLE now defined in ltvalue.h
 */
 
-constexpr bool ttistable(const TValue* o) noexcept { return checktag(o, ctb(LuaT::TABLE)); }
+constexpr bool ttistable(const TValue* o) noexcept { return checktag(o, ctb(MoonT::TABLE)); }
 
-constexpr bool TValue::isTable() const noexcept { return checktag(this, ctb(LuaT::TABLE)); }
+constexpr bool TValue::isTable() const noexcept { return checktag(this, ctb(MoonT::TABLE)); }
 
 inline Table* hvalue(const TValue* o) noexcept { return o->tableValue(); }
 
@@ -42,8 +42,8 @@ private:
   union {
     struct {
       Value value_;  // value
-      LuaT tt_;  // value type tag
-      LuaT key_tt;  // key type
+      MoonT tt_;  // value type tag
+      MoonT key_tt;  // key type
       int next;  // for chaining
       Value key_val;  // key value
     } u;
@@ -52,10 +52,10 @@ private:
 
 public:
   // Default constructor
-  constexpr Node() noexcept : u{{0}, LuaT::NIL, static_cast<LuaT>(LUA_TNIL), 0, {0}} {}
+  constexpr Node() noexcept : u{{0}, MoonT::NIL, static_cast<MoonT>(MOON_TNIL), 0, {0}} {}
 
   // Constructor for initializing with explicit values
-  constexpr Node(Value val, LuaT val_tt, LuaT key_tt, int next_val, Value key_val) noexcept
+  constexpr Node(Value val, MoonT val_tt, MoonT key_tt, int next_val, Value key_val) noexcept
     : u{val, val_tt, key_tt, next_val, key_val} {}
 
   // Copy assignment operator (needed because union contains TValue with user-declared operator=)
@@ -74,8 +74,8 @@ public:
   void setNext(int n) noexcept { u.next = n; }
 
   // Key type access
-  LuaT getKeyType() const noexcept { return u.key_tt; }
-  void setKeyType(LuaT tt) noexcept { u.key_tt = tt; }
+  MoonT getKeyType() const noexcept { return u.key_tt; }
+  void setKeyType(MoonT tt) noexcept { u.key_tt = tt; }
 
   // Key value access
   const Value& getKeyValue() const noexcept { return u.key_val; }
@@ -84,19 +84,19 @@ public:
 
   // Key type checks
   bool isKeyNil() const noexcept {
-    return novariant(u.key_tt) == LUA_TNIL;
+    return novariant(u.key_tt) == MOON_TNIL;
   }
 
   bool isKeyInteger() const noexcept {
-    return u.key_tt == LuaT::NUMINT;
+    return u.key_tt == MoonT::NUMINT;
   }
 
   bool isKeyShrStr() const noexcept {
-    return u.key_tt == ctb(LuaT::SHRSTR);
+    return u.key_tt == ctb(MoonT::SHRSTR);
   }
 
   bool isKeyDead() const noexcept {
-    return novariant(u.key_tt) == LUA_TDEADKEY;
+    return novariant(u.key_tt) == MOON_TDEADKEY;
   }
 
   bool isKeyCollectable() const noexcept {
@@ -104,7 +104,7 @@ public:
   }
 
   // Key value getters (typed)
-  lua_Integer getKeyIntValue() const noexcept {
+  moon_Integer getKeyIntValue() const noexcept {
     return u.key_val.i;
   }
 
@@ -122,11 +122,11 @@ public:
 
   // Key setters
   void setKeyNil() noexcept {
-    u.key_tt = LuaT::NIL;
+    u.key_tt = MoonT::NIL;
   }
 
   void setKeyDead() noexcept {
-    u.key_tt = static_cast<LuaT>(LUA_TDEADKEY);
+    u.key_tt = static_cast<MoonT>(MOON_TDEADKEY);
   }
 
   // Copy TValue to key
@@ -136,7 +136,7 @@ public:
   }
 
   // Copy key to TValue
-  void getKey(lua_State* L, TValue* obj) const noexcept {
+  void getKey(moon_State* L, TValue* obj) const noexcept {
     obj->valueField() = u.key_val;
     obj->setType(u.key_tt);
     (void)L; // checkliveness removed to avoid forward declaration issues
@@ -167,7 +167,7 @@ public:
   ~Table() noexcept = default;
 
   // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
-  static void* operator new(size_t size, lua_State* L, LuaT tt);
+  static void* operator new(size_t size, moon_State* L, MoonT tt);
 
   // Disable regular new/delete (must use placement new with GC)
   static void* operator new(size_t) = delete;
@@ -235,19 +235,19 @@ public:
     return static_cast<const unsigned int*>(static_cast<const void*>(array));
   }
 
-  LuaT* getArrayTag(lua_Unsigned k) noexcept {
-    return reinterpret_cast<LuaT*>(static_cast<lu_byte*>(static_cast<void*>(array)) + sizeof(unsigned) + k);
+  MoonT* getArrayTag(moon_Unsigned k) noexcept {
+    return reinterpret_cast<MoonT*>(static_cast<lu_byte*>(static_cast<void*>(array)) + sizeof(unsigned) + k);
   }
 
-  const LuaT* getArrayTag(lua_Unsigned k) const noexcept {
-    return reinterpret_cast<const LuaT*>(static_cast<const lu_byte*>(static_cast<const void*>(array)) + sizeof(unsigned) + k);
+  const MoonT* getArrayTag(moon_Unsigned k) const noexcept {
+    return reinterpret_cast<const MoonT*>(static_cast<const lu_byte*>(static_cast<const void*>(array)) + sizeof(unsigned) + k);
   }
 
-  Value* getArrayVal(lua_Unsigned k) noexcept {
+  Value* getArrayVal(moon_Unsigned k) noexcept {
     return array - 1 - k;
   }
 
-  const Value* getArrayVal(lua_Unsigned k) const noexcept {
+  const Value* getArrayVal(moon_Unsigned k) const noexcept {
     return array - 1 - k;
   }
 
@@ -260,35 +260,35 @@ public:
   const Node* getNode(unsigned int i) const noexcept { return &node[i]; }
 
   // Method declarations (implemented in ltable.cpp)
-  [[nodiscard]] LuaT get(const TValue* key, TValue* res) const;
-  [[nodiscard]] LuaT getInt(lua_Integer key, TValue* res) const;
-  [[nodiscard]] LuaT getShortStr(TString* key, TValue* res) const;
-  [[nodiscard]] LuaT getStr(TString* key, TValue* res) const;
+  [[nodiscard]] MoonT get(const TValue* key, TValue* res) const;
+  [[nodiscard]] MoonT getInt(moon_Integer key, TValue* res) const;
+  [[nodiscard]] MoonT getShortStr(TString* key, TValue* res) const;
+  [[nodiscard]] MoonT getStr(TString* key, TValue* res) const;
   [[nodiscard]] TValue* HgetShortStr(TString* key) const;
 
   [[nodiscard]] int pset(const TValue* key, TValue* val);
-  [[nodiscard]] int psetInt(lua_Integer key, TValue* val);
+  [[nodiscard]] int psetInt(moon_Integer key, TValue* val);
   [[nodiscard]] int psetShortStr(TString* key, TValue* val);
   [[nodiscard]] int psetStr(TString* key, TValue* val);
 
-  void set(lua_State* L, const TValue* key, TValue* value);
-  void setInt(lua_State* L, lua_Integer key, TValue* value);
-  void finishSet(lua_State* L, const TValue* key, TValue* value, int hres);
+  void set(moon_State* L, const TValue* key, TValue* value);
+  void setInt(moon_State* L, moon_Integer key, TValue* value);
+  void finishSet(moon_State* L, const TValue* key, TValue* value, int hres);
 
-  void resize(lua_State* L, unsigned newArraySize, unsigned newHashSize);
-  void resizeArray(lua_State* L, unsigned newArraySize);
+  void resize(moon_State* L, unsigned newArraySize, unsigned newHashSize);
+  void resizeArray(moon_State* L, unsigned newArraySize);
   [[nodiscard]] lu_mem size() const;
-  [[nodiscard]] int tableNext(lua_State* L, StkId key) const;  // renamed from next() to avoid conflict with GC field
-  [[nodiscard]] lua_Unsigned getn(lua_State* L);
+  [[nodiscard]] int tableNext(moon_State* L, StkId key) const;  // renamed from next() to avoid conflict with GC field
+  [[nodiscard]] moon_Unsigned getn(moon_State* L);
 
   // Factory and helper methods
-  [[nodiscard]] static Table* create(lua_State* L);  // Factory method (replaces luaH_new)
-  void destroy(lua_State* L);  // Explicit destructor (replaces luaH_free)
-  [[nodiscard]] Node* mainPosition(const TValue* key) const;  // replaces luaH_mainposition
+  [[nodiscard]] static Table* create(moon_State* L);  // Factory method (replaces moonH_new)
+  void destroy(moon_State* L);  // Explicit destructor (replaces moonH_free)
+  [[nodiscard]] Node* mainPosition(const TValue* key) const;  // replaces moonH_mainposition
 
   // Hot-path fast access methods (defined in lobject.h due to TMS dependency)
-  inline void fastGeti(lua_Integer k, TValue* res, LuaT& tag) noexcept;
-  inline void fastSeti(lua_Integer k, TValue* val, int& hres) noexcept;
+  inline void fastGeti(moon_Integer k, TValue* res, MoonT& tag) noexcept;
+  inline void fastSeti(moon_Integer k, TValue* val, int& hres) noexcept;
 };
 
 
@@ -335,12 +335,12 @@ inline constexpr int HNOTATABLE = 2;
 inline constexpr int HFIRSTNODE = 3;
 
 /*
-** 'luaH_get*' operations set 'res', unless the value is absent, and
+** 'moonH_get*' operations set 'res', unless the value is absent, and
 ** return the tag of the result.
-** The 'luaH_pset*' (pre-set) operations set the given value and return
+** The 'moonH_pset*' (pre-set) operations set the given value and return
 ** HOK, unless the original value is absent. In that case, if the key
 ** is really absent, they return HNOTFOUND. Otherwise, if there is a
-** slot with that key but with no value, 'luaH_pset*' return an encoding
+** slot with that key but with no value, 'moonH_pset*' return an encoding
 ** of where the key is (usually called 'hres'). (pset cannot set that
 ** value because there might be a metamethod.) If the slot is in the
 ** hash part, the encoding is (HFIRSTNODE + hash index); if the slot is
@@ -376,7 +376,7 @@ inline constexpr int HFIRSTNODE = 3;
 
 /*
 ** The unsigned between the two arrays is used as a hint for #t;
-** see luaH_getn. It is stored there to avoid wasting space in
+** see moonH_getn. It is stored there to avoid wasting space in
 ** the structure Table for tables with no array part.
 */
 
@@ -384,12 +384,12 @@ inline constexpr int HFIRSTNODE = 3;
 /*
 ** Move TValues to/from arrays, using C indices
 */
-inline void arr2obj(const Table* h, lua_Unsigned k, TValue* val) noexcept {
+inline void arr2obj(const Table* h, moon_Unsigned k, TValue* val) noexcept {
   val->setType(*h->getArrayTag(k));
   val->valueField() = *h->getArrayVal(k);
 }
 
-inline void obj2arr(Table* h, lua_Unsigned k, const TValue* val) noexcept {
+inline void obj2arr(Table* h, moon_Unsigned k, const TValue* val) noexcept {
   *h->getArrayTag(k) = val->getType();
   *h->getArrayVal(k) = val->getValue();
 }
@@ -399,12 +399,12 @@ inline void obj2arr(Table* h, lua_Unsigned k, const TValue* val) noexcept {
 ** following inline functions also move TValues to/from arrays, but receive the
 ** precomputed tag value or address as an extra argument.
 */
-inline void farr2val(const Table* h, lua_Unsigned k, LuaT tag, TValue* res) noexcept {
+inline void farr2val(const Table* h, moon_Unsigned k, MoonT tag, TValue* res) noexcept {
   res->setType(tag);
   res->valueField() = *h->getArrayVal(k);
 }
 
-inline void fval2arr(Table* h, lua_Unsigned k, LuaT* tag, const TValue* val) noexcept {
+inline void fval2arr(Table* h, moon_Unsigned k, MoonT* tag, const TValue* val) noexcept {
   *tag = val->getType();
   *h->getArrayVal(k) = val->getValue();
 }
@@ -414,9 +414,9 @@ inline void fval2arr(Table* h, lua_Unsigned k, LuaT* tag, const TValue* val) noe
 ** Implementations moved to lobject.h (after ltm.h include) to access TMS enum
 */
 
-#if defined(LUA_DEBUG)
+#if defined(MOON_DEBUG)
 // For debug builds only - mainPosition is already a Table method
-LUAI_FUNC Node *luaH_mainposition (const Table *t, const TValue *key);
+MOONI_FUNC Node *moonH_mainposition (const Table *t, const TValue *key);
 #endif
 
 

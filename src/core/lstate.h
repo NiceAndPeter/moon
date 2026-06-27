@@ -16,7 +16,7 @@ class GlobalState;  // forward declaration
 class VirtualMachine;  // forward declaration
 
 // Type of protected functions, to be run by 'runprotected'
-typedef void (*Pfunc) (lua_State *L, void *ud);
+typedef void (*Pfunc) (moon_State *L, void *ud);
 
 
 #include "lobject.h"
@@ -52,7 +52,7 @@ typedef void (*Pfunc) (lua_State *L, void *ud);
 ** 'finobjrold' -> nullptr: really old       """".
 **
 ** All lists can contain elements older than their main ages, due
-** to 'luaC_checkfinalizer' and 'udata2finalize', which move
+** to 'moonC_checkfinalizer' and 'udata2finalize', which move
 ** objects between the normal lists and the "marked for finalization"
 ** lists. Moreover, barriers can age young objects in young lists as
 ** OLD0, which then become OLD1. However, a list never contains
@@ -110,14 +110,14 @@ inline constexpr unsigned int nyci = (0x10000 | 1);
 
 
 /*
-** LuaLongJmp now defined in ldo.cpp (no longer uses jmp_buf)
+** MoonLongJmp now defined in ldo.cpp (no longer uses jmp_buf)
 ** Forward declaration for error handler chain
 */
-struct LuaLongJmp;
+struct MoonLongJmp;
 
 
 /*
-** Atomic type (relative to signals) to better ensure that 'lua_sethook'
+** Atomic type (relative to signals) to better ensure that 'moon_sethook'
 ** is thread safe
 */
 #if !defined(l_signalT)
@@ -147,7 +147,7 @@ inline constexpr int STRCACHE_M = 2;
 #endif
 
 
-inline constexpr int BASIC_STACK_SIZE = (2*LUA_MINSTACK);
+inline constexpr int BASIC_STACK_SIZE = (2*MOON_MINSTACK);
 
 
 /*
@@ -222,7 +222,7 @@ inline constexpr int CIST_RECST = 12;  // the offset, not the mask
 
 // call is running a C function (still in first 16 bits)
 inline constexpr l_uint32 CIST_C = (1u << (CIST_RECST + 3));
-// call is on a fresh "luaV_execute" frame
+// call is on a fresh "moonV_execute" frame
 inline constexpr l_uint32 CIST_FRESH = (cast(l_uint32, CIST_C) << 1);
 // function is closing tbc variables
 inline constexpr l_uint32 CIST_CLSRET = (CIST_FRESH << 1);
@@ -267,9 +267,9 @@ private:
       int numberOfExtraArgs;  // # of extra arguments in vararg functions
     } l;
     struct {  // only for C functions
-      lua_KFunction k;  // continuation in case of yields
+      moon_KFunction k;  // continuation in case of yields
       ptrdiff_t old_errfunc;
-      lua_KContext ctx;  // context info. in case of yields
+      moon_KContext ctx;  // context info. in case of yields
     } c;
   } u;
   union {
@@ -331,7 +331,7 @@ public:
   // Recover status accessors
   int getRecoverStatus() const noexcept { return (callstatus >> CIST_RECST) & 7; }
   void setRecoverStatus(int st) noexcept {
-    lua_assert((st & 7) == st);  // status must fit in three bits
+    moon_assert((st & 7) == st);  // status must fit in three bits
     callstatus = (callstatus & ~(7u << CIST_RECST)) | (cast(l_uint32, st) << CIST_RECST);
   }
 
@@ -348,14 +348,14 @@ public:
   int& extraArgsRef() noexcept { return u.l.numberOfExtraArgs; }
 
   // C function union accessors
-  lua_KFunction getK() const noexcept { return u.c.k; }
-  void setK(lua_KFunction kfunc) noexcept { u.c.k = kfunc; }
+  moon_KFunction getK() const noexcept { return u.c.k; }
+  void setK(moon_KFunction kfunc) noexcept { u.c.k = kfunc; }
 
   ptrdiff_t getOldErrFunc() const noexcept { return u.c.old_errfunc; }
   void setOldErrFunc(ptrdiff_t ef) noexcept { u.c.old_errfunc = ef; }
 
-  lua_KContext getCtx() const noexcept { return u.c.ctx; }
-  void setCtx(lua_KContext context) noexcept { u.c.ctx = context; }
+  moon_KContext getCtx() const noexcept { return u.c.ctx; }
+  void setCtx(moon_KContext context) noexcept { u.c.ctx = context; }
 
   // u2 union accessors
   int getFuncIdx() const noexcept { return u2.funcidx; }
@@ -392,10 +392,10 @@ public:
 /*
 ** 'per thread' state
 */
-struct lua_State : public GCBase<lua_State> {
+struct moon_State : public GCBase<moon_State> {
 private:
   // Stack subsystem (SRP refactoring)
-  LuaStack stack_;  // stack management subsystem
+  MoonStack stack_;  // stack management subsystem
 
   // VM operations subsystem
   VirtualMachine* vm_;  // VM operations encapsulation (pointer to break circular dependency)
@@ -408,15 +408,15 @@ private:
   mutable GlobalState *l_G;  // mutable: GC can happen during any operation
   UpVal *openupval;  // list of open upvalues in this stack
   GCObject *gclist;
-  lua_State *twups;  // list of threads with open upvalues
+  moon_State *twups;  // list of threads with open upvalues
 
   // Step 4: Status and error handling fields (encapsulated)
   TStatus status;
-  struct LuaLongJmp *errorJmp;  // current error recover point
+  struct MoonLongJmp *errorJmp;  // current error recover point
   ptrdiff_t errfunc;  // current error handling function (stack index)
 
   // Step 5: Hook and debug fields (encapsulated)
-  volatile lua_Hook hook;
+  volatile moon_Hook hook;
   volatile l_signalT hookmask;
   lu_byte allowhook;
   int oldpc;  // last pc traced
@@ -432,7 +432,7 @@ private:
   int numberOfCallInfos;  // number of items in 'callInfo' list
 
 public:
-  // Initialize lua_State fields (GC base fields must already be set by caller)
+  // Initialize moon_State fields (GC base fields must already be set by caller)
   // This is called instead of a constructor to avoid C++ object initialization
   // that might interfere with GC fields (next, tt, marked)
   void init(GlobalState* g) noexcept {
@@ -461,7 +461,7 @@ public:
     twups = this;  // thread has no upvalues
 
     // Error handling
-    status = LUA_OK;
+    status = MOON_OK;
     errorJmp = nullptr;
     errfunc = 0;
 
@@ -486,8 +486,8 @@ public:
   inline const VirtualMachine& getVM() const noexcept { return *vm_; }
 
   // Stack subsystem accessor
-  inline LuaStack& getStackSubsystem() noexcept { return stack_; }
-  inline const LuaStack& getStackSubsystem() const noexcept { return stack_; }
+  inline MoonStack& getStackSubsystem() noexcept { return stack_; }
+  inline const MoonStack& getStackSubsystem() const noexcept { return stack_; }
 
   // Stack field accessors - delegate to stack_ subsystem
   inline StkIdRel& getTop() noexcept { return stack_.getTop(); }
@@ -534,26 +534,26 @@ public:
   void setGclist(GCObject* gc) noexcept { gclist = gc; }
   GCObject** getGclistPtr() noexcept { return &gclist; }
 
-  lua_State* getTwups() noexcept { return twups; }
-  const lua_State* getTwups() const noexcept { return twups; }
-  void setTwups(lua_State* tw) noexcept { twups = tw; }
-  lua_State** getTwupsPtr() noexcept { return &twups; }
+  moon_State* getTwups() noexcept { return twups; }
+  const moon_State* getTwups() const noexcept { return twups; }
+  void setTwups(moon_State* tw) noexcept { twups = tw; }
+  moon_State** getTwupsPtr() noexcept { return &twups; }
 
   // Step 4: Status and error handling field accessors
   TStatus getStatus() const noexcept { return status; }
   void setStatus(TStatus s) noexcept { status = s; }
 
-  LuaLongJmp* getErrorJmp() noexcept { return errorJmp; }
-  const LuaLongJmp* getErrorJmp() const noexcept { return errorJmp; }
-  void setErrorJmp(LuaLongJmp* ej) noexcept { errorJmp = ej; }
-  LuaLongJmp** getErrorJmpPtr() noexcept { return &errorJmp; }
+  MoonLongJmp* getErrorJmp() noexcept { return errorJmp; }
+  const MoonLongJmp* getErrorJmp() const noexcept { return errorJmp; }
+  void setErrorJmp(MoonLongJmp* ej) noexcept { errorJmp = ej; }
+  MoonLongJmp** getErrorJmpPtr() noexcept { return &errorJmp; }
 
   ptrdiff_t getErrFunc() const noexcept { return errfunc; }
   void setErrFunc(ptrdiff_t ef) noexcept { errfunc = ef; }
 
   // Step 5: Hook and debug field accessors
-  lua_Hook getHook() const noexcept { return hook; }
-  void setHook(lua_Hook h) noexcept { hook = h; }
+  moon_Hook getHook() const noexcept { return hook; }
+  void setHook(moon_Hook h) noexcept { hook = h; }
 
   l_signalT getHookMask() const noexcept { return hookmask; }
   void setHookMask(l_signalT hm) noexcept { hookmask = hm; }
@@ -588,7 +588,7 @@ public:
   void incrementNonYieldable() noexcept { numberOfCCalls += 0x10000; }
   void decrementNonYieldable() noexcept { numberOfCCalls -= 0x10000; }
 
-  // Additional lua_State helper methods
+  // Additional moon_State helper methods
 
   // Thread with upvalues list check
   bool isInTwups() const noexcept {
@@ -667,22 +667,22 @@ public:
   int traceExec(const Instruction *pc);
   int traceCall();
 
-  // VM operation methods (formerly luaV_* functions, implemented in lvm.cpp)
+  // VM operation methods (formerly moonV_* functions, implemented in lvm.cpp)
   void execute(CallInfo *callinfo);
   void finishOp();
   void concat(int total);
   void objlen(StkId ra, const TValue *rb);
-  LuaT finishGet(const TValue *t, TValue *key, StkId val, LuaT tag);
+  MoonT finishGet(const TValue *t, TValue *key, StkId val, MoonT tag);
   void finishSet(const TValue *t, TValue *key, TValue *val, int aux);
 
-  // Arithmetic operation methods (formerly luaV_* functions, implemented in lvm.cpp)
-  lua_Integer idiv(lua_Integer m, lua_Integer n);  // Integer division with error handling
-  lua_Integer mod(lua_Integer m, lua_Integer n);   // Integer modulus with error handling
-  lua_Number modf(lua_Number m, lua_Number n);     // Float modulus with error handling
+  // Arithmetic operation methods (formerly moonV_* functions, implemented in lvm.cpp)
+  moon_Integer idiv(moon_Integer m, moon_Integer n);  // Integer division with error handling
+  moon_Integer mod(moon_Integer m, moon_Integer n);   // Integer modulus with error handling
+  moon_Number modf(moon_Number m, moon_Number n);     // Float modulus with error handling
 
   // For-loop helper methods (VM-internal operations)
-  int forLimit(lua_Integer init, const TValue *lim,
-               lua_Integer *p, lua_Integer step);
+  int forLimit(moon_Integer init, const TValue *lim,
+               moon_Integer *p, moon_Integer step);
   int forPrep(StkId ra);
   int floatForLoop(StkId ra);
 
@@ -707,31 +707,31 @@ private:
   void genMoveResults(StkId res, int nres, int wanted);
   void moveResults(StkId res, int nres, l_uint32 fwanted);
   CallInfo* prepareCallInfo(StkId func, unsigned status, StkId top);
-  int preCallC(StkId func, unsigned status, lua_CFunction f);
+  int preCallC(StkId func, unsigned status, moon_CFunction f);
 };
 
 
 /*
-** Inline helper functions for lua_State (defined after class for complete type)
+** Inline helper functions for moon_State (defined after class for complete type)
 */
 
 // true if this thread does not have non-yieldable calls in the stack
-inline constexpr bool yieldable(const lua_State* L) noexcept {
+inline constexpr bool yieldable(const moon_State* L) noexcept {
 	return ((L->getNumberOfCCalls() & 0xffff0000) == 0);
 }
 
 // real number of C calls
-inline constexpr l_uint32 getCcalls(const lua_State* L) noexcept {
+inline constexpr l_uint32 getCcalls(const moon_State* L) noexcept {
 	return (L->getNumberOfCCalls() & 0xffff);
 }
 
 // Increment the number of non-yieldable calls
-inline void incnny(lua_State* L) noexcept {
+inline void incnny(moon_State* L) noexcept {
 	L->incrementNonYieldable();
 }
 
 // Decrement the number of non-yieldable calls
-inline void decnny(lua_State* L) noexcept {
+inline void decnny(moon_State* L) noexcept {
 	L->decrementNonYieldable();
 }
 
@@ -740,8 +740,8 @@ inline void decnny(lua_State* L) noexcept {
 ** thread state + extra space
 */
 typedef struct LX {
-  lu_byte extra_[LUA_EXTRASPACE];
-  lua_State l;
+  lu_byte extra_[MOON_EXTRASPACE];
+  moon_State l;
 } LX;
 
 
@@ -753,12 +753,12 @@ typedef struct LX {
 // 1. Memory Allocator - Memory allocation management
 class MemoryAllocator {
 private:
-  lua_Alloc frealloc;  // function to reallocate memory
+  moon_Alloc frealloc;  // function to reallocate memory
   void *ud;  // auxiliary data to 'frealloc'
 
 public:
-  inline lua_Alloc getFrealloc() const noexcept { return frealloc; }
-  inline void setFrealloc(lua_Alloc f) noexcept { frealloc = f; }
+  inline moon_Alloc getFrealloc() const noexcept { return frealloc; }
+  inline void setFrealloc(moon_Alloc f) noexcept { frealloc = f; }
   inline void* getUd() const noexcept { return ud; }
   inline void setUd(void* u) noexcept { ud = u; }
 };
@@ -796,7 +796,7 @@ public:
 // 3. GC Parameters - Garbage collector configuration and state
 class GCParameters {
 private:
-  lu_byte params[LUA_GCPN];  // GC tuning parameters
+  lu_byte params[MOON_GCPN];  // GC tuning parameters
   lu_byte currentwhite;  // Current white color for GC
   lu_byte state;  // State of garbage collector
   lu_byte kind;  // Kind of GC running (incremental/generational)
@@ -949,7 +949,7 @@ private:
   TValue registry;  // Lua registry
   TValue nilvalue;  // Canonical nil value
   unsigned int seed;  // Hash seed for randomization
-  Table *metatables[LUA_NUMTYPES];  // Metatables for basic types
+  Table *metatables[MOON_NUMTYPES];  // Metatables for basic types
   TString *tmname[static_cast<int>(TMS::TM_N)];  // Tag method names
 
 public:
@@ -976,26 +976,26 @@ public:
 // 7. Runtime Services - Runtime state and service functions
 class RuntimeServices {
 private:
-  lua_State *twups;  // Threads with open upvalues
-  lua_CFunction panic;  // Panic handler for unprotected errors
+  moon_State *twups;  // Threads with open upvalues
+  moon_CFunction panic;  // Panic handler for unprotected errors
   TString *memerrmsg;  // Memory error message
-  lua_WarnFunction warnf;  // Warning function
+  moon_WarnFunction warnf;  // Warning function
   void *ud_warn;  // Auxiliary data for warning function
   LX mainth;  // Main thread of this state
 
 public:
-  inline lua_State* getTwups() const noexcept { return twups; }
-  inline void setTwups(lua_State* tw) noexcept { twups = tw; }
-  inline lua_State** getTwupsPtr() noexcept { return &twups; }
+  inline moon_State* getTwups() const noexcept { return twups; }
+  inline void setTwups(moon_State* tw) noexcept { twups = tw; }
+  inline moon_State** getTwupsPtr() noexcept { return &twups; }
 
-  inline lua_CFunction getPanic() const noexcept { return panic; }
-  inline void setPanic(lua_CFunction p) noexcept { panic = p; }
+  inline moon_CFunction getPanic() const noexcept { return panic; }
+  inline void setPanic(moon_CFunction p) noexcept { panic = p; }
 
   inline TString* getMemErrMsg() const noexcept { return memerrmsg; }
   inline void setMemErrMsg(TString* msg) noexcept { memerrmsg = msg; }
 
-  inline lua_WarnFunction getWarnF() const noexcept { return warnf; }
-  inline void setWarnF(lua_WarnFunction wf) noexcept { warnf = wf; }
+  inline moon_WarnFunction getWarnF() const noexcept { return warnf; }
+  inline void setWarnF(moon_WarnFunction wf) noexcept { warnf = wf; }
 
   inline void* getUdWarn() const noexcept { return ud_warn; }
   inline void setUdWarn(void* uw) noexcept { ud_warn = uw; }
@@ -1037,8 +1037,8 @@ public:
   inline const RuntimeServices& getRuntimeServicesSubsystem() const noexcept { return runtime; }
 
   // Delegating accessors for MemoryAllocator
-  inline lua_Alloc getFrealloc() const noexcept { return memory.getFrealloc(); }
-  inline void setFrealloc(lua_Alloc f) noexcept { memory.setFrealloc(f); }
+  inline moon_Alloc getFrealloc() const noexcept { return memory.getFrealloc(); }
+  inline void setFrealloc(moon_Alloc f) noexcept { memory.setFrealloc(f); }
   inline void* getUd() const noexcept { return memory.getUd(); }
   inline void setUd(void* u) noexcept { memory.setUd(u); }
 
@@ -1186,18 +1186,18 @@ public:
   inline TString** getTMNamePtr(int idx) noexcept { return types.getTMNamePtr(idx); }
 
   // Delegating accessors for RuntimeServices
-  inline lua_State* getTwups() const noexcept { return runtime.getTwups(); }
-  inline void setTwups(lua_State* tw) noexcept { runtime.setTwups(tw); }
-  inline lua_State** getTwupsPtr() noexcept { return runtime.getTwupsPtr(); }
+  inline moon_State* getTwups() const noexcept { return runtime.getTwups(); }
+  inline void setTwups(moon_State* tw) noexcept { runtime.setTwups(tw); }
+  inline moon_State** getTwupsPtr() noexcept { return runtime.getTwupsPtr(); }
 
-  inline lua_CFunction getPanic() const noexcept { return runtime.getPanic(); }
-  inline void setPanic(lua_CFunction p) noexcept { runtime.setPanic(p); }
+  inline moon_CFunction getPanic() const noexcept { return runtime.getPanic(); }
+  inline void setPanic(moon_CFunction p) noexcept { runtime.setPanic(p); }
 
   inline TString* getMemErrMsg() const noexcept { return runtime.getMemErrMsg(); }
   inline void setMemErrMsg(TString* msg) noexcept { runtime.setMemErrMsg(msg); }
 
-  inline lua_WarnFunction getWarnF() const noexcept { return runtime.getWarnF(); }
-  inline void setWarnF(lua_WarnFunction wf) noexcept { runtime.setWarnF(wf); }
+  inline moon_WarnFunction getWarnF() const noexcept { return runtime.getWarnF(); }
+  inline void setWarnF(moon_WarnFunction wf) noexcept { runtime.setWarnF(wf); }
 
   inline void* getUdWarn() const noexcept { return runtime.getUdWarn(); }
   inline void setUdWarn(void* uw) noexcept { runtime.setUdWarn(uw); }
@@ -1214,24 +1214,24 @@ public:
 };
 
 
-// Get global state from lua_State (returns reference to allow assignment)
-inline GlobalState*& G(lua_State* L) noexcept { return L->getGlobalStateRef(); }
-inline GlobalState* G(const lua_State* L) noexcept { return L->getGlobalState(); }
+// Get global state from moon_State (returns reference to allow assignment)
+inline GlobalState*& G(moon_State* L) noexcept { return L->getGlobalStateRef(); }
+inline GlobalState* G(const moon_State* L) noexcept { return L->getGlobalState(); }
 // Reference overloads for pointer-to-reference conversion
-inline GlobalState*& G(lua_State& L) noexcept { return L.getGlobalStateRef(); }
-inline GlobalState* G(const lua_State& L) noexcept { return L.getGlobalState(); }
+inline GlobalState*& G(moon_State& L) noexcept { return L.getGlobalStateRef(); }
+inline GlobalState* G(const moon_State& L) noexcept { return L.getGlobalState(); }
 
 // Get main thread from GlobalState
-inline lua_State* mainthread(GlobalState* g) noexcept { return &g->getMainThread()->l; }
-inline const lua_State* mainthread(const GlobalState* g) noexcept { return &g->getMainThread()->l; }
+inline moon_State* mainthread(GlobalState* g) noexcept { return &g->getMainThread()->l; }
+inline const moon_State* mainthread(const GlobalState* g) noexcept { return &g->getMainThread()->l; }
 
 // Define gfasttm() and fasttm() inline functions (declared in ltm.h)
 // Must be defined here after GlobalState is fully defined
 inline const TValue* gfasttm(GlobalState* g, const Table* mt, TMS e) noexcept {
-	return checknoTM(mt, e) ? nullptr : luaT_gettm(mt, e, g->getTMName(static_cast<int>(e)));
+	return checknoTM(mt, e) ? nullptr : moonT_gettm(mt, e, g->getTMName(static_cast<int>(e)));
 }
 
-inline const TValue* fasttm(lua_State* l, const Table* mt, TMS e) noexcept {
+inline const TValue* fasttm(moon_State* l, const Table* mt, TMS e) noexcept {
 	return gfasttm(G(l), mt, e);
 }
 
@@ -1244,47 +1244,47 @@ inline const TValue* fasttm(lua_State* l, const Table* mt, TMS e) noexcept {
 
 // Convert GCObject to specific types using reinterpret_cast
 inline TString* gco2ts(GCObject* o) noexcept {
-	lua_assert(novariant(o->getType()) == LUA_TSTRING);
+	moon_assert(novariant(o->getType()) == MOON_TSTRING);
 	return reinterpret_cast<TString*>(o);
 }
 
 inline Udata* gco2u(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::USERDATA));
+	moon_assert(o->getType() == ctb(MoonT::USERDATA));
 	return reinterpret_cast<Udata*>(o);
 }
 
 inline LClosure* gco2lcl(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::LCL));
+	moon_assert(o->getType() == ctb(MoonT::LCL));
 	return reinterpret_cast<LClosure*>(o);
 }
 
 inline CClosure* gco2ccl(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::CCL));
+	moon_assert(o->getType() == ctb(MoonT::CCL));
 	return reinterpret_cast<CClosure*>(o);
 }
 
 inline Closure* gco2cl(GCObject* o) noexcept {
-	lua_assert(novariant(o->getType()) == LUA_TFUNCTION);
+	moon_assert(novariant(o->getType()) == MOON_TFUNCTION);
 	return reinterpret_cast<Closure*>(o);
 }
 
 inline Table* gco2t(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::TABLE));
+	moon_assert(o->getType() == ctb(MoonT::TABLE));
 	return reinterpret_cast<Table*>(o);
 }
 
 inline Proto* gco2p(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::PROTO));
+	moon_assert(o->getType() == ctb(MoonT::PROTO));
 	return reinterpret_cast<Proto*>(o);
 }
 
-inline lua_State* gco2th(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::THREAD));
-	return reinterpret_cast<lua_State*>(o);
+inline moon_State* gco2th(GCObject* o) noexcept {
+	moon_assert(o->getType() == ctb(MoonT::THREAD));
+	return reinterpret_cast<moon_State*>(o);
 }
 
 inline UpVal* gco2upv(GCObject* o) noexcept {
-	lua_assert(o->getType() == ctb(LuaT::UPVAL));
+	moon_assert(o->getType() == ctb(MoonT::UPVAL));
 	return reinterpret_cast<UpVal*>(o);
 }
 
@@ -1304,21 +1304,21 @@ inline GCObject* obj2gco(const void* v) noexcept {
 }
 
 
-LUAI_FUNC void luaE_setdebt (GlobalState *g, l_mem debt);
-LUAI_FUNC void luaE_freethread (lua_State *L, lua_State *L1);
-LUAI_FUNC lu_mem luaE_threadsize (lua_State *L);
-LUAI_FUNC CallInfo *luaE_extendCI (lua_State *L);
-LUAI_FUNC void luaE_shrinkCI (lua_State *L);
-LUAI_FUNC void luaE_checkcstack (lua_State *L);
-LUAI_FUNC void luaE_incCstack (lua_State *L);
-LUAI_FUNC void luaE_warning (lua_State *L, const char *msg, int tocont);
-LUAI_FUNC void luaE_warnerror (lua_State *L, const char *where);
-LUAI_FUNC TStatus luaE_resetthread (lua_State *L, TStatus status);
+MOONI_FUNC void moonE_setdebt (GlobalState *g, l_mem debt);
+MOONI_FUNC void moonE_freethread (moon_State *L, moon_State *L1);
+MOONI_FUNC lu_mem moonE_threadsize (moon_State *L);
+MOONI_FUNC CallInfo *moonE_extendCI (moon_State *L);
+MOONI_FUNC void moonE_shrinkCI (moon_State *L);
+MOONI_FUNC void moonE_checkcstack (moon_State *L);
+MOONI_FUNC void moonE_incCstack (moon_State *L);
+MOONI_FUNC void moonE_warning (moon_State *L, const char *msg, int tocont);
+MOONI_FUNC void moonE_warnerror (moon_State *L, const char *where);
+MOONI_FUNC TStatus moonE_resetthread (moon_State *L, TStatus status);
 
 
 /*
-** GC Type Safety for lua_State
-** lua_State inherits from GCBase<lua_State> and participates in the GC system.
+** GC Type Safety for moon_State
+** moon_State inherits from GCBase<moon_State> and participates in the GC system.
 ** Like other GC types, it uses reinterpret_cast for pointer conversions which
 ** are safe due to common initial sequence, type tag checking, and CRTP design.
 ** See lobject.h for detailed explanation of GC type safety.

@@ -39,26 +39,26 @@ public:
     ** 'countin' limits how many objects to sweep (for incremental collection).
     ** Returns pointer to where sweeping stopped (nullptr if list exhausted).
     */
-    static GCObject** sweeplist(lua_State* L, GCObject** p, l_mem countin);
+    static GCObject** sweeplist(moon_State* L, GCObject** p, l_mem countin);
 
     /*
     ** Sweep a list until finding a live object (or end of list).
     ** Returns pointer to first live object (or nullptr).
     */
-    static GCObject** sweeptolive(lua_State* L, GCObject** p);
+    static GCObject** sweeptolive(moon_State* L, GCObject** p);
 
     /*
     ** Sweep for generational mode transition (atomic2gen).
     ** All surviving objects become old. Dead objects are freed.
     */
-    static void sweep2old(lua_State* L, GCObject** p);
+    static void sweep2old(moon_State* L, GCObject** p);
 
     /*
     ** Sweep for generational mode.
     ** Advances ages of surviving objects and removes dead ones.
     ** Returns pointer to where sweeping stopped.
     */
-    static GCObject** sweepgen(lua_State* L, GlobalState& g, GCObject** p,
+    static GCObject** sweepgen(moon_State* L, GlobalState& g, GCObject** p,
                                GCObject* limit, GCObject** pfirstold1,
                                l_mem* paddedold);
 
@@ -66,20 +66,20 @@ public:
     ** Enter the sweep phase.
     ** Sets up sweep state and finds first live object.
     */
-    static void entersweep(lua_State* L);
+    static void entersweep(moon_State* L);
 
     /*
     ** Perform one step of sweeping.
     ** Advances to 'nextstate' when current sweep completes.
     */
-    static void sweepstep(lua_State* L, GlobalState& g,
+    static void sweepstep(moon_State* L, GlobalState& g,
                           GCState nextstate, GCObject** nextlist, int fast);
 
     /*
     ** Delete all objects in list until 'limit' (not including limit).
     ** Used for cleanup and shutdown.
     */
-    static void deletelist(lua_State* L, GCObject* p, GCObject* limit);
+    static void deletelist(moon_State* L, GCObject* p, GCObject* limit);
 };
 
 #endif  // gc_sweeping_h

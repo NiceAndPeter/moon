@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_LIB
+#define MOON_LIB
 
 #include "lprefix.h"
 
@@ -22,164 +22,164 @@
 
 
 #undef PI
-inline constexpr lua_Number PI = l_mathop(3.141592653589793238462643383279502884);
+inline constexpr moon_Number PI = l_mathop(3.141592653589793238462643383279502884);
 
 
-static int math_abs (lua_State *L) {
-  if (lua_isinteger(L, 1)) {
-    lua_Integer n = lua_tointeger(L, 1);
-    if (n < 0) n = (lua_Integer)(0u - (lua_Unsigned)n);
-    lua_pushinteger(L, n);
+static int math_abs (moon_State *L) {
+  if (moon_isinteger(L, 1)) {
+    moon_Integer n = moon_tointeger(L, 1);
+    if (n < 0) n = (moon_Integer)(0u - (moon_Unsigned)n);
+    moon_pushinteger(L, n);
   }
   else
-    lua_pushnumber(L, l_mathop(fabs)(luaL_checknumber(L, 1)));
+    moon_pushnumber(L, l_mathop(fabs)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_sin (lua_State *L) {
-  lua_pushnumber(L, l_mathop(sin)(luaL_checknumber(L, 1)));
+static int math_sin (moon_State *L) {
+  moon_pushnumber(L, l_mathop(sin)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_cos (lua_State *L) {
-  lua_pushnumber(L, l_mathop(cos)(luaL_checknumber(L, 1)));
+static int math_cos (moon_State *L) {
+  moon_pushnumber(L, l_mathop(cos)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_tan (lua_State *L) {
-  lua_pushnumber(L, l_mathop(tan)(luaL_checknumber(L, 1)));
+static int math_tan (moon_State *L) {
+  moon_pushnumber(L, l_mathop(tan)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_asin (lua_State *L) {
-  lua_pushnumber(L, l_mathop(asin)(luaL_checknumber(L, 1)));
+static int math_asin (moon_State *L) {
+  moon_pushnumber(L, l_mathop(asin)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_acos (lua_State *L) {
-  lua_pushnumber(L, l_mathop(acos)(luaL_checknumber(L, 1)));
+static int math_acos (moon_State *L) {
+  moon_pushnumber(L, l_mathop(acos)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_atan (lua_State *L) {
-  lua_Number y = luaL_checknumber(L, 1);
-  lua_Number x = luaL_optnumber(L, 2, 1);
-  lua_pushnumber(L, l_mathop(atan2)(y, x));
+static int math_atan (moon_State *L) {
+  moon_Number y = moonL_checknumber(L, 1);
+  moon_Number x = moonL_optnumber(L, 2, 1);
+  moon_pushnumber(L, l_mathop(atan2)(y, x));
   return 1;
 }
 
 
-static int math_toint (lua_State *L) {
+static int math_toint (moon_State *L) {
   int valid;
-  lua_Integer n = lua_tointegerx(L, 1, &valid);
+  moon_Integer n = moon_tointegerx(L, 1, &valid);
   if (l_likely(valid))
-    lua_pushinteger(L, n);
+    moon_pushinteger(L, n);
   else {
-    luaL_checkany(L, 1);
-    luaL_pushfail(L);  // value is not convertible to integer
+    moonL_checkany(L, 1);
+    moonL_pushfail(L);  // value is not convertible to integer
   }
   return 1;
 }
 
 
-static void pushnumint (lua_State *L, lua_Number d) {
-  lua_Integer n;
-  if (lua_numbertointeger(d, &n))  // does 'd' fit in an integer?
-    lua_pushinteger(L, n);  // result is integer
+static void pushnumint (moon_State *L, moon_Number d) {
+  moon_Integer n;
+  if (moon_numbertointeger(d, &n))  // does 'd' fit in an integer?
+    moon_pushinteger(L, n);  // result is integer
   else
-    lua_pushnumber(L, d);  // result is float
+    moon_pushnumber(L, d);  // result is float
 }
 
 
-static int math_floor (lua_State *L) {
-  if (lua_isinteger(L, 1))
-    lua_settop(L, 1);  // integer is its own floor
+static int math_floor (moon_State *L) {
+  if (moon_isinteger(L, 1))
+    moon_settop(L, 1);  // integer is its own floor
   else {
-    lua_Number d = l_mathop(floor)(luaL_checknumber(L, 1));
+    moon_Number d = l_mathop(floor)(moonL_checknumber(L, 1));
     pushnumint(L, d);
   }
   return 1;
 }
 
 
-static int math_ceil (lua_State *L) {
-  if (lua_isinteger(L, 1))
-    lua_settop(L, 1);  // integer is its own ceiling
+static int math_ceil (moon_State *L) {
+  if (moon_isinteger(L, 1))
+    moon_settop(L, 1);  // integer is its own ceiling
   else {
-    lua_Number d = l_mathop(ceil)(luaL_checknumber(L, 1));
+    moon_Number d = l_mathop(ceil)(moonL_checknumber(L, 1));
     pushnumint(L, d);
   }
   return 1;
 }
 
 
-static int math_fmod (lua_State *L) {
-  if (lua_isinteger(L, 1) && lua_isinteger(L, 2)) {
-    lua_Integer d = lua_tointeger(L, 2);
-    if ((lua_Unsigned)d + 1u <= 1u) {  // special cases: -1 or 0
-      luaL_argcheck(L, d != 0, 2, "zero");
-      lua_pushinteger(L, 0);  // avoid overflow with 0x80000... / -1
+static int math_fmod (moon_State *L) {
+  if (moon_isinteger(L, 1) && moon_isinteger(L, 2)) {
+    moon_Integer d = moon_tointeger(L, 2);
+    if ((moon_Unsigned)d + 1u <= 1u) {  // special cases: -1 or 0
+      moonL_argcheck(L, d != 0, 2, "zero");
+      moon_pushinteger(L, 0);  // avoid overflow with 0x80000... / -1
     }
     else
-      lua_pushinteger(L, lua_tointeger(L, 1) % d);
+      moon_pushinteger(L, moon_tointeger(L, 1) % d);
   }
   else
-    lua_pushnumber(L, l_mathop(fmod)(luaL_checknumber(L, 1),
-                                     luaL_checknumber(L, 2)));
+    moon_pushnumber(L, l_mathop(fmod)(moonL_checknumber(L, 1),
+                                     moonL_checknumber(L, 2)));
   return 1;
 }
 
 
 /*
 ** next function does not use 'modf', avoiding problems with 'double*'
-** (which is not compatible with 'float*') when lua_Number is not
+** (which is not compatible with 'float*') when moon_Number is not
 ** 'double'.
 */
-static int math_modf (lua_State *L) {
-  if (lua_isinteger(L ,1)) {
-    lua_settop(L, 1);  // number is its own integer part
-    lua_pushnumber(L, 0);  // no fractional part
+static int math_modf (moon_State *L) {
+  if (moon_isinteger(L ,1)) {
+    moon_settop(L, 1);  // number is its own integer part
+    moon_pushnumber(L, 0);  // no fractional part
   }
   else {
-    lua_Number n = luaL_checknumber(L, 1);
+    moon_Number n = moonL_checknumber(L, 1);
     // integer part (rounds toward zero)
-    lua_Number ip = (n < 0) ? l_mathop(ceil)(n) : l_mathop(floor)(n);
+    moon_Number ip = (n < 0) ? l_mathop(ceil)(n) : l_mathop(floor)(n);
     pushnumint(L, ip);
     // fractional part (test needed for inf/-inf)
-    lua_pushnumber(L, (n == ip) ? l_mathop(0.0) : (n - ip));
+    moon_pushnumber(L, (n == ip) ? l_mathop(0.0) : (n - ip));
   }
   return 2;
 }
 
 
-static int math_sqrt (lua_State *L) {
-  lua_pushnumber(L, l_mathop(sqrt)(luaL_checknumber(L, 1)));
+static int math_sqrt (moon_State *L) {
+  moon_pushnumber(L, l_mathop(sqrt)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_ult (lua_State *L) {
-  lua_Integer a = luaL_checkinteger(L, 1);
-  lua_Integer b = luaL_checkinteger(L, 2);
-  lua_pushboolean(L, (lua_Unsigned)a < (lua_Unsigned)b);
+static int math_ult (moon_State *L) {
+  moon_Integer a = moonL_checkinteger(L, 1);
+  moon_Integer b = moonL_checkinteger(L, 2);
+  moon_pushboolean(L, (moon_Unsigned)a < (moon_Unsigned)b);
   return 1;
 }
 
 
-static int math_log (lua_State *L) {
-  lua_Number x = luaL_checknumber(L, 1);
-  lua_Number res;
-  if (lua_isnoneornil(L, 2))
+static int math_log (moon_State *L) {
+  moon_Number x = moonL_checknumber(L, 1);
+  moon_Number res;
+  if (moon_isnoneornil(L, 2))
     res = l_mathop(log)(x);
   else {
-    lua_Number base = luaL_checknumber(L, 2);
-#if !defined(LUA_USE_C89)
+    moon_Number base = moonL_checknumber(L, 2);
+#if !defined(MOON_USE_C89)
     if (base == l_mathop(2.0))
       res = l_mathop(log2)(x);
     else
@@ -189,78 +189,78 @@ static int math_log (lua_State *L) {
     else
       res = l_mathop(log)(x)/l_mathop(log)(base);
   }
-  lua_pushnumber(L, res);
+  moon_pushnumber(L, res);
   return 1;
 }
 
 
-static int math_exp (lua_State *L) {
-  lua_pushnumber(L, l_mathop(exp)(luaL_checknumber(L, 1)));
+static int math_exp (moon_State *L) {
+  moon_pushnumber(L, l_mathop(exp)(moonL_checknumber(L, 1)));
   return 1;
 }
 
 
-static int math_deg (lua_State *L) {
-  lua_pushnumber(L, luaL_checknumber(L, 1) * (l_mathop(180.0) / PI));
+static int math_deg (moon_State *L) {
+  moon_pushnumber(L, moonL_checknumber(L, 1) * (l_mathop(180.0) / PI));
   return 1;
 }
 
 
-static int math_rad (lua_State *L) {
-  lua_pushnumber(L, luaL_checknumber(L, 1) * (PI / l_mathop(180.0)));
+static int math_rad (moon_State *L) {
+  moon_pushnumber(L, moonL_checknumber(L, 1) * (PI / l_mathop(180.0)));
   return 1;
 }
 
 
-static int math_frexp (lua_State *L) {
-  lua_Number x = luaL_checknumber(L, 1);
+static int math_frexp (moon_State *L) {
+  moon_Number x = moonL_checknumber(L, 1);
   int ep;
-  lua_pushnumber(L, l_mathop(frexp)(x, &ep));
-  lua_pushinteger(L, ep);
+  moon_pushnumber(L, l_mathop(frexp)(x, &ep));
+  moon_pushinteger(L, ep);
   return 2;
 }
 
 
-static int math_ldexp (lua_State *L) {
-  lua_Number x = luaL_checknumber(L, 1);
-  int ep = (int)luaL_checkinteger(L, 2);
-  lua_pushnumber(L, l_mathop(ldexp)(x, ep));
+static int math_ldexp (moon_State *L) {
+  moon_Number x = moonL_checknumber(L, 1);
+  int ep = (int)moonL_checkinteger(L, 2);
+  moon_pushnumber(L, l_mathop(ldexp)(x, ep));
   return 1;
 }
 
 
-static int math_min (lua_State *L) {
-  int n = lua_gettop(L);  // number of arguments
+static int math_min (moon_State *L) {
+  int n = moon_gettop(L);  // number of arguments
   int imin = 1;  // index of current minimum value
-  luaL_argcheck(L, n >= 1, 1, "value expected");
+  moonL_argcheck(L, n >= 1, 1, "value expected");
   for (int i = 2; i <= n; i++) {
-    if (lua_compare(L, i, imin, LUA_OPLT))
+    if (moon_compare(L, i, imin, MOON_OPLT))
       imin = i;
   }
-  lua_pushvalue(L, imin);
+  moon_pushvalue(L, imin);
   return 1;
 }
 
 
-static int math_max (lua_State *L) {
-  int n = lua_gettop(L);  // number of arguments
+static int math_max (moon_State *L) {
+  int n = moon_gettop(L);  // number of arguments
   int imax = 1;  // index of current maximum value
-  luaL_argcheck(L, n >= 1, 1, "value expected");
+  moonL_argcheck(L, n >= 1, 1, "value expected");
   for (int i = 2; i <= n; i++) {
-    if (lua_compare(L, imax, i, LUA_OPLT))
+    if (moon_compare(L, imax, i, MOON_OPLT))
       imax = i;
   }
-  lua_pushvalue(L, imax);
+  moon_pushvalue(L, imax);
   return 1;
 }
 
 
-static int math_type (lua_State *L) {
-  if (lua_type(L, 1) == LUA_TNUMBER)
-    lua_pushstring(L, (lua_isinteger(L, 1)) ? "integer" : "float");
+static int math_type (moon_State *L) {
+  if (moon_type(L, 1) == MOON_TNUMBER)
+    moon_pushstring(L, (moon_isinteger(L, 1)) ? "integer" : "float");
   else {
-    luaL_checkany(L, 1);
-    luaL_pushfail(L);
+    moonL_checkany(L, 1);
+    moonL_pushfail(L);
   }
   return 1;
 }
@@ -293,10 +293,10 @@ static int math_type (lua_State *L) {
 
 
 /*
-** LUA_RAND32 forces the use of 32-bit integers in the implementation
+** MOON_RAND32 forces the use of 32-bit integers in the implementation
 ** of the PRN generator (mainly for testing).
 */
-#if !defined(LUA_RAND32) && !defined(Rand64)
+#if !defined(MOON_RAND32) && !defined(Rand64)
 
 // try to find an integer type with at least 64 bits
 
@@ -306,17 +306,17 @@ static int math_type (lua_State *L) {
 #define Rand64		unsigned long
 #define SRand64		long
 
-#elif !defined(LUA_USE_C89) && defined(LLONG_MAX)
+#elif !defined(MOON_USE_C89) && defined(LLONG_MAX)
 
 // there is a 'long long' type (which must have at least 64 bits)
 #define Rand64		unsigned long long
 #define SRand64		long long
 
-#elif ((LUA_MAXUNSIGNED >> 31) >> 31) >= 3
+#elif ((MOON_MAXUNSIGNED >> 31) >> 31) >= 3
 
-// 'lua_Unsigned' has at least 64 bits
-#define Rand64		lua_Unsigned
-#define SRand64		lua_Integer
+// 'moon_Unsigned' has at least 64 bits
+#define Rand64		moon_Unsigned
+#define SRand64		moon_Integer
 
 #endif
 
@@ -362,7 +362,7 @@ static Rand64 nextrand (Rand64 *state) {
 ** random unsigned integer and converting that to a float.
 ** Some old Microsoft compilers cannot cast an unsigned long
 ** to a floating-point number, so we use a signed long as an
-** intermediary. When lua_Number is float or double, the shift ensures
+** intermediary. When moon_Number is float or double, the shift ensures
 ** that 'sx' is non negative; in that case, a good compiler will remove
 ** the correction.
 */
@@ -371,22 +371,22 @@ static Rand64 nextrand (Rand64 *state) {
 inline constexpr int shift64_FIG = 64 - FIGS;
 
 // 2^(-FIGS) == 2^-1 / 2^(FIGS-1)
-inline constexpr lua_Number scaleFIG = l_mathop(0.5) / ((Rand64)1 << (FIGS - 1));
+inline constexpr moon_Number scaleFIG = l_mathop(0.5) / ((Rand64)1 << (FIGS - 1));
 
-static lua_Number I2d (Rand64 x) {
+static moon_Number I2d (Rand64 x) {
   SRand64 sx = (SRand64)(trim64(x) >> shift64_FIG);
-  lua_Number res = (lua_Number)(sx) * scaleFIG;
+  moon_Number res = (moon_Number)(sx) * scaleFIG;
   if (sx < 0)
     res += l_mathop(1.0);  // correct the two's complement if negative
-  lua_assert(0 <= res && res < 1);
+  moon_assert(0 <= res && res < 1);
   return res;
 }
 
-inline lua_Unsigned I2UInt(Rand64 x) noexcept {
-	return static_cast<lua_Unsigned>(trim64(x));
+inline moon_Unsigned I2UInt(Rand64 x) noexcept {
+	return static_cast<moon_Unsigned>(trim64(x));
 }
 
-inline Rand64 Int2I(lua_Unsigned x) noexcept {
+inline Rand64 Int2I(moon_Unsigned x) noexcept {
 	return static_cast<Rand64>(x);
 }
 
@@ -427,7 +427,7 @@ static Rand64 packI (l_uint32 h, l_uint32 l) {
 
 // return i << n
 static Rand64 Ishl (Rand64 i, int n) {
-  lua_assert(n > 0 && n < 32);
+  moon_assert(n > 0 && n < 32);
   return packI((i.h << n) | (trim32(i.l) >> (32 - n)), i.l << n);
 }
 
@@ -457,14 +457,14 @@ static Rand64 times9 (Rand64 i) {
 
 // return 'i' rotated left 'n' bits
 static Rand64 rotl (Rand64 i, int n) {
-  lua_assert(n > 0 && n < 32);
+  moon_assert(n > 0 && n < 32);
   return packI((i.h << n) | (trim32(i.l) >> (32 - n)),
                (trim32(i.h) >> (32 - n)) | (i.l << n));
 }
 
 // for offsets larger than 32, rotate right by 64 - offset
 static Rand64 rotl1 (Rand64 i, int n) {
-  lua_assert(n > 32 && n < 64);
+  moon_assert(n > 32 && n < 64);
   n = 64 - n;
   return packI((trim32(i.h) >> n) | (i.l << (32 - n)),
                (i.h << (32 - n)) | (trim32(i.l) >> n));
@@ -497,21 +497,21 @@ inline constexpr l_uint32 UONE = 1;
 #if FIGS <= 32
 
 // 2^(-FIGS)
-inline constexpr lua_Number scaleFIG = l_mathop(0.5) / (UONE << (FIGS - 1));
+inline constexpr moon_Number scaleFIG = l_mathop(0.5) / (UONE << (FIGS - 1));
 
 /*
 ** get up to 32 bits from higher half, shifting right to
 ** throw out the extra bits.
 */
-static lua_Number I2d (Rand64 x) {
-  lua_Number h = (lua_Number)(trim32(x.h) >> (32 - FIGS));
+static moon_Number I2d (Rand64 x) {
+  moon_Number h = (moon_Number)(trim32(x.h) >> (32 - FIGS));
   return h * scaleFIG;
 }
 
 #else  // 32 < FIGS <= 64
 
 // 2^(-FIGS) = 1.0 / 2^30 / 2^3 / 2^(FIGS-33)
-inline constexpr lua_Number scaleFIG = l_mathop(1.0) / (UONE << 30) / l_mathop(8.0) / (UONE << (FIGS - 33));
+inline constexpr moon_Number scaleFIG = l_mathop(1.0) / (UONE << 30) / l_mathop(8.0) / (UONE << (FIGS - 33));
 
 /*
 ** use FIGS - 32 bits from lower half, throwing out the other
@@ -522,25 +522,25 @@ inline constexpr int shiftLOW = 64 - FIGS;
 /*
 ** higher 32 bits go after those (FIGS - 32) bits: shiftHI = 2^(FIGS - 32)
 */
-inline constexpr lua_Number shiftHI = static_cast<lua_Number>(UONE << (FIGS - 33)) * l_mathop(2.0);
+inline constexpr moon_Number shiftHI = static_cast<moon_Number>(UONE << (FIGS - 33)) * l_mathop(2.0);
 
 
-static lua_Number I2d (Rand64 x) {
-  lua_Number h = (lua_Number)trim32(x.h) * shiftHI;
-  lua_Number l = (lua_Number)(trim32(x.l) >> shiftLOW);
+static moon_Number I2d (Rand64 x) {
+  moon_Number h = (moon_Number)trim32(x.h) * shiftHI;
+  moon_Number l = (moon_Number)(trim32(x.l) >> shiftLOW);
   return (h + l) * scaleFIG;
 }
 
 #endif
 
 
-// convert a 'Rand64' to a 'lua_Unsigned'
-static lua_Unsigned I2UInt (Rand64 x) {
-  return (((lua_Unsigned)trim32(x.h) << 31) << 1) | (lua_Unsigned)trim32(x.l);
+// convert a 'Rand64' to a 'moon_Unsigned'
+static moon_Unsigned I2UInt (Rand64 x) {
+  return (((moon_Unsigned)trim32(x.h) << 31) << 1) | (moon_Unsigned)trim32(x.l);
 }
 
-// convert a 'lua_Unsigned' to a 'Rand64'
-static Rand64 Int2I (lua_Unsigned n) {
+// convert a 'moon_Unsigned' to a 'Rand64'
+static Rand64 Int2I (moon_Unsigned n) {
   return packI((l_uint32)((n >> 31) >> 1), (l_uint32)n);
 }
 
@@ -565,9 +565,9 @@ typedef struct {
 ** is inside [0, n], we are done. Otherwise, we try with another 'ran',
 ** until we have a result inside the interval.
 */
-static lua_Unsigned project (lua_Unsigned ran, lua_Unsigned n,
+static moon_Unsigned project (moon_Unsigned ran, moon_Unsigned n,
                              RanState *state) {
-  lua_Unsigned lim = n;  // to compute the Mersenne number
+  moon_Unsigned lim = n;  // to compute the Mersenne number
   int sh;  // how much to spread bits to the right in 'lim'
   // spread '1' bits in 'lim' until it becomes a Mersenne number
   for (sh = 1; (lim & (lim + 1)) != 0; sh *= 2)
@@ -578,70 +578,70 @@ static lua_Unsigned project (lua_Unsigned ran, lua_Unsigned n,
 }
 
 
-static int math_random (lua_State *L) {
-  lua_Integer low, up;
-  RanState *state = static_cast<RanState *>(lua_touserdata(L, lua_upvalueindex(1)));
+static int math_random (moon_State *L) {
+  moon_Integer low, up;
+  RanState *state = static_cast<RanState *>(moon_touserdata(L, moon_upvalueindex(1)));
   Rand64 rv = nextrand(state->s);  // next pseudo-random value
-  switch (lua_gettop(L)) {  // check number of arguments
+  switch (moon_gettop(L)) {  // check number of arguments
     case 0: {  // no arguments
-      lua_pushnumber(L, I2d(rv));  // float between 0 and 1
+      moon_pushnumber(L, I2d(rv));  // float between 0 and 1
       return 1;
     }
     case 1: {  // only upper limit
       low = 1;
-      up = luaL_checkinteger(L, 1);
+      up = moonL_checkinteger(L, 1);
       if (up == 0) {  // single 0 as argument?
-        lua_pushinteger(L, l_castU2S(I2UInt(rv)));  // full random integer
+        moon_pushinteger(L, l_castU2S(I2UInt(rv)));  // full random integer
         return 1;
       }
       break;
     }
     case 2: {  // lower and upper limits
-      low = luaL_checkinteger(L, 1);
-      up = luaL_checkinteger(L, 2);
+      low = moonL_checkinteger(L, 1);
+      up = moonL_checkinteger(L, 2);
       break;
     }
-    default: return luaL_error(L, "wrong number of arguments");
+    default: return moonL_error(L, "wrong number of arguments");
   }
   // random integer in the interval [low, up]
-  luaL_argcheck(L, low <= up, 1, "interval is empty");
+  moonL_argcheck(L, low <= up, 1, "interval is empty");
   // project random integer into the interval [0, up - low]
-  const lua_Unsigned p = project(I2UInt(rv), l_castS2U(up) - l_castS2U(low), state);
-  lua_pushinteger(L, l_castU2S(p + l_castS2U(low)));
+  const moon_Unsigned p = project(I2UInt(rv), l_castS2U(up) - l_castS2U(low), state);
+  moon_pushinteger(L, l_castU2S(p + l_castS2U(low)));
   return 1;
 }
 
 
-static void setseed (lua_State *L, Rand64 *state,
-                     lua_Unsigned n1, lua_Unsigned n2) {
+static void setseed (moon_State *L, Rand64 *state,
+                     moon_Unsigned n1, moon_Unsigned n2) {
   state[0] = Int2I(n1);
   state[1] = Int2I(0xff);  // avoid a zero state
   state[2] = Int2I(n2);
   state[3] = Int2I(0);
   for (int i = 0; i < 16; i++)
     nextrand(state);  // discard initial values to "spread" seed
-  lua_pushinteger(L, l_castU2S(n1));
-  lua_pushinteger(L, l_castU2S(n2));
+  moon_pushinteger(L, l_castU2S(n1));
+  moon_pushinteger(L, l_castU2S(n2));
 }
 
 
-static int math_randomseed (lua_State *L) {
-  RanState *state = static_cast<RanState *>(lua_touserdata(L, lua_upvalueindex(1)));
-  lua_Unsigned n1, n2;
-  if (lua_isnone(L, 1)) {
-    n1 = luaL_makeseed(L);  // "random" seed
+static int math_randomseed (moon_State *L) {
+  RanState *state = static_cast<RanState *>(moon_touserdata(L, moon_upvalueindex(1)));
+  moon_Unsigned n1, n2;
+  if (moon_isnone(L, 1)) {
+    n1 = moonL_makeseed(L);  // "random" seed
     n2 = I2UInt(nextrand(state->s));  // in case seed is not that random...
   }
   else {
-    n1 = l_castS2U(luaL_checkinteger(L, 1));
-    n2 = l_castS2U(luaL_optinteger(L, 2, 0));
+    n1 = l_castS2U(moonL_checkinteger(L, 1));
+    n2 = l_castS2U(moonL_optinteger(L, 2, 0));
   }
   setseed(L, state->s, n1, n2);
   return 2;  // return seeds
 }
 
 
-static const luaL_Reg randfuncs[] = {
+static const moonL_Reg randfuncs[] = {
   {"random", math_random},
   {"randomseed", math_randomseed},
   {nullptr, nullptr}
@@ -651,11 +651,11 @@ static const luaL_Reg randfuncs[] = {
 /*
 ** Register the random functions and initialize their state.
 */
-static void setrandfunc (lua_State *L) {
-  RanState *state = static_cast<RanState *>(lua_newuserdatauv(L, sizeof(RanState), 0));
-  setseed(L, state->s, luaL_makeseed(L), 0);  // initialize with random seed
-  lua_pop(L, 2);  // remove pushed seeds
-  luaL_setfuncs(L, randfuncs, 1);
+static void setrandfunc (moon_State *L) {
+  RanState *state = static_cast<RanState *>(moon_newuserdatauv(L, sizeof(RanState), 0));
+  setseed(L, state->s, moonL_makeseed(L), 0);  // initialize with random seed
+  moon_pop(L, 2);  // remove pushed seeds
+  moonL_setfuncs(L, randfuncs, 1);
 }
 
 // }==================================================================
@@ -666,32 +666,32 @@ static void setrandfunc (lua_State *L) {
 ** Deprecated functions (for compatibility only)
 ** ===================================================================
 */
-#if defined(LUA_COMPAT_MATHLIB)
+#if defined(MOON_COMPAT_MATHLIB)
 
-static int math_cosh (lua_State *L) {
-  lua_pushnumber(L, l_mathop(cosh)(luaL_checknumber(L, 1)));
+static int math_cosh (moon_State *L) {
+  moon_pushnumber(L, l_mathop(cosh)(moonL_checknumber(L, 1)));
   return 1;
 }
 
-static int math_sinh (lua_State *L) {
-  lua_pushnumber(L, l_mathop(sinh)(luaL_checknumber(L, 1)));
+static int math_sinh (moon_State *L) {
+  moon_pushnumber(L, l_mathop(sinh)(moonL_checknumber(L, 1)));
   return 1;
 }
 
-static int math_tanh (lua_State *L) {
-  lua_pushnumber(L, l_mathop(tanh)(luaL_checknumber(L, 1)));
+static int math_tanh (moon_State *L) {
+  moon_pushnumber(L, l_mathop(tanh)(moonL_checknumber(L, 1)));
   return 1;
 }
 
-static int math_pow (lua_State *L) {
-  lua_Number x = luaL_checknumber(L, 1);
-  lua_Number y = luaL_checknumber(L, 2);
-  lua_pushnumber(L, l_mathop(pow)(x, y));
+static int math_pow (moon_State *L) {
+  moon_Number x = moonL_checknumber(L, 1);
+  moon_Number y = moonL_checknumber(L, 2);
+  moon_pushnumber(L, l_mathop(pow)(x, y));
   return 1;
 }
 
-static int math_log10 (lua_State *L) {
-  lua_pushnumber(L, l_mathop(log10)(luaL_checknumber(L, 1)));
+static int math_log10 (moon_State *L) {
+  moon_pushnumber(L, l_mathop(log10)(moonL_checknumber(L, 1)));
   return 1;
 }
 
@@ -700,7 +700,7 @@ static int math_log10 (lua_State *L) {
 
 
 
-static const luaL_Reg mathlib[] = {
+static const moonL_Reg mathlib[] = {
   {"abs",   math_abs},
   {"acos",  math_acos},
   {"asin",  math_asin},
@@ -724,7 +724,7 @@ static const luaL_Reg mathlib[] = {
   {"sqrt",  math_sqrt},
   {"tan",   math_tan},
   {"type", math_type},
-#if defined(LUA_COMPAT_MATHLIB)
+#if defined(MOON_COMPAT_MATHLIB)
   {"atan2", math_atan},
   {"cosh",   math_cosh},
   {"sinh",   math_sinh},
@@ -746,16 +746,16 @@ static const luaL_Reg mathlib[] = {
 /*
 ** Open math library
 */
-LUAMOD_API int luaopen_math (lua_State *L) {
-  luaL_newlib(L, mathlib);
-  lua_pushnumber(L, PI);
-  lua_setfield(L, -2, "pi");
-  lua_pushnumber(L, (lua_Number)HUGE_VAL);
-  lua_setfield(L, -2, "huge");
-  lua_pushinteger(L, LUA_MAXINTEGER);
-  lua_setfield(L, -2, "maxinteger");
-  lua_pushinteger(L, LUA_MININTEGER);
-  lua_setfield(L, -2, "mininteger");
+MOONMOD_API int moonopen_math (moon_State *L) {
+  moonL_newlib(L, mathlib);
+  moon_pushnumber(L, PI);
+  moon_setfield(L, -2, "pi");
+  moon_pushnumber(L, (moon_Number)HUGE_VAL);
+  moon_setfield(L, -2, "huge");
+  moon_pushinteger(L, MOON_MAXINTEGER);
+  moon_setfield(L, -2, "maxinteger");
+  moon_pushinteger(L, MOON_MININTEGER);
+  moon_setfield(L, -2, "mininteger");
   setrandfunc(L);
   return 1;
 }

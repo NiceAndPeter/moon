@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -27,12 +27,12 @@
 #include "lzio.h"
 
 // minimum size for string buffer
-#if !defined(LUA_MINBUFFER)
-#define LUA_MINBUFFER   32
+#if !defined(MOON_MINBUFFER)
+#define MOON_MINBUFFER   32
 #endif
 
 // ORDER RESERVED
-static const char *const luaX_tokens [] = {
+static const char *const moonX_tokens [] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "global", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
@@ -44,14 +44,14 @@ static const char *const luaX_tokens [] = {
 
 void LexState::save(int c) {
   Mbuffer *b = getBuffer();
-  if (luaZ_bufflen(b) + 1 > luaZ_sizebuffer(b)) {
-    size_t newsize = luaZ_sizebuffer(b);  /* get old size */;
+  if (moonZ_bufflen(b) + 1 > moonZ_sizebuffer(b)) {
+    size_t newsize = moonZ_sizebuffer(b);  /* get old size */;
     if (newsize >= (MAX_SIZE/3 * 2))  // larger than MAX_SIZE/1.5 ?
       lexError("lexical element too long", 0);
     newsize += (newsize >> 1);  // new size is 1.5 times the old one
-    luaZ_resizebuffer(getLuaState(), b, newsize);
+    moonZ_resizebuffer(getLuaState(), b, newsize);
   }
-  size_t len = luaZ_bufflen(b);
+  size_t len = moonZ_bufflen(b);
   b->buffer[len] = cast_char(c);
   b->n++;
 }
@@ -61,12 +61,12 @@ void LexState::saveAndNext() {
   next();
 }
 
-void luaX_init (lua_State *L) 
+void moonX_init (moon_State *L) 
 {
-  TString *envName = luaS_newliteral(L, LUA_ENV);
+  TString *envName = moonS_newliteral(L, MOON_ENV);
   envName->fix(L);
   lu_byte tokenIndex = 0;
-  for (auto const& token : std::span(luaX_tokens)) 
+  for (auto const& token : std::span(moonX_tokens)) 
   {
     auto tstring = TString::create(L, token);
     tstring->fix(L);  
@@ -77,14 +77,14 @@ void luaX_init (lua_State *L)
 const char *LexState::tokenToStr(int token) {
   if (token < FIRST_RESERVED) {  // single-byte symbols?
     if (lisprint(token))
-      return luaO_pushfstring(getLuaState(), "'%c'", token);
+      return moonO_pushfstring(getLuaState(), "'%c'", token);
     else  // control character
-      return luaO_pushfstring(getLuaState(), "'<\\%d>'", token);
+      return moonO_pushfstring(getLuaState(), "'<\\%d>'", token);
   }
   else {
-    const char *s = luaX_tokens[token - FIRST_RESERVED];
+    const char *s = moonX_tokens[token - FIRST_RESERVED];
     if (token < static_cast<int>(RESERVED::TK_EOS))  // fixed format (symbols and reserved words)?
-      return luaO_pushfstring(getLuaState(), "'%s'", s);
+      return moonO_pushfstring(getLuaState(), "'%s'", s);
     else  // names, strings, and numerals
       return s;
   }
@@ -95,17 +95,17 @@ const char* LexState::txtToken(int token) {
     case static_cast<int>(RESERVED::TK_NAME): case static_cast<int>(RESERVED::TK_STRING):
     case static_cast<int>(RESERVED::TK_FLT): case static_cast<int>(RESERVED::TK_INT):
       save('\0');
-      return luaO_pushfstring(getLuaState(), "'%s'", luaZ_buffer(getBuffer()));
+      return moonO_pushfstring(getLuaState(), "'%s'", moonZ_buffer(getBuffer()));
     default:
       return tokenToStr(token);
   }
 }
 
 l_noret LexState::lexError(const char *msg, int token) {
-  msg = luaG_addinfo(getLuaState(), msg, getSource(), getLineNumber());
+  msg = moonG_addinfo(getLuaState(), msg, getSource(), getLineNumber());
   if (token)
-    luaO_pushfstring(getLuaState(), "%s near %s", msg, txtToken(token));
-  getLuaState()->doThrow(LUA_ERRSYNTAX);
+    moonO_pushfstring(getLuaState(), "%s near %s", msg, txtToken(token));
+  getLuaState()->doThrow(MOON_ERRSYNTAX);
 }
 
 l_noret LexState::syntaxError(const char *msg) {
@@ -119,9 +119,9 @@ l_noret LexState::syntaxError(const char *msg) {
 ** one copy of each unique string.
 */
 TString* LexState::anchorStr(TString *tstring) {
-  lua_State *luaState = getLuaState();
+  moon_State *luaState = getLuaState();
   TValue oldts;
-  LuaT tag = getTable()->getStr(tstring, &oldts);
+  MoonT tag = getTable()->getStr(tstring, &oldts);
   if (!tagisempty(tag))  // string already present?
     return tsvalue(&oldts);  // use stored value
   else {  // create a new entry
@@ -130,7 +130,7 @@ TString* LexState::anchorStr(TString *tstring) {
     setsvalue(luaState, stv, tstring);  // push (anchor) the string on the stack
     getTable()->set(luaState, stv, stv);  // t[string] = string
     // table is not a metatable, so it does not need to invalidate cache
-    luaC_checkGC(luaState);
+    moonC_checkGC(luaState);
     luaState->getStackSubsystem().pop();  // remove string from stack
     return tstring;
   }
@@ -149,7 +149,7 @@ TString *LexState::newString(const char *str, size_t l) {
 */
 void LexState::incLineNumber() {
   int old = getCurrentChar();
-  lua_assert(currIsNewline());
+  moon_assert(currIsNewline());
   next();  // skip '\n' or '\r'
   if (currIsNewline() && getCurrentChar() != old)
     next();  // skip '\n\r' or '\r\n'
@@ -157,7 +157,7 @@ void LexState::incLineNumber() {
     lexError("chunk has too many lines", 0);
 }
 
-void LexState::setInput(lua_State *state, ZIO *zio, TString *src, int firstchar) {
+void LexState::setInput(moon_State *state, ZIO *zio, TString *src, int firstchar) {
   getCurrentTokenRef().token = 0;
   setLuaState(state);
   setCurrent(firstchar);
@@ -168,14 +168,14 @@ void LexState::setInput(lua_State *state, ZIO *zio, TString *src, int firstchar)
   setSource(src);
   /* all three strings here ("_ENV", "break", "global") were fixed,
      so they cannot be collected */
-  setEnvName(luaS_newliteral(state, LUA_ENV));  // get env string
-  setBreakName(luaS_newliteral(state, "break"));  // get "break" string
-#if defined(LUA_COMPAT_GLOBAL)
+  setEnvName(moonS_newliteral(state, MOON_ENV));  // get env string
+  setBreakName(moonS_newliteral(state, "break"));  // get "break" string
+#if defined(MOON_COMPAT_GLOBAL)
   // compatibility mode: "global" is not a reserved word
-  setGlobalName(luaS_newliteral(state, "global"));  // get "global" string
+  setGlobalName(moonS_newliteral(state, "global"));  // get "global" string
   getGlobalName()->setExtra(0);  // mark it as not reserved
 #endif
-  luaZ_resizebuffer(getLuaState(), getBuffer(), LUA_MINBUFFER);  // initialize buffer
+  moonZ_resizebuffer(getLuaState(), getBuffer(), MOON_MINBUFFER);  // initialize buffer
 }
 
 /*
@@ -198,7 +198,7 @@ int LexState::checkNext1(int c) {
 ** saves it
 */
 int LexState::checkNext2(const char *set) {
-  lua_assert(set[2] == '\0');
+  moon_assert(set[2] == '\0');
   if (getCurrentChar() == set[0] || getCurrentChar() == set[1]) {
     saveAndNext();
     return 1;
@@ -207,9 +207,9 @@ int LexState::checkNext2(const char *set) {
 }
 
 
-// LUA_NUMBER
+// MOON_NUMBER
 /*
-** This function is quite liberal in what it accepts, as 'luaO_str2num'
+** This function is quite liberal in what it accepts, as 'moonO_str2num'
 ** will reject ill-formed numerals. Roughly, it accepts the following
 ** pattern:
 **
@@ -224,7 +224,7 @@ int LexState::readNumeral(SemInfo *seminfo) {
   TValue obj;
   const char *expo = "Ee";
   int first = getCurrentChar();
-  lua_assert(lisdigit(getCurrentChar()));
+  moon_assert(lisdigit(getCurrentChar()));
   saveAndNext();
   if (first == '0' && checkNext2("xX"))  // hexadecimal?
     expo = "Pp";
@@ -238,14 +238,14 @@ int LexState::readNumeral(SemInfo *seminfo) {
   if (lislalpha(getCurrentChar()))  // is numeral touching a letter?
     saveAndNext();  // force an error
   save('\0');
-  if (luaO_str2num(luaZ_buffer(getBuffer()), &obj) == 0)  // format error?
+  if (moonO_str2num(moonZ_buffer(getBuffer()), &obj) == 0)  // format error?
     lexError("malformed number", static_cast<int>(RESERVED::TK_FLT));
   if (ttisinteger(&obj)) {
     seminfo->i = ivalue(&obj);
     return static_cast<int>(RESERVED::TK_INT);
   }
   else {
-    lua_assert(ttisfloat(&obj));
+    moon_assert(ttisfloat(&obj));
     seminfo->r = fltvalue(&obj);
     return static_cast<int>(RESERVED::TK_FLT);
   }
@@ -261,7 +261,7 @@ int LexState::readNumeral(SemInfo *seminfo) {
 size_t LexState::skipSep() {
   size_t count = 0;
   int s = getCurrentChar();
-  lua_assert(s == '[' || s == ']');
+  moon_assert(s == '[' || s == ']');
   saveAndNext();
   while (getCurrentChar() == '=') {
     saveAndNext();
@@ -282,7 +282,7 @@ void LexState::readLongString(SemInfo *seminfo, size_t sep) {
     switch (getCurrentChar()) {
       case EOZ: {  // error
         const char *what = (seminfo ? "string" : "comment");
-        const char *msg = luaO_pushfstring(getLuaState(),
+        const char *msg = moonO_pushfstring(getLuaState(),
                      "unfinished long %s (starting at line %d)", what, line);
         lexError(msg, static_cast<int>(RESERVED::TK_EOS));
         break;  // to avoid warnings
@@ -297,7 +297,7 @@ void LexState::readLongString(SemInfo *seminfo, size_t sep) {
       case '\n': case '\r': {
         save('\n');
         incLineNumber();
-        if (!seminfo) luaZ_resetbuffer(getBuffer());  // avoid wasting space
+        if (!seminfo) moonZ_resetbuffer(getBuffer());  // avoid wasting space
         break;
       }
       default: {
@@ -307,8 +307,8 @@ void LexState::readLongString(SemInfo *seminfo, size_t sep) {
     }
   } endloop:
   if (seminfo)
-    seminfo->tstring = newString(luaZ_buffer(getBuffer()) + sep,
-                                luaZ_bufflen(getBuffer()) - 2 * sep);
+    seminfo->tstring = newString(moonZ_buffer(getBuffer()) + sep,
+                                moonZ_bufflen(getBuffer()) - 2 * sep);
 }
 
 
@@ -324,14 +324,14 @@ void LexState::escCheck(int c, const char *msg) {
 int LexState::getHexa() {
   saveAndNext();
   escCheck(lisxdigit(getCurrentChar()), "hexadecimal digit expected");
-  return luaO_hexavalue(getCurrentChar());
+  return moonO_hexavalue(getCurrentChar());
 }
 
 
 int LexState::readHexaEsc() {
   int r = getHexa();
   r = (r << 4) + getHexa();
-  luaZ_buffremove(getBuffer(), 2);  // remove saved chars from buffer
+  moonZ_buffremove(getBuffer(), 2);  // remove saved chars from buffer
   return r;
 }
 
@@ -350,18 +350,18 @@ l_uint32 LexState::readUtf8Esc() {
   while (cast_void(saveAndNext()), lisxdigit(getCurrentChar())) {
     i++;
     escCheck(r <= (0x7FFFFFFFu >> 4), "UTF-8 value too large");
-    r = (r << 4) + luaO_hexavalue(getCurrentChar());
+    r = (r << 4) + moonO_hexavalue(getCurrentChar());
   }
   escCheck(getCurrentChar() == '}', "missing '}'");
   next();  // skip '}'
-  luaZ_buffremove(getBuffer(), i);  // remove saved chars from buffer
+  moonZ_buffremove(getBuffer(), i);  // remove saved chars from buffer
   return r;
 }
 
 
 void LexState::utf8Esc() {
   char utf8buffer[UTF8BUFFSZ];
-  int n = luaO_utf8esc(utf8buffer, readUtf8Esc());
+  int n = moonO_utf8esc(utf8buffer, readUtf8Esc());
   for (; n > 0; n--)  // add 'utf8buffer' to string
     save(utf8buffer[UTF8BUFFSZ - n]);
 }
@@ -375,7 +375,7 @@ int LexState::readDecEsc() {
     saveAndNext();
   }
   escCheck(r <= UCHAR_MAX, "decimal escape too large");
-  luaZ_buffremove(getBuffer(), i);  // remove read digits from buffer
+  moonZ_buffremove(getBuffer(), i);  // remove read digits from buffer
   return r;
 }
 
@@ -410,7 +410,7 @@ void LexState::readString(int del, SemInfo *seminfo) {
             c = getCurrentChar(); goto read_save;
           case EOZ: goto no_save;  // will raise an error next loop
           case 'z': {  // zap following span of spaces
-            luaZ_buffremove(getBuffer(), 1);  // remove '\\'
+            moonZ_buffremove(getBuffer(), 1);  // remove '\\'
             next();  // skip the 'z'
             while (lisspace(getCurrentChar())) {
               if (currIsNewline()) incLineNumber();
@@ -428,7 +428,7 @@ void LexState::readString(int del, SemInfo *seminfo) {
          next();
          // go through
        only_save:
-         luaZ_buffremove(getBuffer(), 1);  // remove '\\'
+         moonZ_buffremove(getBuffer(), 1);  // remove '\\'
          save(c);
          // go through
        no_save: break;
@@ -438,8 +438,8 @@ void LexState::readString(int del, SemInfo *seminfo) {
     }
   }
   saveAndNext();  // skip delimiter
-  seminfo->tstring = newString(luaZ_buffer(getBuffer()) + 1,
-                              luaZ_bufflen(getBuffer()) - 2);
+  seminfo->tstring = newString(moonZ_buffer(getBuffer()) + 1,
+                              moonZ_bufflen(getBuffer()) - 2);
 }
 
 
@@ -449,8 +449,8 @@ int LexState::readName(SemInfo *seminfo) {
     saveAndNext();
   } while (lislalnum(getCurrentChar()));
   // find or create string
-  TString *tstring = TString::create(getLuaState(), luaZ_buffer(getBuffer()),
-                                     luaZ_bufflen(getBuffer()));
+  TString *tstring = TString::create(getLuaState(), moonZ_buffer(getBuffer()),
+                                     moonZ_bufflen(getBuffer()));
   if (isreserved(tstring))  // reserved word?
     return tstring->getExtra() - 1 + FIRST_RESERVED;
   seminfo->tstring = anchorStr(tstring);
@@ -459,7 +459,7 @@ int LexState::readName(SemInfo *seminfo) {
 
 
 int LexState::lex(SemInfo *seminfo) {
-  luaZ_resetbuffer(getBuffer());
+  moonZ_resetbuffer(getBuffer());
   for (;;) {
     switch (getCurrentChar()) {
       case '\n': case '\r': {  // line breaks
@@ -477,10 +477,10 @@ int LexState::lex(SemInfo *seminfo) {
         next();
         if (getCurrentChar() == '[') {  // long comment?
           size_t sep = skipSep();
-          luaZ_resetbuffer(getBuffer());  // 'skip_sep' may dirty the buffer
+          moonZ_resetbuffer(getBuffer());  // 'skip_sep' may dirty the buffer
           if (sep >= 2) {
             readLongString(nullptr, sep);  // skip long comment
-            luaZ_resetbuffer(getBuffer());  // previous call may dirty the buff.
+            moonZ_resetbuffer(getBuffer());  // previous call may dirty the buff.
             break;
           }
         }
@@ -578,7 +578,7 @@ void LexState::nextToken() {
 
 
 int LexState::lookaheadToken() {
-  lua_assert(getLookahead().token == static_cast<int>(RESERVED::TK_EOS));
+  moon_assert(getLookahead().token == static_cast<int>(RESERVED::TK_EOS));
   getLookaheadRef().token = lex(&getLookaheadRef().seminfo);
   return getLookahead().token;
 }

@@ -15,20 +15,20 @@
 ** optimized for the specific needs of Lua.
 */
 
-#if !defined(LUA_USE_CTYPE)
+#if !defined(MOON_USE_CTYPE)
 
 #if 'A' == 65 && '0' == 48
 // ASCII case: can use its own tables; faster and fixed
-#define LUA_USE_CTYPE	0
+#define MOON_USE_CTYPE	0
 #else
 // must use standard C ctype
-#define LUA_USE_CTYPE	1
+#define MOON_USE_CTYPE	1
 #endif
 
 #endif
 
 
-#if !LUA_USE_CTYPE  // {
+#if !MOON_USE_CTYPE  // {
 
 #include <climits>
 
@@ -42,7 +42,7 @@ inline constexpr int SPACEBIT = 3;
 inline constexpr int XDIGITBIT = 4;
 
 // one entry for each character and for -1 (EOZ)
-LUAI_DDEC(const lu_byte luai_ctype_[UCHAR_MAX + 2];)
+MOONI_DDEC(const lu_byte mooni_ctype_[UCHAR_MAX + 2];)
 
 inline constexpr int MASK(int B) noexcept {
 	return (1 << B);
@@ -52,7 +52,7 @@ inline constexpr int MASK(int B) noexcept {
 ** add 1 to char to allow index -1 (EOZ)
 */
 inline bool testprop(int c, int p) noexcept {
-	return (luai_ctype_[(c)+1] & (p)) != 0;
+	return (mooni_ctype_[(c)+1] & (p)) != 0;
 }
 
 /*

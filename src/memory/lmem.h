@@ -13,22 +13,22 @@
 #include "lua.h"
 
 
-// Note: luaM_error must remain a macro due to lua_State forward declaration
-#define luaM_error(L)	(L)->doThrow(LUA_ERRMEM)
+// Note: moonM_error must remain a macro due to moon_State forward declaration
+#define moonM_error(L)	(L)->doThrow(MOON_ERRMEM)
 
 // Forward declarations of underlying memory functions
-LUAI_FUNC l_noret luaM_toobig (lua_State *L);
-[[nodiscard]] LUAI_FUNC void *luaM_realloc_ (lua_State *L, void *block, size_t oldsize,
+MOONI_FUNC l_noret moonM_toobig (moon_State *L);
+[[nodiscard]] MOONI_FUNC void *moonM_realloc_ (moon_State *L, void *block, size_t oldsize,
                                                           size_t size);
-[[nodiscard]] LUAI_FUNC void *luaM_saferealloc_ (lua_State *L, void *block, size_t oldsize,
+[[nodiscard]] MOONI_FUNC void *moonM_saferealloc_ (moon_State *L, void *block, size_t oldsize,
                                                               size_t size);
-LUAI_FUNC void luaM_free_ (lua_State *L, void *block, size_t osize);
-[[nodiscard]] LUAI_FUNC void *luaM_growaux_ (lua_State *L, void *block, int nelems,
+MOONI_FUNC void moonM_free_ (moon_State *L, void *block, size_t osize);
+[[nodiscard]] MOONI_FUNC void *moonM_growaux_ (moon_State *L, void *block, int nelems,
                                int *size, unsigned size_elem, int limit,
                                const char *what);
-[[nodiscard]] LUAI_FUNC void *luaM_shrinkvector_ (lua_State *L, void *block, int *nelem,
+[[nodiscard]] MOONI_FUNC void *moonM_shrinkvector_ (moon_State *L, void *block, int *nelem,
                                     int final_n, unsigned size_elem);
-[[nodiscard]] LUAI_FUNC void *luaM_malloc_ (lua_State *L, size_t size, int tag);
+[[nodiscard]] MOONI_FUNC void *moonM_malloc_ (moon_State *L, size_t size, int tag);
 
 /*
 ** This function tests whether it is safe to multiply 'n' by the size of
@@ -42,14 +42,14 @@ LUAI_FUNC void luaM_free_ (lua_State *L, void *block, size_t osize);
 ** avoiding this warning but also this optimization.)
 */
 template<typename T>
-inline constexpr bool luaM_testsize(T n, size_t e) noexcept {
+inline constexpr bool moonM_testsize(T n, size_t e) noexcept {
 	return sizeof(n) >= sizeof(size_t) && cast_sizet(n) + 1 > MAX_SIZET / e;
 }
 
 template<typename T>
-inline void luaM_checksize(lua_State* L, T n, size_t e) {
-	if (luaM_testsize(n, e))
-		luaM_toobig(L);
+inline void moonM_checksize(moon_State* L, T n, size_t e) {
+	if (moonM_testsize(n, e))
+		moonM_toobig(L);
 }
 
 
@@ -60,7 +60,7 @@ inline void luaM_checksize(lua_State* L, T n, size_t e) {
 ** 'int' and that 'int' is not larger than 'size_t'.)
 */
 template<typename T>
-inline constexpr int luaM_limitN(int n) noexcept {
+inline constexpr int moonM_limitN(int n) noexcept {
   return (cast_sizet(n) <= MAX_SIZET/sizeof(T)) ? n :
      cast_int((MAX_SIZET/sizeof(T)));
 }
@@ -69,16 +69,16 @@ inline constexpr int luaM_limitN(int n) noexcept {
 /*
 ** Arrays of chars do not need any test
 */
-[[nodiscard]] inline char* luaM_reallocvchar(lua_State* L, void* b, size_t on, size_t n) {
-	return cast_charp(luaM_saferealloc_(L, b, on * sizeof(char), n * sizeof(char)));
+[[nodiscard]] inline char* moonM_reallocvchar(moon_State* L, void* b, size_t on, size_t n) {
+	return cast_charp(moonM_saferealloc_(L, b, on * sizeof(char), n * sizeof(char)));
 }
 
-inline void luaM_freemem(lua_State* L, void* b, size_t s) {
-	luaM_free_(L, b, s);
+inline void moonM_freemem(moon_State* L, void* b, size_t s) {
+	moonM_free_(L, b, s);
 }
 
-[[nodiscard]] inline void* luaM_newobject(lua_State* L, int tag, size_t s) {
-	return luaM_malloc_(L, s, tag);
+[[nodiscard]] inline void* moonM_newobject(moon_State* L, int tag, size_t s) {
+	return moonM_malloc_(L, s, tag);
 }
 
 /*
@@ -88,58 +88,58 @@ inline void luaM_freemem(lua_State* L, void* b, size_t s) {
 
 // Free a single object of type T
 template<typename T>
-inline void luaM_free(lua_State* L, T* b) noexcept {
-	luaM_free_(L, static_cast<void*>(b), sizeof(T));
+inline void moonM_free(moon_State* L, T* b) noexcept {
+	moonM_free_(L, static_cast<void*>(b), sizeof(T));
 }
 
 // Free an array of n objects of type T
 template<typename T>
-inline void luaM_freearray(lua_State* L, T* b, size_t n) noexcept {
-	luaM_free_(L, static_cast<void*>(b), n * sizeof(T));
+inline void moonM_freearray(moon_State* L, T* b, size_t n) noexcept {
+	moonM_free_(L, static_cast<void*>(b), n * sizeof(T));
 }
 
 // Allocate a single object of type T
 template<typename T>
-[[nodiscard]] inline T* luaM_new(lua_State* L) {
-	return static_cast<T*>(luaM_malloc_(L, sizeof(T), 0));
+[[nodiscard]] inline T* moonM_new(moon_State* L) {
+	return static_cast<T*>(moonM_malloc_(L, sizeof(T), 0));
 }
 
 // Allocate an array of n objects of type T
 template<typename T>
-[[nodiscard]] inline T* luaM_newvector(lua_State* L, size_t n) {
-	return static_cast<T*>(luaM_malloc_(L, cast_sizet(n) * sizeof(T), 0));
+[[nodiscard]] inline T* moonM_newvector(moon_State* L, size_t n) {
+	return static_cast<T*>(moonM_malloc_(L, cast_sizet(n) * sizeof(T), 0));
 }
 
 // Allocate an array with size check
 template<typename T>
-[[nodiscard]] inline T* luaM_newvectorchecked(lua_State* L, size_t n) {
-	luaM_checksize(L, n, sizeof(T));
-	return luaM_newvector<T>(L, n);
+[[nodiscard]] inline T* moonM_newvectorchecked(moon_State* L, size_t n) {
+	moonM_checksize(L, n, sizeof(T));
+	return moonM_newvector<T>(L, n);
 }
 
 // Allocate a block of size bytes (char array)
-[[nodiscard]] inline char* luaM_newblock(lua_State* L, size_t size) {
-	return luaM_newvector<char>(L, size);
+[[nodiscard]] inline char* moonM_newblock(moon_State* L, size_t size) {
+	return moonM_newvector<char>(L, size);
 }
 
 // Reallocate an array from oldn to n elements
 template<typename T>
-[[nodiscard]] inline T* luaM_reallocvector(lua_State* L, T* v, size_t oldn, size_t n) {
-	return static_cast<T*>(luaM_realloc_(L, v, cast_sizet(oldn) * sizeof(T),
+[[nodiscard]] inline T* moonM_reallocvector(moon_State* L, T* v, size_t oldn, size_t n) {
+	return static_cast<T*>(moonM_realloc_(L, v, cast_sizet(oldn) * sizeof(T),
 	                                             cast_sizet(n) * sizeof(T)));
 }
 
 // Grow a vector, updating size and checking limit
 template<typename T>
-inline void luaM_growvector(lua_State* L, T*& v, int nelems, int& size, int limit, const char* e) {
-	v = static_cast<T*>(luaM_growaux_(L, v, nelems, &size, sizeof(T),
-	                                   luaM_limitN<T>(limit), e));
+inline void moonM_growvector(moon_State* L, T*& v, int nelems, int& size, int limit, const char* e) {
+	v = static_cast<T*>(moonM_growaux_(L, v, nelems, &size, sizeof(T),
+	                                   moonM_limitN<T>(limit), e));
 }
 
 // Shrink a vector to final_n elements, updating size
 template<typename T>
-inline void luaM_shrinkvector(lua_State* L, T*& v, int& size, int final_n) {
-	v = static_cast<T*>(luaM_shrinkvector_(L, v, &size, final_n, sizeof(T)));
+inline void moonM_shrinkvector(moon_State* L, T*& v, int& size, int final_n) {
+	v = static_cast<T*>(moonM_shrinkvector_(L, v, &size, final_n, sizeof(T)));
 }
 
 // Note: Function declarations moved above template definitions

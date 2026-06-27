@@ -26,29 +26,29 @@ inline constexpr int MAXIWTHABS = 128;
 #endif
 
 
-LUAI_FUNC int luaG_getfuncline (const Proto *f, int pc);
-LUAI_FUNC const char *luaG_findlocal (lua_State *L, CallInfo *callInfo, int n,
+MOONI_FUNC int moonG_getfuncline (const Proto *f, int pc);
+MOONI_FUNC const char *moonG_findlocal (moon_State *L, CallInfo *callInfo, int n,
                                                     StkId *pos);
-LUAI_FUNC l_noret luaG_typeerror (lua_State *L, const TValue *o,
+MOONI_FUNC l_noret moonG_typeerror (moon_State *L, const TValue *o,
                                                 const char *opname);
-LUAI_FUNC l_noret luaG_callerror (lua_State *L, const TValue *o);
-LUAI_FUNC l_noret luaG_forerror (lua_State *L, const TValue *o,
+MOONI_FUNC l_noret moonG_callerror (moon_State *L, const TValue *o);
+MOONI_FUNC l_noret moonG_forerror (moon_State *L, const TValue *o,
                                                const char *what);
-LUAI_FUNC l_noret luaG_concaterror (lua_State *L, const TValue *p1,
+MOONI_FUNC l_noret moonG_concaterror (moon_State *L, const TValue *p1,
                                                   const TValue *p2);
-LUAI_FUNC l_noret luaG_opinterror (lua_State *L, const TValue *p1,
+MOONI_FUNC l_noret moonG_opinterror (moon_State *L, const TValue *p1,
                                                  const TValue *p2,
                                                  const char *msg);
-LUAI_FUNC l_noret luaG_tointerror (lua_State *L, const TValue *p1,
+MOONI_FUNC l_noret moonG_tointerror (moon_State *L, const TValue *p1,
                                                  const TValue *p2);
-LUAI_FUNC l_noret luaG_ordererror (lua_State *L, const TValue *p1,
+MOONI_FUNC l_noret moonG_ordererror (moon_State *L, const TValue *p1,
                                                  const TValue *p2);
-LUAI_FUNC l_noret luaG_runerror (lua_State *L, const char *fmt, ...);
-LUAI_FUNC const char *luaG_addinfo (lua_State *L, const char *msg,
+MOONI_FUNC l_noret moonG_runerror (moon_State *L, const char *fmt, ...);
+MOONI_FUNC const char *moonG_addinfo (moon_State *L, const char *msg,
                                                   TString *src, int line);
-LUAI_FUNC l_noret luaG_errormsg (lua_State *L);
-LUAI_FUNC int luaG_traceexec (lua_State *L, const Instruction *pc);
-LUAI_FUNC int luaG_tracecall (lua_State *L);
+MOONI_FUNC l_noret moonG_errormsg (moon_State *L);
+MOONI_FUNC int moonG_traceexec (moon_State *L, const Instruction *pc);
+MOONI_FUNC int moonG_tracecall (moon_State *L);
 
 
 #endif

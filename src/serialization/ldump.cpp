@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -23,14 +23,14 @@
 
 
 typedef struct {
-  lua_State *L;
-  lua_Writer writer;
+  moon_State *L;
+  moon_Writer writer;
   void *data;
   size_t offset;  // current position relative to beginning of dump
   int strip;
   int status;
   Table *h;  // table to track saved strings
-  lua_Unsigned nstr;  // counter for counting saved strings
+  moon_Unsigned nstr;  // counter for counting saved strings
 } DumpState;
 
 
@@ -53,9 +53,9 @@ inline void dumpVector(DumpState* D, const T* v, size_t n) {
 */
 static void dumpBlock (DumpState *D, const void *b, size_t size) {
   if (D->status == 0) {  // do not write anything after an error
-    lua_unlock(D->L);
+    moon_unlock(D->L);
     D->status = (*D->writer)(D->L, b, size, D->data);
-    lua_lock(D->L);
+    moon_lock(D->L);
     D->offset += size;
   }
 }
@@ -68,11 +68,11 @@ static void dumpBlock (DumpState *D, const void *b, size_t size) {
 static void dumpAlign (DumpState *D, unsigned align) {
   unsigned padding = align - cast_uint(D->offset % align);
   if (padding < align) {  // padding == align means no padding
-    static lua_Integer paddingContent = 0;
-    lua_assert(align <= sizeof(lua_Integer));
+    static moon_Integer paddingContent = 0;
+    moon_assert(align <= sizeof(moon_Integer));
     dumpBlock(D, &paddingContent, padding);
   }
-  lua_assert(D->offset % align == 0);
+  moon_assert(D->offset % align == 0);
 }
 
 
@@ -92,12 +92,12 @@ static void dumpByte (DumpState *D, int y) {
 ** size for 'dumpVarint' buffer: each byte can store up to 7 bits.
 ** (The "+6" rounds up the division.)
 */
-inline constexpr int DIBS = (l_numbits<lua_Unsigned>() + 6) / 7;
+inline constexpr int DIBS = (l_numbits<moon_Unsigned>() + 6) / 7;
 
 /*
 ** Dumps an unsigned integer using the MSB Varint encoding
 */
-static void dumpVarint (DumpState *D, lua_Unsigned x) {
+static void dumpVarint (DumpState *D, moon_Unsigned x) {
   lu_byte buff[DIBS];
   unsigned n = 1;
   buff[DIBS - 1] = x & 0x7f;  // fill least-significant byte
@@ -108,17 +108,17 @@ static void dumpVarint (DumpState *D, lua_Unsigned x) {
 
 
 static void dumpSize (DumpState *D, size_t sz) {
-  dumpVarint(D, static_cast<lua_Unsigned>(sz));
+  dumpVarint(D, static_cast<moon_Unsigned>(sz));
 }
 
 
 static void dumpInt (DumpState *D, int x) {
-  lua_assert(x >= 0);
+  moon_assert(x >= 0);
   dumpVarint(D, cast_uint(x));
 }
 
 
-static void dumpNumber (DumpState *D, lua_Number x) {
+static void dumpNumber (DumpState *D, moon_Number x) {
   dumpVar(D, x);
 }
 
@@ -129,8 +129,8 @@ static void dumpNumber (DumpState *D, lua_Number x) {
 ** A non-negative x is coded as 2x; a negative x is coded as -2x - 1.
 ** (0 => 0; -1 => 1; 1 => 2; -2 => 3; 2 => 4; ...)
 */
-static void dumpInteger (DumpState *D, lua_Integer x) {
-  lua_Unsigned cx = (x >= 0) ? 2u * l_castS2U(x)
+static void dumpInteger (DumpState *D, moon_Integer x) {
+  moon_Unsigned cx = (x >= 0) ? 2u * l_castS2U(x)
                              : (2u * ~l_castS2U(x)) + 1;
   dumpVarint(D, cx);
 }
@@ -148,7 +148,7 @@ static void dumpString (DumpState *D, TString *tstring) {
     dumpSize(D, 0);
   else {
     TValue idx;
-    LuaT tag = D->h->getStr(tstring, &idx);
+    MoonT tag = D->h->getStr(tstring, &idx);
     if (!tagisempty(tag)) {  // string already saved?
       dumpVarint(D, 1);  // reuse a saved string
       dumpVarint(D, l_castS2U(ivalue(&idx)));  // index of saved string
@@ -173,7 +173,7 @@ static void dumpCode (DumpState *D, const Proto& f) {
   auto code = f.getCodeSpan();
   dumpInt(D, static_cast<int>(code.size()));
   dumpAlign(D, sizeof(code[0]));
-  lua_assert(code.data() != nullptr);
+  moon_assert(code.data() != nullptr);
   dumpVector(D, code.data(), cast_uint(code.size()));
 }
 
@@ -184,21 +184,21 @@ static void dumpConstants (DumpState *D, const Proto& f) {
   auto constants = f.getConstantsSpan();
   dumpInt(D, static_cast<int>(constants.size()));
   for (const auto& constant : constants) {
-    LuaT tt = ttypetag(&constant);
+    MoonT tt = ttypetag(&constant);
     dumpByte(D, static_cast<lu_byte>(tt));
     switch (tt) {
-      case LuaT::NUMFLT:
+      case MoonT::NUMFLT:
         dumpNumber(D, fltvalue(&constant));
         break;
-      case LuaT::NUMINT:
+      case MoonT::NUMINT:
         dumpInteger(D, ivalue(&constant));
         break;
-      case LuaT::SHRSTR:
-      case LuaT::LNGSTR:
+      case MoonT::SHRSTR:
+      case MoonT::LNGSTR:
         dumpString(D, tsvalue(&constant));
         break;
       default:
-        lua_assert(tt == LuaT::NIL || tt == LuaT::VFALSE || tt == LuaT::VTRUE);
+        moon_assert(tt == MoonT::NIL || tt == MoonT::VFALSE || tt == MoonT::VTRUE);
     }
   }
 }
@@ -275,21 +275,21 @@ static void dumpFunction (DumpState *D, const Proto& f) {
 
 
 static void dumpHeader (DumpState *D) {
-  dumpLiteral(D, LUA_SIGNATURE);
-  dumpByte(D, LUAC_VERSION);
-  dumpByte(D, LUAC_FORMAT);
-  dumpLiteral(D, LUAC_DATA);
-  dumpNumInfo(D, int, LUAC_INT);
-  dumpNumInfo(D, Instruction, LUAC_INST);
-  dumpNumInfo(D, lua_Integer, LUAC_INT);
-  dumpNumInfo(D, lua_Number, LUAC_NUM);
+  dumpLiteral(D, MOON_SIGNATURE);
+  dumpByte(D, MOONC_VERSION);
+  dumpByte(D, MOONC_FORMAT);
+  dumpLiteral(D, MOONC_DATA);
+  dumpNumInfo(D, int, MOONC_INT);
+  dumpNumInfo(D, Instruction, MOONC_INST);
+  dumpNumInfo(D, moon_Integer, MOONC_INT);
+  dumpNumInfo(D, moon_Number, MOONC_NUM);
 }
 
 
 /*
 ** dump Lua function as precompiled chunk
 */
-int luaU_dump (lua_State *L, const Proto *f, lua_Writer w, void *data,
+int moonU_dump (moon_State *L, const Proto *f, moon_Writer w, void *data,
                int strip) {
   DumpState D;
   D.h = Table::create(L);  // aux. table to keep strings already dumped

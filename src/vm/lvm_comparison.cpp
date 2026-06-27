@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -74,11 +74,11 @@
 ** potentially giving incorrect results. Instead, we compute ceil(f) as an
 ** integer and compare in the integer domain where no precision is lost.
 */
-[[nodiscard]] int LTintfloat (lua_Integer i, lua_Number f) {
+[[nodiscard]] int LTintfloat (moon_Integer i, moon_Number f) {
   if (l_intfitsf(i))
-    return luai_numlt(cast_num(i), f);  // compare them as floats
+    return mooni_numlt(cast_num(i), f);  // compare them as floats
   else {  // i < f <=> i < ceil(f)
-    lua_Integer fi;
+    moon_Integer fi;
     if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Iceil))  // fi = ceil(f)
       return i < fi;  // compare them as integers
     else  // 'f' is either greater or less than all integers
@@ -91,11 +91,11 @@
 ** Check whether integer 'i' is less than or equal to float 'f'.
 ** See comments on previous function.
 */
-[[nodiscard]] int LEintfloat (lua_Integer i, lua_Number f) {
+[[nodiscard]] int LEintfloat (moon_Integer i, moon_Number f) {
   if (l_intfitsf(i))
-    return luai_numle(cast_num(i), f);  // compare them as floats
+    return mooni_numle(cast_num(i), f);  // compare them as floats
   else {  // i <= f <=> i <= floor(f)
-    lua_Integer fi;
+    moon_Integer fi;
     if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Ifloor))  // fi = floor(f)
       return i <= fi;  // compare them as integers
     else  // 'f' is either greater or less than all integers
@@ -108,11 +108,11 @@
 ** Check whether float 'f' is less than integer 'i'.
 ** See comments on previous function.
 */
-[[nodiscard]] int LTfloatint (lua_Number f, lua_Integer i) {
+[[nodiscard]] int LTfloatint (moon_Number f, moon_Integer i) {
   if (l_intfitsf(i))
-    return luai_numlt(f, cast_num(i));  // compare them as floats
+    return mooni_numlt(f, cast_num(i));  // compare them as floats
   else {  // f < i <=> floor(f) < i
-    lua_Integer fi;
+    moon_Integer fi;
     if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Ifloor))  // fi = floor(f)
       return fi < i;  // compare them as integers
     else  // 'f' is either greater or less than all integers
@@ -125,11 +125,11 @@
 ** Check whether float 'f' is less than or equal to integer 'i'.
 ** See comments on previous function.
 */
-[[nodiscard]] int LEfloatint (lua_Number f, lua_Integer i) {
+[[nodiscard]] int LEfloatint (moon_Number f, moon_Integer i) {
   if (l_intfitsf(i))
-    return luai_numle(f, cast_num(i));  // compare them as floats
+    return mooni_numle(f, cast_num(i));  // compare them as floats
   else {  // f <= i <=> ceil(f) <= i
-    lua_Integer fi;
+    moon_Integer fi;
     if (VirtualMachine::flttointeger(f, &fi, F2Imod::F2Iceil))  // fi = ceil(f)
       return fi <= i;  // compare them as integers
     else  // 'f' is either greater or less than all integers
@@ -141,25 +141,25 @@
 /*
 ** return 'l < r' for non-numbers.
 */
-int lua_State::lessThanOthers(const TValue *l, const TValue *r) {
-  lua_assert(!ttisnumber(l) || !ttisnumber(r));
+int moon_State::lessThanOthers(const TValue *l, const TValue *r) {
+  moon_assert(!ttisnumber(l) || !ttisnumber(r));
   if (ttisstring(l) && ttisstring(r))  // both are strings?
     return *tsvalue(l) < *tsvalue(r);  // Use TString operator<
   else
-    return luaT_callorderTM(this, l, r, TMS::TM_LT);
+    return moonT_callorderTM(this, l, r, TMS::TM_LT);
 }
 
 
 /*
 ** return 'l <= r' for non-numbers.
 */
-int lua_State::lessEqualOthers(const TValue *l, const TValue *r) {
-  lua_assert(!ttisnumber(l) || !ttisnumber(r));
+int moon_State::lessEqualOthers(const TValue *l, const TValue *r) {
+  moon_assert(!ttisnumber(l) || !ttisnumber(r));
   if (ttisstring(l) && ttisstring(r))  // both are strings?
     return *tsvalue(l) <= *tsvalue(r);  // Use TString operator<=
   else
-    return luaT_callorderTM(this, l, r, TMS::TM_LE);
+    return moonT_callorderTM(this, l, r, TMS::TM_LE);
 }
 
 
-// luaV_lessequal, luaV_equalobj removed - use VirtualMachine methods directly
+// moonV_lessequal, moonV_equalobj removed - use VirtualMachine methods directly

@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -26,28 +26,28 @@
 ** If the limit is an integer or can be converted to an integer,
 ** rounding down, that is the limit.
 ** Otherwise, check whether the limit can be converted to a float. If
-** the float is too large, clip it to LUA_MAXINTEGER.  If the float
+** the float is too large, clip it to MOON_MAXINTEGER.  If the float
 ** is too negative, the loop should not run, because any initial
 ** integer value is greater than such limit; so, the function returns
 ** true to signal that. (For this latter case, no integer limit would be
-** correct; even a limit of LUA_MININTEGER would run the loop once for
-** an initial value equal to LUA_MININTEGER.)
+** correct; even a limit of MOON_MININTEGER would run the loop once for
+** an initial value equal to MOON_MININTEGER.)
 */
-int lua_State::forLimit(lua_Integer init, const TValue *lim,
-                        lua_Integer *p, lua_Integer step) {
+int moon_State::forLimit(moon_Integer init, const TValue *lim,
+                        moon_Integer *p, moon_Integer step) {
   if (!getVM().tointeger(lim, p, (step < 0 ? F2Imod::F2Iceil : F2Imod::F2Ifloor))) {
     // not coercible to in integer
-    lua_Number flim;  // try to convert to float
+    moon_Number flim;  // try to convert to float
     if (!tonumber(lim, &flim))  // cannot convert to float?
-      luaG_forerror(this, lim, "limit");
+      moonG_forerror(this, lim, "limit");
     // else 'flim' is a float out of integer bounds
-    if (luai_numlt(0, flim)) {  // if it is positive, it is too large
+    if (mooni_numlt(0, flim)) {  // if it is positive, it is too large
       if (step < 0) return 1;  // initial value must be less than it
-      *p = LUA_MAXINTEGER;  /* truncate */
+      *p = MOON_MAXINTEGER;  /* truncate */
     }
     else {  // it is less than min integer
       if (step > 0) return 1;  // initial value must be greater than it
-      *p = LUA_MININTEGER;  /* truncate */
+      *p = MOON_MININTEGER;  /* truncate */
     }
   }
   return (step > 0 ? init > *p : init < *p);  // not to run?
@@ -66,20 +66,20 @@ int lua_State::forLimit(lua_Integer init, const TValue *lim,
 **   ra + 1 : step
 **   ra + 2 : control variable
 */
-int lua_State::forPrep(StkId ra) {
+int moon_State::forPrep(StkId ra) {
   auto *pinit = s2v(ra);
   auto *plimit = s2v(ra + 1);
   auto *pstep = s2v(ra + 2);
   if (ttisinteger(pinit) && ttisinteger(pstep)) {  // integer loop?
     auto init = ivalue(pinit);
     auto step = ivalue(pstep);
-    lua_Integer limit;
+    moon_Integer limit;
     if (step == 0)
-      luaG_runerror(this, "'for' step is zero");
+      moonG_runerror(this, "'for' step is zero");
     if (this->forLimit(init, plimit, &limit, step))
       return 1;  // skip the loop
     else {  // prepare loop counter
-      lua_Unsigned count;
+      moon_Unsigned count;
       if (step > 0) {  // ascending loop?
         count = l_castS2U(limit) - l_castS2U(init);
         if (step != 1)  // avoid division in the too common case
@@ -87,10 +87,10 @@ int lua_State::forPrep(StkId ra) {
       }
       else {  // step < 0; descending loop
         count = l_castS2U(init) - l_castS2U(limit);
-        // Handle LUA_MININTEGER edge case explicitly
-        if (l_unlikely(step == LUA_MININTEGER)) {
-          // For step == LUA_MININTEGER, count should be divided by max value
-          count /= l_castS2U(LUA_MAXINTEGER) + 1u;
+        // Handle MOON_MININTEGER edge case explicitly
+        if (l_unlikely(step == MOON_MININTEGER)) {
+          // For step == MOON_MININTEGER, count should be divided by max value
+          count /= l_castS2U(MOON_MAXINTEGER) + 1u;
         }
         else {
           // 'step+1' avoids negating 'mininteger' in normal case
@@ -104,17 +104,17 @@ int lua_State::forPrep(StkId ra) {
     }
   }
   else {  // try making all values floats
-    lua_Number init, limit, step;
+    moon_Number init, limit, step;
     if (l_unlikely(!tonumber(plimit, &limit)))
-      luaG_forerror(this, plimit, "limit");
+      moonG_forerror(this, plimit, "limit");
     if (l_unlikely(!tonumber(pstep, &step)))
-      luaG_forerror(this, pstep, "step");
+      moonG_forerror(this, pstep, "step");
     if (l_unlikely(!tonumber(pinit, &init)))
-      luaG_forerror(this, pinit, "initial value");
+      moonG_forerror(this, pinit, "initial value");
     if (step == 0)
-      luaG_runerror(this, "'for' step is zero");
-    if (luai_numlt(0, step) ? luai_numlt(limit, init)
-                            : luai_numlt(init, limit))
+      moonG_runerror(this, "'for' step is zero");
+    if (mooni_numlt(0, step) ? mooni_numlt(limit, init)
+                            : mooni_numlt(init, limit))
       return 1;  // skip the loop
     else {
       // make sure all values are floats
@@ -132,13 +132,13 @@ int lua_State::forPrep(StkId ra) {
 ** true iff the loop must continue. (The integer case is
 ** written online with opcode OP_FORLOOP, for performance.)
 */
-int lua_State::floatForLoop(StkId ra) {
+int moon_State::floatForLoop(StkId ra) {
   auto step = fltvalue(s2v(ra + 1));
   auto limit = fltvalue(s2v(ra));
   auto idx = fltvalue(s2v(ra + 2));  // control variable
-  idx = luai_numadd(this, idx, step);  // increment index
-  if (luai_numlt(0, step) ? luai_numle(idx, limit)
-                          : luai_numle(limit, idx)) {
+  idx = mooni_numadd(this, idx, step);  // increment index
+  if (mooni_numlt(0, step) ? mooni_numle(idx, limit)
+                          : mooni_numle(limit, idx)) {
     s2v(ra + 2)->changeFloat(idx);  // update control variable
     return 1;  // jump back
   }

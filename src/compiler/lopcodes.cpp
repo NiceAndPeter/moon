@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -19,7 +19,7 @@ inline constexpr int opmode(int mm, int ot, int it, int t, int a, OpMode m) noex
 
 // ORDER OP
 
-LUAI_DDEF const OpModesArray luaP_opmodes = {
+MOONI_DDEF const OpModesArray moonP_opmodes = {
 // MM OT IT T  A  mode		   opcode
   opmode(0, 0, 0, 0, 1, OpMode::iABC)  // OP_MOVE
  ,opmode(0, 0, 0, 0, 1, OpMode::iAsBx)  // OP_LOADI
@@ -112,7 +112,7 @@ LUAI_DDEF const OpModesArray luaP_opmodes = {
 ** Check whether instruction sets top for next instruction, that is,
 ** it results in multiple values.
 */
-int luaP_isOT (Instruction i) {
+int moonP_isOT (Instruction i) {
   InstructionView view(i);
   OpCode op = static_cast<OpCode>(view.opcode());
   switch (op) {
@@ -127,7 +127,7 @@ int luaP_isOT (Instruction i) {
 ** Check whether instruction uses top from previous instruction, that is,
 ** it accepts multiple results.
 */
-int luaP_isIT (Instruction i) {
+int moonP_isIT (Instruction i) {
   InstructionView view(i);
   OpCode op = static_cast<OpCode>(view.opcode());
   switch (op) {

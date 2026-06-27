@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -26,14 +26,14 @@
 ** and return 0.
 */
 static int l_strton (const TValue *obj, TValue *result) {
-  lua_assert(obj != result);
+  moon_assert(obj != result);
   if (!cvt2num(obj))  // is object not a string?
     return 0;
   else {
     TString *st = tsvalue(obj);
     size_t stlen;
     const char *s = getStringWithLength(st, stlen);
-    return (luaO_str2num(s, result) == stlen + 1);
+    return (moonO_str2num(s, result) == stlen + 1);
   }
 }
 
@@ -42,14 +42,14 @@ static int l_strton (const TValue *obj, TValue *result) {
 ** Try to convert a value to a float. The float case is already handled
 ** by the inline 'tonumber' function.
 */
-static int tonumber_ (const TValue *obj, lua_Number *n) {
+static int tonumber_ (const TValue *obj, moon_Number *n) {
   TValue v;
   if (ttisinteger(obj)) {
     *n = cast_num(ivalue(obj));
     return 1;
   }
   else if (l_strton(obj, &v)) {  // string coercible to number?
-    *n = nvalue(&v);  /* convert result of 'luaO_str2num' to a float */
+    *n = nvalue(&v);  /* convert result of 'moonO_str2num' to a float */
     return 1;
   }
   else
@@ -57,7 +57,7 @@ static int tonumber_ (const TValue *obj, lua_Number *n) {
 }
 
 
-// luaV_flttointeger removed - use VirtualMachine::flttointeger() directly
+// moonV_flttointeger removed - use VirtualMachine::flttointeger() directly
 
 
 /*
@@ -65,7 +65,7 @@ static int tonumber_ (const TValue *obj, lua_Number *n) {
 ** without string coercion.
 ** ("Fast track" handled by inline 'tointegerns' function.)
 */
-static int tointegerns_ (const TValue *obj, lua_Integer *p, F2Imod mode) {
+static int tointegerns_ (const TValue *obj, moon_Integer *p, F2Imod mode) {
   if (ttisfloat(obj))
     return VirtualMachine::flttointeger(fltvalue(obj), p, mode);
   else if (ttisinteger(obj)) {
@@ -80,7 +80,7 @@ static int tointegerns_ (const TValue *obj, lua_Integer *p, F2Imod mode) {
 /*
 ** try to convert a value to an integer.
 */
-static int tointeger_ (const TValue *obj, lua_Integer *p, F2Imod mode) {
+static int tointeger_ (const TValue *obj, moon_Integer *p, F2Imod mode) {
   TValue v;
   if (l_strton(obj, &v))  // does 'obj' point to a numerical string?
     obj = &v;  // change it to point to its corresponding number
@@ -91,14 +91,14 @@ static int tointeger_ (const TValue *obj, lua_Integer *p, F2Imod mode) {
 /*
 ** TValue conversion methods
 */
-int TValue::toNumber(lua_Number* n) const {
+int TValue::toNumber(moon_Number* n) const {
   return tonumber_(this, n);
 }
 
-int TValue::toInteger(lua_Integer* p, F2Imod mode) const {
+int TValue::toInteger(moon_Integer* p, F2Imod mode) const {
   return tointeger_(this, p, mode);
 }
 
-int TValue::toIntegerNoString(lua_Integer* p, F2Imod mode) const {
+int TValue::toIntegerNoString(moon_Integer* p, F2Imod mode) const {
   return tointegerns_(this, p, mode);
 }

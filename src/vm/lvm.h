@@ -17,7 +17,7 @@
 
 
 inline constexpr bool cvt2str(const TValue* o) noexcept {
-#if !defined(LUA_NOCVTN2S)
+#if !defined(MOON_NOCVTN2S)
 	return ttisnumber(o);
 #else
 	(void)o;  // suppress unused parameter warning
@@ -27,7 +27,7 @@ inline constexpr bool cvt2str(const TValue* o) noexcept {
 
 
 inline constexpr bool cvt2num(const TValue* o) noexcept {
-#if !defined(LUA_NOCVTS2N)
+#if !defined(MOON_NOCVTS2N)
 	return ttisstring(o);
 #else
 	(void)o;  // suppress unused parameter warning
@@ -37,12 +37,12 @@ inline constexpr bool cvt2num(const TValue* o) noexcept {
 
 
 /*
-** You can define LUA_FLOORN2I if you want to convert floats to integers
+** You can define MOON_FLOORN2I if you want to convert floats to integers
 ** by flooring them (instead of raising an error if they are not
 ** integral values)
 */
-#if !defined(LUA_FLOORN2I)
-#define LUA_FLOORN2I		F2Imod::F2Ieq
+#if !defined(MOON_FLOORN2I)
+#define MOON_FLOORN2I		F2Imod::F2Ieq
 #endif
 
 
@@ -74,20 +74,20 @@ enum class F2Imod {
 ** of an integer. In a worst case, NBM == 113 for long double and
 ** sizeof(long) == 32.)
 */
-#if ((((LUA_MAXINTEGER >> (NBM / 4)) >> (NBM / 4)) >> (NBM / 4)) \
+#if ((((MOON_MAXINTEGER >> (NBM / 4)) >> (NBM / 4)) >> (NBM / 4)) \
 	>> (NBM - (3 * (NBM / 4))))  >  0
 
 // limit for integers that fit in a float
-inline constexpr lua_Unsigned MAXINTFITSF = (static_cast<lua_Unsigned>(1) << NBM);
+inline constexpr moon_Unsigned MAXINTFITSF = (static_cast<moon_Unsigned>(1) << NBM);
 
 // check whether 'i' is in the interval [-MAXINTFITSF, MAXINTFITSF]
-inline constexpr bool l_intfitsf(lua_Integer i) noexcept {
+inline constexpr bool l_intfitsf(moon_Integer i) noexcept {
 	return (MAXINTFITSF + l_castS2U(i)) <= (2 * MAXINTFITSF);
 }
 
 #else  // all integers fit in a float precisely
 
-inline constexpr bool l_intfitsf(lua_Integer i) noexcept {
+inline constexpr bool l_intfitsf(moon_Integer i) noexcept {
 	(void)i;  // suppress unused parameter warning
 	return true;
 }
@@ -96,7 +96,7 @@ inline constexpr bool l_intfitsf(lua_Integer i) noexcept {
 
 
 // convert an object to a float (including string coercion)
-inline bool tonumber(const TValue* o, lua_Number* n) noexcept {
+inline bool tonumber(const TValue* o, moon_Number* n) noexcept {
 	if (ttisfloat(o)) {
 		*n = fltvalue(o);
 		return true;
@@ -106,7 +106,7 @@ inline bool tonumber(const TValue* o, lua_Number* n) noexcept {
 
 
 // convert an object to a float (without string coercion)
-inline bool tonumberns(const TValue* o, lua_Number& n) noexcept {
+inline bool tonumberns(const TValue* o, moon_Number& n) noexcept {
 	if (ttisfloat(o)) {
 		n = fltvalue(o);
 		return true;
@@ -120,22 +120,22 @@ inline bool tonumberns(const TValue* o, lua_Number& n) noexcept {
 
 
 // convert an object to an integer (including string coercion)
-inline bool tointeger(const TValue* o, lua_Integer* i) noexcept {
+inline bool tointeger(const TValue* o, moon_Integer* i) noexcept {
 	if (l_likely(ttisinteger(o))) {
 		*i = ivalue(o);
 		return true;
 	}
-	return o->toInteger(i, LUA_FLOORN2I);  // use TValue method
+	return o->toInteger(i, MOON_FLOORN2I);  // use TValue method
 }
 
 
 // convert an object to an integer (without string coercion)
-inline bool tointegerns(const TValue* o, lua_Integer* i) noexcept {
+inline bool tointegerns(const TValue* o, moon_Integer* i) noexcept {
 	if (l_likely(ttisinteger(o))) {
 		*i = ivalue(o);
 		return true;
 	}
-	return o->toIntegerNoString(i, LUA_FLOORN2I);  // use TValue method
+	return o->toIntegerNoString(i, MOON_FLOORN2I);  // use TValue method
 }
 
 
@@ -144,6 +144,6 @@ inline bool tointegerns(const TValue* o, lua_Integer* i) noexcept {
 #define intop(op,v1,v2) l_castU2S(l_castS2U(v1) op l_castS2U(v2))
 
 
-// All luaV_* wrapper functions removed - use VirtualMachine methods directly
+// All moonV_* wrapper functions removed - use VirtualMachine methods directly
 
 #endif

@@ -3,7 +3,7 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
 #include "lprefix.h"
 
@@ -41,7 +41,7 @@
 ** If possible, shrink string table.
 ** Called during finalization to optimize memory usage.
 */
-void GCFinalizer::checkSizes(lua_State* L, GlobalState& g) {
+void GCFinalizer::checkSizes(moon_State* L, GlobalState& g) {
     if (!g.getGCEmergency()) {
         if (g.getStringTable()->getNumElements() < g.getStringTable()->getSize() / 4)
             TString::resize(L, g.getStringTable()->getSize() / 2);
@@ -92,7 +92,7 @@ void GCFinalizer::correctpointers(GlobalState& g, GCObject* o) {
 */
 GCObject* GCFinalizer::udata2finalize(GlobalState& g) {
     GCObject* o = g.getToBeFnz();  // get first element
-    lua_assert(tofinalize(o));
+    moon_assert(tofinalize(o));
     g.setToBeFnz(o->getNext());  // remove it from 'tobefnz' list
     o->setNext(g.getAllGC());  // return it to 'allgc' list
     g.setAllGC(o);
@@ -109,7 +109,7 @@ GCObject* GCFinalizer::udata2finalize(GlobalState& g) {
 ** Helper function for calling finalizer.
 ** Calls function at stack[top-2] with argument at stack[top-1].
 */
-void GCFinalizer::dothecall(lua_State* L, void* ud) {
+void GCFinalizer::dothecall(moon_State* L, void* ud) {
     UNUSED(ud);
     L->callNoYield(L->getTop().p - 2, 0);
 }
@@ -144,13 +144,13 @@ void GCFinalizer::dothecall(lua_State* L, void* ud) {
 ** the object is "resurrected" and won't be collected. It will be finalized
 ** again in the next GC cycle if it becomes unreachable again.
 */
-void GCFinalizer::GCTM(lua_State* L) {
+void GCFinalizer::GCTM(moon_State* L) {
     GlobalState* g = G(L);
     const TValue* metamethod;
     TValue v;
-    lua_assert(!g->getGCEmergency());
+    moon_assert(!g->getGCEmergency());
     setgcovalue(L, &v, udata2finalize(*g));
-    metamethod = luaT_gettmbyobj(L, &v, TMS::TM_GC);
+    metamethod = moonT_gettmbyobj(L, &v, TMS::TM_GC);
 
     if (!notm(metamethod)) {  // is there a finalizer?
         TStatus status;
@@ -168,8 +168,8 @@ void GCFinalizer::GCTM(lua_State* L) {
         L->setAllowHook(oldah);  // restore hooks
         g->setGCStp(oldgcstp);  // restore state
 
-        if (l_unlikely(status != LUA_OK)) {  // error while running __gc?
-            luaE_warnerror(L, "__gc");
+        if (l_unlikely(status != MOON_OK)) {  // error while running __gc?
+            moonE_warnerror(L, "__gc");
             L->getStackSubsystem().pop();  // pops error object
         }
     }
@@ -195,7 +195,7 @@ void GCFinalizer::separatetobefnz(GlobalState& g, int all) {
     GCObject** lastnext = findlast(g.getToBeFnzPtr());
 
     while ((curr = *p) != g.getFinObjOld1()) {  // traverse all finalizable objects
-        lua_assert(tofinalize(curr));
+        moon_assert(tofinalize(curr));
         if (!(iswhite(curr) || all))  // not being collected?
             p = curr->getNextPtr();  // don't bother with it
         else {
@@ -214,7 +214,7 @@ void GCFinalizer::separatetobefnz(GlobalState& g, int all) {
 ** Call all pending finalizers.
 ** Processes entire tobefnz list until empty.
 */
-void GCFinalizer::callallpendingfinalizers(lua_State* L) {
+void GCFinalizer::callallpendingfinalizers(moon_State* L) {
     GlobalState* g = G(L);
     while (g->getToBeFnz())
         GCTM(L);

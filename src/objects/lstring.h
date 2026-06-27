@@ -11,7 +11,7 @@
 #include "lobject_core.h"  // GCBase, TValue
 
 // Forward declarations
-struct lua_State;
+struct moon_State;
 class GlobalState;
 
 /*
@@ -27,8 +27,8 @@ class GlobalState;
 ** metamethods, as these strings must be internalized;
 ** #("function") = 8, #("__newindex") = 10.)
 */
-#if !defined(LUAI_MAXSHORTLEN)
-#define LUAI_MAXSHORTLEN	40
+#if !defined(MOONI_MAXSHORTLEN)
+#define MOONI_MAXSHORTLEN	40
 #endif
 
 
@@ -36,16 +36,16 @@ class GlobalState;
 ** {==================================================================
 ** Strings
 ** ===================================================================
-** Note: LUA_VSHRSTR, LUA_VLNGSTR now defined in ltvalue.h
+** Note: MOON_VSHRSTR, MOON_VLNGSTR now defined in ltvalue.h
 */
 
-constexpr bool ttisstring(const TValue* o) noexcept { return checktype(o, LUA_TSTRING); }
-constexpr bool ttisshrstring(const TValue* o) noexcept { return checktag(o, ctb(LuaT::SHRSTR)); }
-constexpr bool ttislngstring(const TValue* o) noexcept { return checktag(o, ctb(LuaT::LNGSTR)); }
+constexpr bool ttisstring(const TValue* o) noexcept { return checktype(o, MOON_TSTRING); }
+constexpr bool ttisshrstring(const TValue* o) noexcept { return checktag(o, ctb(MoonT::SHRSTR)); }
+constexpr bool ttislngstring(const TValue* o) noexcept { return checktag(o, ctb(MoonT::LNGSTR)); }
 
-constexpr bool TValue::isString() const noexcept { return checktype(this, LUA_TSTRING); }
-constexpr bool TValue::isShortString() const noexcept { return checktag(this, ctb(LuaT::SHRSTR)); }
-constexpr bool TValue::isLongString() const noexcept { return checktag(this, ctb(LuaT::LNGSTR)); }
+constexpr bool TValue::isString() const noexcept { return checktype(this, MOON_TSTRING); }
+constexpr bool TValue::isShortString() const noexcept { return checktag(this, ctb(MoonT::SHRSTR)); }
+constexpr bool TValue::isLongString() const noexcept { return checktag(this, ctb(MoonT::LNGSTR)); }
 
 inline TString* tsvalue(const TValue* o) noexcept { return o->stringValue(); }
 
@@ -70,7 +70,7 @@ private:
     TString *hashNext;  // linked list for hash table
   } u;
   char *contents;  // pointer to content in long strings
-  lua_Alloc falloc;  // deallocation function for external strings
+  moon_Alloc falloc;  // deallocation function for external strings
   void *ud;  // user data for external strings
 
 public:
@@ -95,7 +95,7 @@ public:
 
   // Placement new operator - integrates with Lua's GC (implemented in lgc.h)
   // Note: For TString, this may allocate less than sizeof(TString) for short strings!
-  static void* operator new(size_t size, lua_State* L, LuaT tt, size_t extra = 0);
+  static void* operator new(size_t size, moon_State* L, MoonT tt, size_t extra = 0);
 
   // Disable regular new/delete (must use placement new with GC)
   static void* operator new(size_t) = delete;
@@ -124,7 +124,7 @@ public:
   // For long strings: would return same address (where contents pointer is stored)
   char* getContentsAddr() noexcept { return cast_charp(this) + contentsOffset(); }
   const char* getContentsAddr() const noexcept { return cast_charp(this) + contentsOffset(); }
-  lua_Alloc getFalloc() const noexcept { return falloc; }
+  moon_Alloc getFalloc() const noexcept { return falloc; }
   void* getUserData() const noexcept { return ud; }
 
   // Setters
@@ -133,7 +133,7 @@ public:
   void setHash(unsigned int h) noexcept { hash = h; }
   void setLnglen(size_t len) noexcept { u.longLength = len; }
   void setContents(char* c) noexcept { contents = c; }
-  void setFalloc(lua_Alloc f) noexcept { falloc = f; }
+  void setFalloc(moon_Alloc f) noexcept { falloc = f; }
   void setUserData(void* data) noexcept { ud = data; }
 
   // Hash table operations
@@ -170,23 +170,23 @@ public:
   // Instance methods (implemented in lstring.cpp)
   [[nodiscard]] unsigned hashLongStr();
   [[nodiscard]] bool equals(const TString* other) const;
-  void remove(lua_State* L);           // from luaS_remove
-  [[nodiscard]] TString* normalize(lua_State* L);    // from luaS_normstr
+  void remove(moon_State* L);           // from moonS_remove
+  [[nodiscard]] TString* normalize(moon_State* L);    // from moonS_normstr
 
-  // Static helpers and factory methods (from luaS_*)
+  // Static helpers and factory methods (from moonS_*)
   [[nodiscard]] static unsigned computeHash(const char* str, size_t l, unsigned seed);
   [[nodiscard]] static unsigned computeHash(std::span<const char> str, unsigned seed);
   [[nodiscard]] static size_t calculateLongStringSize(size_t len, int kind);
-  [[nodiscard]] static TString* create(lua_State* L, const char* str, size_t l);
-  [[nodiscard]] static TString* create(lua_State* L, std::span<const char> str);
-  [[nodiscard]] static TString* create(lua_State* L, const char* str);  // null-terminated
-  [[nodiscard]] static TString* createLongString(lua_State* L, size_t l);
-  [[nodiscard]] static TString* createExternal(lua_State* L, const char* s, size_t len,
-                                  lua_Alloc falloc, void* ud);
+  [[nodiscard]] static TString* create(moon_State* L, const char* str, size_t l);
+  [[nodiscard]] static TString* create(moon_State* L, std::span<const char> str);
+  [[nodiscard]] static TString* create(moon_State* L, const char* str);  // null-terminated
+  [[nodiscard]] static TString* createLongString(moon_State* L, size_t l);
+  [[nodiscard]] static TString* createExternal(moon_State* L, const char* s, size_t len,
+                                  moon_Alloc falloc, void* ud);
 
   // Global string table management
-  static void init(lua_State* L);
-  static void resize(lua_State* L, unsigned int newsize);
+  static void init(moon_State* L);
+  static void resize(moon_State* L, unsigned int newsize);
   static void clearCache(GlobalState* g);
 
   // Comparison operator overloads (defined after l_strcmp declaration)
@@ -237,21 +237,21 @@ inline const char* rawGetShortStringContents(const TString* tstring) noexcept {
 
 // Get short string contents (asserts string is short)
 inline char* getShortStringContents(TString* tstring) noexcept {
-	lua_assert(tstring->isShort());
+	moon_assert(tstring->isShort());
 	return tstring->getContentsAddr();
 }
 inline const char* getShortStringContents(const TString* tstring) noexcept {
-	lua_assert(tstring->isShort());
+	moon_assert(tstring->isShort());
 	return tstring->getContentsAddr();
 }
 
 // Get long string contents (asserts string is long)
 inline char* getLongStringContents(TString* tstring) noexcept {
-	lua_assert(tstring->isLong());
+	moon_assert(tstring->isLong());
 	return tstring->getContentsField();
 }
 inline const char* getLongStringContents(const TString* tstring) noexcept {
-	lua_assert(tstring->isLong());
+	moon_assert(tstring->isLong());
 	return tstring->getContentsField();
 }
 
@@ -291,7 +291,7 @@ inline constexpr size_t sizestrshr(size_t l) noexcept {
 
 // Create a new string from a string literal, computing length at compile time
 template<size_t N>
-inline TString* luaS_newliteral(lua_State *L, const char (&s)[N]) {
+inline TString* moonS_newliteral(moon_State *L, const char (&s)[N]) {
     return TString::create(L, s, N - 1);
 }
 
@@ -308,11 +308,11 @@ inline bool isreserved(const TString* s) noexcept {
 ** equality for short strings, which are always internalized
 */
 inline bool shortStringsEqual(const TString* a, const TString* b) noexcept {
-	return check_exp((a)->getType() == ctb(LuaT::SHRSTR), (a) == (b));
+	return check_exp((a)->getType() == ctb(MoonT::SHRSTR), (a) == (b));
 }
 
 
 // Non-TString functions
-[[nodiscard]] LUAI_FUNC Udata *luaS_newudata (lua_State *L, size_t s, unsigned short nuvalue);
+[[nodiscard]] MOONI_FUNC Udata *moonS_newudata (moon_State *L, size_t s, unsigned short nuvalue);
 
 #endif
