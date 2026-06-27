@@ -1,10 +1,8 @@
 name: Static Analysis
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  # Moon fork Phase 0: tuned for the pre-fork layout; manual-only until the fork
+  # stabilizes (re-enabled in a later phase).
   workflow_dispatch:  # Allow manual trigger
 
 jobs:

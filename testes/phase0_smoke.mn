@@ -1,0 +1,64 @@
+-- Phase 0 smoke test for the moon fork.
+--
+-- The tracing GC is neutered (objects are not reclaimed at runtime yet; ARC
+-- arrives in Phase 1), so the full Lua test suite cannot run here — it would
+-- grow memory without bound. This self-contained smoke instead checks that the
+-- renamed, GC-inert interpreter is functionally correct on a bounded workload:
+-- core language features work, allocation works, collectgarbage() is inert but
+-- harmless, and cyclic graphs run without crashing (they leak by design).
+
+local ok = 0
+local function check(cond, msg)
+  assert(cond, msg)
+  ok = ok + 1
+end
+
+-- basic language / arithmetic / strings
+check(1 + 2 * 3 == 7, "arithmetic")
+check(2 ^ 10 == 1024, "pow")
+check(("moon"):upper() == "MOON", "string method")
+check(string.format("%d-%s", 5, "x") == "5-x", "format")
+check(#({1, 2, 3, 4}) == 4, "table length")
+check(_VERSION ~= nil, "version present")
+
+-- closures + upvalues
+local function counter()
+  local n = 0
+  return function() n = n + 1; return n end
+end
+local c = counter()
+check(c() == 1 and c() == 2 and c() == 3, "closure upvalue")
+
+-- tables, metatables, OOP-style dispatch
+local Vec = {}
+Vec.__index = Vec
+function Vec.new(x) return setmetatable({x = x}, Vec) end
+function Vec:get() return self.x end
+check(Vec.new(42):get() == 42, "metatable method dispatch")
+
+-- bounded allocation: build and traverse an acyclic structure
+local root = {kids = {}}
+for i = 1, 5000 do root.kids[i] = {i, "s" .. i} end
+local sum = 0
+for i = 1, 5000 do sum = sum + root.kids[i][1] end
+check(sum == 5000 * 5001 // 2, "acyclic allocation + traversal")
+
+-- collectgarbage is inert in Phase 0 but must not error
+collectgarbage("collect")
+collectgarbage("step")
+check(type(collectgarbage("count")) == "number", "collectgarbage inert")
+
+-- cyclic graphs must run (they leak by design under pure-ARC-to-be)
+for _ = 1, 2000 do
+  local a, b = {}, {}
+  a.b = b; b.a = a            -- a <-> b cycle
+  a.self = a                 -- self cycle
+end
+collectgarbage("collect")    -- inert; cycles remain but no crash
+check(true, "cyclic graphs ran")
+
+-- pcall / error handling
+local good, err = pcall(function() error("boom") end)
+check(not good and tostring(err):find("boom"), "pcall error")
+
+print(string.format("phase0 smoke OK (%d checks)", ok))
