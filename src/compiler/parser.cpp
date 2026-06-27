@@ -5,26 +5,26 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 
 #include <climits>
 #include <cstring>
 
-#include "lua.h"
+#include "moon.h"
 
-#include "ldebug.h"
-#include "ldo.h"
-#include "lfunc.h"
-#include "llex.h"
-#include "lmem.h"
-#include "lobject.h"
-#include "lopcodes.h"
-#include "lparser.h"
-#include "lstate.h"
-#include "lstring.h"
-#include "ltable.h"
-#include "../memory/lgc.h"
+#include "mdebug.h"
+#include "mdo.h"
+#include "mfunc.h"
+#include "mlex.h"
+#include "mmem.h"
+#include "mobject.h"
+#include "mopcodes.h"
+#include "mparser.h"
+#include "mstate.h"
+#include "mstring.h"
+#include "mtable.h"
+#include "../memory/mgc.h"
 
 
 /* maximum number of variable declarations per function (must be

@@ -5,15 +5,15 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include <cstring>
 
 #include "gc_finalizer.h"
-#include "../lgc.h"
-#include "../../core/ldo.h"
-#include "../../core/ltm.h"
-#include "../../objects/lstring.h"
+#include "../mgc.h"
+#include "../../core/mdo.h"
+#include "../../core/mtm.h"
+#include "../../objects/mstring.h"
 
 /*
 ** GC Finalizer Module Implementation

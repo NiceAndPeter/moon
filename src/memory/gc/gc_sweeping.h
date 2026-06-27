@@ -6,9 +6,9 @@
 #ifndef gc_sweeping_h
 #define gc_sweeping_h
 
-#include "../../core/lstate.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
+#include "../../core/mstate.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
 
 /*
 ** GCSweeping - Encapsulates all garbage collector sweeping logic

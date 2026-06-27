@@ -2,8 +2,8 @@
 
 #include <string.h>
 
-#include "lua.h"
-#include "lauxlib.h"
+#include "moon.h"
+#include "mauxlib.h"
 
 static int id (moon_State *L) {
   moon_pushboolean(L, 1);

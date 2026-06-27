@@ -5,16 +5,16 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include <cstring>
 
 #include "gc_sweeping.h"
-#include "../lgc.h"
-#include "../../core/ldo.h"
-#include "../../objects/ltable.h"
-#include "../../objects/lfunc.h"
-#include "../../objects/lstring.h"
+#include "../mgc.h"
+#include "../../core/mdo.h"
+#include "../../objects/mtable.h"
+#include "../../objects/mfunc.h"
+#include "../../objects/mstring.h"
 #include "gc_marking.h"
 
 /*

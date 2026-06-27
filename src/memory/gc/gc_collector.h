@@ -6,8 +6,8 @@
 #ifndef gc_collector_h
 #define gc_collector_h
 
-#include "../../core/lstate.h"
-#include "../lgc.h"
+#include "../../core/mstate.h"
+#include "../mgc.h"
 
 /*
 ** GCCollector - Main GC orchestration and control

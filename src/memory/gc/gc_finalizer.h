@@ -6,9 +6,9 @@
 #ifndef gc_finalizer_h
 #define gc_finalizer_h
 
-#include "../../core/lstate.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
+#include "../../core/mstate.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
 
 /*
 ** GCFinalizer - Encapsulates all garbage collector finalization logic

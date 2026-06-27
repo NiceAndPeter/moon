@@ -1,5 +1,5 @@
-#include "lua.h"
-#include "lauxlib.h"
+#include "moon.h"
+#include "mauxlib.h"
 
 static int id (moon_State *L) {
   return moon_gettop(L);

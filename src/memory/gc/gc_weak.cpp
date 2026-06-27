@@ -5,16 +5,16 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include <cstring>
 
 #include "gc_weak.h"
-#include "../lgc.h"
+#include "../mgc.h"
 #include "gc_marking.h"
-#include "../../core/ltm.h"
-#include "../../objects/lstring.h"
-#include "../../objects/ltable.h"
+#include "../../core/mtm.h"
+#include "../../objects/mstring.h"
+#include "../../objects/mtable.h"
 
 /*
 ** GC Weak Table Module Implementation

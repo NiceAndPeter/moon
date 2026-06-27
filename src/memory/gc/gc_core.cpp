@@ -5,16 +5,16 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include "gc_core.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
-#include "../../objects/ltable.h"
-#include "../../objects/lstring.h"
-#include "../../objects/lfunc.h"
-#include "../../core/lstate.h"
-#include "../lmem.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
+#include "../../objects/mtable.h"
+#include "../../objects/mstring.h"
+#include "../../objects/mfunc.h"
+#include "../../core/mstate.h"
+#include "../mmem.h"
 
 /*
 ** Calculate the memory size of a GC object.

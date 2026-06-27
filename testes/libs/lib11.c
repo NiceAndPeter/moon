@@ -1,4 +1,4 @@
-#include "lua.h"
+#include "moon.h"
 
 /* function from lib1.c */
 MOONMOD_API int lib1_export (moon_State *L);

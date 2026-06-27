@@ -5,18 +5,18 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include <cstring>
 
 #include "gc_marking.h"
 #include "gc_weak.h"
-#include "../lgc.h"
-#include "../../core/ldo.h"
-#include "../../objects/lfunc.h"
-#include "../../objects/lstring.h"
-#include "../../objects/ltable.h"
-#include "../../core/ltm.h"
+#include "../mgc.h"
+#include "../../core/mdo.h"
+#include "../../objects/mfunc.h"
+#include "../../objects/mstring.h"
+#include "../../objects/mtable.h"
+#include "../../core/mtm.h"
 
 /*
 ** GC Marking Module Implementation

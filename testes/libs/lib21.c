@@ -1,4 +1,4 @@
-#include "lua.h"
+#include "moon.h"
 
 
 int moonopen_lib2 (moon_State *L);

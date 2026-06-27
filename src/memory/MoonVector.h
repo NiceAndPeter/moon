@@ -7,7 +7,7 @@
 #define moonvector_h
 
 #include <vector>
-#include "luaallocator.h"
+#include "moonallocator.h"
 
 /*
 ** MoonVector<T> - Convenient type alias for std::vector with MoonAllocator

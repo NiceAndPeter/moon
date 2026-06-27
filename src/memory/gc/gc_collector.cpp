@@ -5,7 +5,7 @@
 
 #define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include "gc_collector.h"
 #include "gc_core.h"
@@ -13,9 +13,9 @@
 #include "gc_sweeping.h"
 #include "gc_finalizer.h"
 #include "gc_weak.h"
-#include "../lgc.h"
-#include "../../core/lstate.h"
-#include "../../objects/lstring.h"
+#include "../mgc.h"
+#include "../../core/mstate.h"
+#include "../../objects/mstring.h"
 
 /*
 ** Maximum number of elements to sweep in each single step.
