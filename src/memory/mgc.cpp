@@ -438,6 +438,114 @@ void freeobj (moon_State& L, GCObject *o) {
 
 
 /*
+** {======================================================
+** ARC (automatic reference counting) reclamation engine — moon fork, Phase 1
+**
+** moonC_release decrements an object's refcount; when it reaches zero the object
+** is reclaimed deterministically: its GC children are released first (which may
+** cascade), it is unlinked from the global 'allgc' list, and its memory is
+** freed via freeobj(). A reference cycle never reaches zero from an external
+** release, so cycles leak by design (broken later with weak refs).
+**
+** This is the reclamation CORE. Wiring retain/release into every TValue slot
+** write across the VM/stack is a later increment; for now retain is wired into
+** container stores (see Table) so the engine can be exercised end to end.
+** =======================================================
+*/
+
+static unsigned long long arc_deinit_count = 0;  // objects reclaimed (debug)
+
+unsigned long long moonC_deinitcount() noexcept { return arc_deinit_count; }
+void moonC_resetdeinitcount() noexcept { arc_deinit_count = 0; }
+
+static void arc_releasevalue(moon_State& L, const TValue* v) {
+  if (iscollectable(v)) moonC_release(L, gcvalue(v));
+}
+static void arc_releaseobjN(moon_State& L, GCObject* o) {
+  if (o != nullptr) moonC_release(L, o);
+}
+
+// Release every GC child of 'o' (a release-instead-of-mark mirror of the
+// marking traversal). Leaf types (strings, numbers) have no children. Threads
+// and open upvalues are intentionally skipped for now (handled in a later
+// increment); skipping only leaks, it is never unsafe.
+static void arc_releasechildren(moon_State& L, GCObject* o) {
+  switch (static_cast<int>(o->getType())) {
+    case static_cast<int>(ctb(MoonT::TABLE)): {
+      Table* h = gco2t(o);
+      if (h->getMetatable() != nullptr)
+        moonC_release(L, obj2gco(h->getMetatable()));
+      for (unsigned i = 0; i < h->arraySize(); i++)
+        arc_releaseobjN(L, gcvalarr(h, i));
+      Node* limit = gnodelast(h);
+      for (Node* n = gnode(h, 0); n < limit; n++) {
+        if (!isempty(gval(n))) {
+          if (n->isKeyCollectable())
+            arc_releaseobjN(L, n->getKeyGC());
+          arc_releasevalue(L, gval(n));
+        }
+      }
+      break;
+    }
+    case static_cast<int>(ctb(MoonT::LCL)): {
+      LClosure* cl = gco2lcl(o);
+      arc_releaseobjN(L, cl->getProto() ? obj2gco(cl->getProto()) : nullptr);
+      for (int i = 0; i < cl->getNumUpvalues(); i++)
+        arc_releaseobjN(L, cl->getUpval(i) ? obj2gco(cl->getUpval(i)) : nullptr);
+      break;
+    }
+    case static_cast<int>(ctb(MoonT::CCL)): {
+      CClosure* cl = gco2ccl(o);
+      for (int i = 0; i < cl->getNumUpvalues(); i++)
+        arc_releasevalue(L, cl->getUpvalue(i));
+      break;
+    }
+    case static_cast<int>(ctb(MoonT::PROTO)): {
+      Proto* p = gco2p(o);
+      if (p->getSource() != nullptr)
+        moonC_release(L, obj2gco(p->getSource()));
+      for (auto& constant : p->getConstantsSpan())
+        arc_releasevalue(L, &constant);
+      for (Proto* nested : p->getProtosSpan())
+        arc_releaseobjN(L, nested ? obj2gco(nested) : nullptr);
+      break;
+    }
+    case static_cast<int>(ctb(MoonT::USERDATA)): {
+      Udata* u = gco2u(o);
+      if (u->getMetatable() != nullptr)
+        moonC_release(L, obj2gco(u->getMetatable()));
+      for (int i = 0; i < u->getNumUserValues(); i++)
+        arc_releasevalue(L, &u->getUserValue(i)->value);
+      break;
+    }
+    default:
+      break;  // leaves (strings/numbers) and not-yet-handled types (thread/upval)
+  }
+}
+
+// Unlink 'o' from the global 'allgc' list (O(n); a list-free design or a
+// doubly-linked list is a later performance increment).
+static void arc_unlink(moon_State& L, GCObject* o) {
+  GCObject** p = G(L)->getAllGCPtr();
+  while (*p != nullptr) {
+    if (*p == o) { *p = o->getNext(); return; }
+    p = (*p)->getNextPtr();
+  }
+}
+
+void moonC_release(moon_State& L, GCObject* o) {
+  if (o->release() == 0) {       // last reference dropped?
+    arc_releasechildren(L, o);   // recursively drop children (may cascade)
+    arc_unlink(L, o);            // remove from the global object list
+    ++arc_deinit_count;
+    freeobj(L, o);               // reclaim memory
+  }
+}
+
+// }======================================================
+
+
+/*
 ** sweep at most 'countin' elements from a list of GCObjects erasing dead
 ** objects, where a dead object is one marked with the old (non current)
 ** white; change all non-dead objects back to white (and new), preparing

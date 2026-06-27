@@ -389,6 +389,21 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vm
         ${CMAKE_CURRENT_SOURCE_DIR}/src/serialization
     )
+
+    # ARC reclamation engine test (moon fork, Phase 1)
+    add_executable(test_arc test_arc.cpp)
+    target_link_libraries(test_arc PRIVATE libmoon_static)
+    target_compile_options(test_arc PRIVATE -Wall ${WARNING_FLAGS} ${OPTIMIZE_FLAGS})
+    target_include_directories(test_arc PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/testing
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/memory
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/gc
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/objects
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/compiler
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vm
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/serialization
+    )
 endif()
 
 # Install targets
