@@ -1324,12 +1324,24 @@ int Table::psetStr(TString* key, TValue* val) {
 }
 
 void Table::set(moon_State* L, const TValue* key, TValue* value) {
+  // ARC accounting (moon fork): a table slot owns its value, and a NEW entry
+  // also owns its (collectable) key. Capture the old value, retain the new
+  // value/key before the write, release the old value after. 'resize' moves
+  // entries via insertkey and bypasses this path, so moves are not recounted.
+  TValue oldv; oldv.setNil(); (void)get(key, &oldv);
+  const bool newentry = ttisnil(&oldv);
+  if (iscollectable(value)) moonC_incref(gcvalue(value));
+  if (newentry && iscollectable(key)) moonC_incref(gcvalue(key));
   int hres = pset(key, value);
   if (hres != HOK)
     finishSet(L, key, value, hres);
+  if (iscollectable(&oldv)) moonC_decref(gcvalue(&oldv));
 }
 
 void Table::setInt(moon_State* L, moon_Integer key, TValue* value) {
+  // ARC accounting (see Table::set). Integer keys are not collectable.
+  TValue oldv; oldv.setNil(); (void)getInt(key, &oldv);
+  if (iscollectable(value)) moonC_incref(gcvalue(value));
   unsigned ik = ikeyinarray(this, key);
   if (ik > 0)
     obj2arr(this, ik - 1, value);
@@ -1341,6 +1353,7 @@ void Table::setInt(moon_State* L, moon_Integer key, TValue* value) {
       moonH_newkey(L, *this, &k, value);
     }
   }
+  if (iscollectable(&oldv)) moonC_decref(gcvalue(&oldv));
 }
 
 void Table::finishSet(moon_State* L, const TValue* key, TValue* value, int hres) {

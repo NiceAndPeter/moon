@@ -24,11 +24,9 @@ static void expect(bool cond, const char* what) {
   else      { std::printf("  FAIL: %s\n", what); ++failures; }
 }
 
-// Store 'childGC' into table 't' at integer key 'k', modelling a retaining
-// store (the slot becomes a new owner of the child).
-static void storeRetained(moon_State* L, Table* t, moon_Integer k, const TValue* v,
-                          GCObject* childGC) {
-  moonC_retain(childGC);                 // the table slot now owns a reference
+// Store value 'v' into table 't' at integer key 'k'. Table::setInt now performs
+// ARC accounting itself (retains the stored value), so no manual retain here.
+static void storeInt(moon_State* L, Table* t, moon_Integer k, const TValue* v) {
   TValue tmp; tmp = *v;
   t->setInt(L, k, &tmp);
 }
@@ -46,8 +44,8 @@ int main() {
     TString* str = TString::create(L, "arc-leaf-unique-xyz");  // refcount 1 (birth)
 
     TValue v;
-    sethvalue(L, &v, child); storeRetained(L, root, 1, &v, obj2gco(child)); // child rc 2
-    setsvalue(L, &v, str);   storeRetained(L, root, 2, &v, obj2gco(str));   // str   rc 2
+    sethvalue(L, &v, child); storeInt(L, root, 1, &v);  // setInt retains child -> rc 2
+    setsvalue(L, &v, str);   storeInt(L, root, 2, &v);  // setInt retains str   -> rc 2
 
     // Drop the birth references of the children — root is now their sole owner.
     moonC_release(*L, obj2gco(child));           // child rc 1
@@ -70,8 +68,8 @@ int main() {
     Table* y = Table::create(L);                 // refcount 1
 
     TValue v;
-    sethvalue(L, &v, y); storeRetained(L, x, 1, &v, obj2gco(y));  // y rc 2
-    sethvalue(L, &v, x); storeRetained(L, y, 1, &v, obj2gco(x));  // x rc 2
+    sethvalue(L, &v, y); storeInt(L, x, 1, &v);  // setInt retains y -> rc 2
+    sethvalue(L, &v, x); storeInt(L, y, 1, &v);  // setInt retains x -> rc 2
 
     // Drop both birth references. Now x and y reference only each other.
     moonC_release(*L, obj2gco(x));               // x rc 1 (held by y)

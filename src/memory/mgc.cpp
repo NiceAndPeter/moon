@@ -8,6 +8,7 @@
 #include "mprefix.h"
 
 #include <cstring>
+#include <vector>
 
 
 #include "moon.h"
@@ -455,67 +456,77 @@ void freeobj (moon_State& L, GCObject *o) {
 
 static unsigned long long arc_deinit_count = 0;  // objects reclaimed (debug)
 
+// Deferred-free queue. moonC_decref drops a reference WITHOUT needing a
+// moon_State (so it can be called from the L-free table write primitives); when
+// a count hits zero the object is queued here, and moonC_drain() reclaims the
+// queue at a safe point where L is available. This decouples the cheap decrement
+// from the actual free, avoids deep recursion, and avoids freeing mid-write.
+// (A single global queue assumes objects from at most one live state are pending
+// at a time — sufficient for the fork's single-state usage; revisit for
+// multi-state embedding.)
+static std::vector<GCObject*> arc_pending;
+
 unsigned long long moonC_deinitcount() noexcept { return arc_deinit_count; }
 void moonC_resetdeinitcount() noexcept { arc_deinit_count = 0; }
 
-static void arc_releasevalue(moon_State& L, const TValue* v) {
-  if (iscollectable(v)) moonC_release(L, gcvalue(v));
-}
-static void arc_releaseobjN(moon_State& L, GCObject* o) {
-  if (o != nullptr) moonC_release(L, o);
+void moonC_decref(GCObject* o) noexcept {
+  if (o != nullptr && o->release() == 0)  // last reference dropped?
+    arc_pending.push_back(o);             // queue for reclamation at next drain
 }
 
-// Release every GC child of 'o' (a release-instead-of-mark mirror of the
+static void arc_decrefvalue(const TValue* v) noexcept {
+  if (iscollectable(v)) moonC_decref(gcvalue(v));
+}
+
+// Queue every GC child of 'o' for decref (a decref-instead-of-mark mirror of the
 // marking traversal). Leaf types (strings, numbers) have no children. Threads
 // and open upvalues are intentionally skipped for now (handled in a later
 // increment); skipping only leaks, it is never unsafe.
-static void arc_releasechildren(moon_State& L, GCObject* o) {
+static void arc_decrefchildren(GCObject* o) {
   switch (static_cast<int>(o->getType())) {
     case static_cast<int>(ctb(MoonT::TABLE)): {
       Table* h = gco2t(o);
       if (h->getMetatable() != nullptr)
-        moonC_release(L, obj2gco(h->getMetatable()));
+        moonC_decref(obj2gco(h->getMetatable()));
       for (unsigned i = 0; i < h->arraySize(); i++)
-        arc_releaseobjN(L, gcvalarr(h, i));
+        moonC_decref(gcvalarr(h, i));
       Node* limit = gnodelast(h);
       for (Node* n = gnode(h, 0); n < limit; n++) {
         if (!isempty(gval(n))) {
           if (n->isKeyCollectable())
-            arc_releaseobjN(L, n->getKeyGC());
-          arc_releasevalue(L, gval(n));
+            moonC_decref(n->getKeyGC());
+          arc_decrefvalue(gval(n));
         }
       }
       break;
     }
     case static_cast<int>(ctb(MoonT::LCL)): {
       LClosure* cl = gco2lcl(o);
-      arc_releaseobjN(L, cl->getProto() ? obj2gco(cl->getProto()) : nullptr);
+      if (cl->getProto() != nullptr) moonC_decref(obj2gco(cl->getProto()));
       for (int i = 0; i < cl->getNumUpvalues(); i++)
-        arc_releaseobjN(L, cl->getUpval(i) ? obj2gco(cl->getUpval(i)) : nullptr);
+        if (cl->getUpval(i) != nullptr) moonC_decref(obj2gco(cl->getUpval(i)));
       break;
     }
     case static_cast<int>(ctb(MoonT::CCL)): {
       CClosure* cl = gco2ccl(o);
       for (int i = 0; i < cl->getNumUpvalues(); i++)
-        arc_releasevalue(L, cl->getUpvalue(i));
+        arc_decrefvalue(cl->getUpvalue(i));
       break;
     }
     case static_cast<int>(ctb(MoonT::PROTO)): {
       Proto* p = gco2p(o);
-      if (p->getSource() != nullptr)
-        moonC_release(L, obj2gco(p->getSource()));
+      if (p->getSource() != nullptr) moonC_decref(obj2gco(p->getSource()));
       for (auto& constant : p->getConstantsSpan())
-        arc_releasevalue(L, &constant);
+        arc_decrefvalue(&constant);
       for (Proto* nested : p->getProtosSpan())
-        arc_releaseobjN(L, nested ? obj2gco(nested) : nullptr);
+        if (nested != nullptr) moonC_decref(obj2gco(nested));
       break;
     }
     case static_cast<int>(ctb(MoonT::USERDATA)): {
       Udata* u = gco2u(o);
-      if (u->getMetatable() != nullptr)
-        moonC_release(L, obj2gco(u->getMetatable()));
+      if (u->getMetatable() != nullptr) moonC_decref(obj2gco(u->getMetatable()));
       for (int i = 0; i < u->getNumUserValues(); i++)
-        arc_releasevalue(L, &u->getUserValue(i)->value);
+        arc_decrefvalue(&u->getUserValue(i)->value);
       break;
     }
     default:
@@ -533,13 +544,23 @@ static void arc_unlink(moon_State& L, GCObject* o) {
   }
 }
 
-void moonC_release(moon_State& L, GCObject* o) {
-  if (o->release() == 0) {       // last reference dropped?
-    arc_releasechildren(L, o);   // recursively drop children (may cascade)
-    arc_unlink(L, o);            // remove from the global object list
+// Reclaim all queued (zero-refcount) objects. Processing is iterative: releasing
+// an object's children may queue more, which this loop drains in turn. Cycles
+// never enter the queue (their counts never reach zero), so they are not freed.
+void moonC_drain(moon_State& L) {
+  while (!arc_pending.empty()) {
+    GCObject* o = arc_pending.back();
+    arc_pending.pop_back();
+    arc_decrefchildren(o);   // queue children (cascade)
+    arc_unlink(L, o);        // remove from the global object list
     ++arc_deinit_count;
-    freeobj(L, o);               // reclaim memory
+    freeobj(L, o);           // reclaim memory
   }
+}
+
+void moonC_release(moon_State& L, GCObject* o) {
+  moonC_decref(o);
+  moonC_drain(L);
 }
 
 // }======================================================

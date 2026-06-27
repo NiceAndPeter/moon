@@ -435,11 +435,16 @@ inline void moonC_barrierback(moon_State* L, GCObject* p, const TValue* v) noexc
 MOONI_FUNC void moonC_freeallobjects (moon_State& L);
 
 // ARC (automatic reference counting) reclamation engine — moon fork, Phase 1.
-// moonC_release drops one reference; at zero it recursively releases children
-// and frees the object. moonC_retain adds a reference. The deinit counter is a
-// debug aid for tests (objects reclaimed so far).
+// Deferred model: moonC_incref/moonC_decref adjust an object's refcount without
+// needing a moon_State (decref queues zero-count objects); moonC_drain(L)
+// reclaims the queue at a safe point, recursively releasing children. Cycles
+// never reach zero and so leak by design. moonC_release(L,o) is decref+drain for
+// convenience. The deinit counter is a debug aid for tests.
+inline void moonC_incref (GCObject *o) noexcept { o->retain(); }
+MOONI_FUNC void moonC_decref (GCObject *o) noexcept;
+MOONI_FUNC void moonC_drain (moon_State& L);
 MOONI_FUNC void moonC_release (moon_State& L, GCObject *o);
-inline void moonC_retain (GCObject *o) noexcept { o->retain(); }
+inline void moonC_retain (GCObject *o) noexcept { o->retain(); }  // alias of incref
 MOONI_FUNC unsigned long long moonC_deinitcount() noexcept;
 MOONI_FUNC void moonC_resetdeinitcount() noexcept;
 // moonC_step and moonC_fullgc declared earlier for template functions
