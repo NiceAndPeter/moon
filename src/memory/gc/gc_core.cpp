@@ -3,18 +3,18 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include "gc_core.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
-#include "../../objects/ltable.h"
-#include "../../objects/lstring.h"
-#include "../../objects/lfunc.h"
-#include "../../core/lstate.h"
-#include "../lmem.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
+#include "../../objects/mtable.h"
+#include "../../objects/mstring.h"
+#include "../../objects/mfunc.h"
+#include "../../core/mstate.h"
+#include "../mmem.h"
 
 /*
 ** Calculate the memory size of a GC object.
@@ -23,48 +23,48 @@
 l_mem GCCore::objsize(GCObject* o) {
     lu_mem res;
     switch (static_cast<int>(o->getType())) {
-        case static_cast<int>(ctb(LuaT::TABLE)): {
+        case static_cast<int>(ctb(MoonT::TABLE)): {
             res = gco2t(o)->size();
             break;
         }
-        case static_cast<int>(ctb(LuaT::LCL)): {
+        case static_cast<int>(ctb(MoonT::LCL)): {
             LClosure* cl = gco2lcl(o);
             res = sizeLclosure(cl->getNumUpvalues());
             break;
         }
-        case static_cast<int>(ctb(LuaT::CCL)): {
+        case static_cast<int>(ctb(MoonT::CCL)): {
             CClosure* cl = gco2ccl(o);
             res = sizeCclosure(cl->getNumUpvalues());
             break;
         }
-        case static_cast<int>(ctb(LuaT::USERDATA)): {
+        case static_cast<int>(ctb(MoonT::USERDATA)): {
             Udata* u = gco2u(o);
             res = sizeudata(u->getNumUserValues(), u->getLen());
             break;
         }
-        case static_cast<int>(ctb(LuaT::PROTO)): {
+        case static_cast<int>(ctb(MoonT::PROTO)): {
             res = gco2p(o)->memorySize();
             break;
         }
-        case static_cast<int>(ctb(LuaT::THREAD)): {
-            res = luaE_threadsize(gco2th(o));
+        case static_cast<int>(ctb(MoonT::THREAD)): {
+            res = moonE_threadsize(gco2th(o));
             break;
         }
-        case static_cast<int>(ctb(LuaT::SHRSTR)): {
+        case static_cast<int>(ctb(MoonT::SHRSTR)): {
             TString* tstring = gco2ts(o);
             res = sizestrshr(cast_uint(tstring->getShrlen()));
             break;
         }
-        case static_cast<int>(ctb(LuaT::LNGSTR)): {
+        case static_cast<int>(ctb(MoonT::LNGSTR)): {
             TString* tstring = gco2ts(o);
             res = TString::calculateLongStringSize(tstring->getLnglen(), tstring->getShrlen());
             break;
         }
-        case static_cast<int>(ctb(LuaT::UPVAL)): {
+        case static_cast<int>(ctb(MoonT::UPVAL)): {
             res = sizeof(UpVal);
             break;
         }
-        default: res = 0; lua_assert(0);
+        default: res = 0; moon_assert(0);
     }
     return static_cast<l_mem>(res);
 }
@@ -76,21 +76,21 @@ l_mem GCCore::objsize(GCObject* o) {
 */
 GCObject** GCCore::getgclist(GCObject* o) {
     switch (static_cast<int>(o->getType())) {
-        case static_cast<int>(ctb(LuaT::TABLE)): return gco2t(o)->getGclistPtr();
-        case static_cast<int>(ctb(LuaT::LCL)): return gco2lcl(o)->getGclistPtr();
-        case static_cast<int>(ctb(LuaT::CCL)): return gco2ccl(o)->getGclistPtr();
-        case static_cast<int>(ctb(LuaT::THREAD)): return gco2th(o)->getGclistPtr();
-        case static_cast<int>(ctb(LuaT::PROTO)): return gco2p(o)->getGclistPtr();
-        case static_cast<int>(ctb(LuaT::USERDATA)): {
+        case static_cast<int>(ctb(MoonT::TABLE)): return gco2t(o)->getGclistPtr();
+        case static_cast<int>(ctb(MoonT::LCL)): return gco2lcl(o)->getGclistPtr();
+        case static_cast<int>(ctb(MoonT::CCL)): return gco2ccl(o)->getGclistPtr();
+        case static_cast<int>(ctb(MoonT::THREAD)): return gco2th(o)->getGclistPtr();
+        case static_cast<int>(ctb(MoonT::PROTO)): return gco2p(o)->getGclistPtr();
+        case static_cast<int>(ctb(MoonT::USERDATA)): {
             Udata* u = gco2u(o);
-            lua_assert(u->getNumUserValues() > 0);
+            moon_assert(u->getNumUserValues() > 0);
             return u->getGclistPtr();
         }
-        case static_cast<int>(ctb(LuaT::UPVAL)):
+        case static_cast<int>(ctb(MoonT::UPVAL)):
             // UpVals use the base GCObject 'next' field for gray list linkage
             return o->getNextPtr();
-        case static_cast<int>(ctb(LuaT::SHRSTR)):
-        case static_cast<int>(ctb(LuaT::LNGSTR)):
+        case static_cast<int>(ctb(MoonT::SHRSTR)):
+        case static_cast<int>(ctb(MoonT::LNGSTR)):
             /* Strings are marked black directly and should never be in gray list.
              * However, with LTO, we've seen strings passed to this function.
              * Use the 'next' field (from GCObject base) as a fallback. */
@@ -110,7 +110,7 @@ GCObject** GCCore::getgclist(GCObject* o) {
 ** The object is set to gray and added to the specified list.
 */
 void GCCore::linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
-    lua_assert(!isgray(o));  // cannot be in a gray list
+    moon_assert(!isgray(o));  // cannot be in a gray list
     *pnext = *list;
     *list = o;
     set2gray(o);  // now it is
@@ -126,7 +126,7 @@ void GCCore::linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
 ** the entry is logically empty.
 */
 void GCCore::clearkey(Node* n) {
-    lua_assert(isempty(gval(n)));
+    moon_assert(isempty(gval(n)));
     if (n->isKeyCollectable())
         n->setKeyDead();  // unused key; remove it
 }
@@ -136,9 +136,9 @@ void GCCore::clearkey(Node* n) {
 ** Free an upvalue object.
 ** Unlinks open upvalues and calls destructor before freeing.
 */
-void GCCore::freeupval(lua_State* L, UpVal* upvalue) {
+void GCCore::freeupval(moon_State* L, UpVal* upvalue) {
     if (upvalue->isOpen())
-        luaF_unlinkupval(upvalue);
+        moonF_unlinkupval(upvalue);
     upvalue->~UpVal();  // Call destructor
-    luaM_free(L, upvalue);
+    moonM_free(L, upvalue);
 }

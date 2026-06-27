@@ -1,5 +1,20 @@
 # Lua C++ Conversion Project - AI Assistant Guide
 
+> ## 🌙 HARD FORK IN PROGRESS — Lua → **moon** (branch `moon`)
+> This project has hard-forked into a new language, **moon**. The constraints
+> below ("zero performance regression", "C API compatibility preserved") **no
+> longer bind** on the `moon` branch. In flight:
+> - **Full rebrand** `lua*`→`moon*` (symbols, files, public headers; binary is
+>   `moon`); Moon scripts use the **`.mn`** extension.
+> - **Tracing GC removed** in favor of the **pure Swift ARC model** (reference
+>   counting; cycles may leak — programmer's responsibility). Phase 0 neuters the
+>   collector and adds a dormant refcount; ARC lands in Phase 1.
+> - **C API removed**, to be replaced by a C++ embedding API (`moon::`) in Phase 4.
+>
+> Plan & phases: `/home/peter/.claude/plans/analyse-the-codebase-an-vivid-badger.md`
+> and `docs/GC_RAII_ANALYSIS.md`. Much of the content below describes the
+> pre-fork Lua project and is retained for historical reference.
+
 ## Project Overview
 
 Converting Lua 5.5 from C to modern C++23:

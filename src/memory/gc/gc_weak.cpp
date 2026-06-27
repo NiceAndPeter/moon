@@ -3,18 +3,18 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include <cstring>
 
 #include "gc_weak.h"
-#include "../lgc.h"
+#include "../mgc.h"
 #include "gc_marking.h"
-#include "../../core/ltm.h"
-#include "../../objects/lstring.h"
-#include "../../objects/ltable.h"
+#include "../../core/mtm.h"
+#include "../../objects/mstring.h"
+#include "../../objects/mtable.h"
 
 /*
 ** GC Weak Table Module Implementation
@@ -50,7 +50,7 @@ inline GCObject* gcvalarr(Table* t, unsigned int i) noexcept {
 */
 static bool iscleared(GlobalState& g, const GCObject* o) {
     if (o == nullptr) return false;  // non-collectable value
-    else if (novariant(o->getType()) == LUA_TSTRING) {
+    else if (novariant(o->getType()) == MOON_TSTRING) {
         markobject(g, o);  // strings are 'values', so are never weak
         return false;
     }
@@ -79,7 +79,7 @@ static inline GCObject** getgclist(GCObject* o) {
 ** Link object into a GC list and make it gray
 */
 static void linkgclist_(GCObject* o, GCObject** pnext, GCObject** list) {
-    lua_assert(!isgray(o));
+    moon_assert(!isgray(o));
     *pnext = *list;
     *list = o;
     o->clearMarkedBits(maskcolors);  // set2gray
@@ -107,7 +107,7 @@ static inline void linkgclistTable(Table* h, GCObject*& p) {
 ** Handles Touched1/Touched2 ages for generational collector.
 */
 void GCWeak::genlink(GlobalState& g, GCObject* o) {
-    lua_assert(isblack(o));
+    moon_assert(isblack(o));
     if (getage(o) == GCAge::Touched1) {  // touched in this cycle?
         linkobjgclist(o, *g.getGrayAgainPtr());  // link it back in 'grayagain'
     }  // everything else does not need to be linked back
@@ -181,7 +181,7 @@ void GCWeak::traverseweakvalue(GlobalState& g, Table* h) {
         if (isempty(gval(n)))  // entry is empty?
             clearkey(n);  // clear its key
         else {
-            lua_assert(!n->isKeyNil());
+            moon_assert(!n->isKeyNil());
             markkey(g, n);
             if (!hasclears && iscleared(g, gcvalueN(gval(n))))  // a white value?
                 hasclears = 1;  // table will have to be cleared
@@ -321,7 +321,7 @@ void GCWeak::clearbyvalues(GlobalState& g, GCObject* l, GCObject* f) {
         for (i = 0; i < asize; i++) {
             GCObject* o = gcvalarr(h, i);
             if (iscleared(g, o))  // value was collected?
-                *h->getArrayTag(i) = LuaT::EMPTY;  /* remove entry */
+                *h->getArrayTag(i) = MoonT::EMPTY;  /* remove entry */
         }
 
         for (n = gnode(h, 0); n < limit; n++) {

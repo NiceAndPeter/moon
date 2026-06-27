@@ -3,26 +3,26 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 
 #include <cstring>
 
-#include "lua.h"
+#include "moon.h"
 
-#include "ldebug.h"
-#include "ldo.h"
-#include "lfunc.h"
-#include "llex.h"
-#include "lmem.h"
-#include "lobject.h"
-#include "lopcodes.h"
-#include "lparser.h"
-#include "lstate.h"
-#include "lstring.h"
-#include "ltable.h"
+#include "mdebug.h"
+#include "mdo.h"
+#include "mfunc.h"
+#include "mlex.h"
+#include "mmem.h"
+#include "mobject.h"
+#include "mopcodes.h"
+#include "mparser.h"
+#include "mstate.h"
+#include "mstring.h"
+#include "mtable.h"
 
 
 /* because all strings are unified by the scanner, the parser
@@ -70,7 +70,7 @@ void LexState::closegoto(FuncState *funcState, int g, Labeldesc *label, int bup)
   int i;
   Labellist *gl = &getDyndata()->gt;  // list of gotos
   Labeldesc *gt = &(*gl)[g];  // goto to be resolved
-  lua_assert(eqstr(*gt->name, *label->name));
+  moon_assert(eqstr(*gt->name, *label->name));
   if (l_unlikely(gt->numberOfActiveVariables < label->numberOfActiveVariables))  // enter some scope?
     jumpscopeerror(funcState, gt);
   if (gt->close ||
@@ -110,7 +110,7 @@ Labeldesc *LexState::findlabel(TString* name, int ilb) {
 */
 int LexState::newlabelentry(FuncState *funcState, Labellist *l, TString* name, int line, int pc) {
   int n = l->getN();
-  Labeldesc* desc = l->allocateNew();  // LuaVector automatically grows
+  Labeldesc* desc = l->allocateNew();  // MoonVector automatically grows
   desc->name = name;
   desc->line = line;
   desc->numberOfActiveVariables = funcState->getNumActiveVars();
@@ -143,7 +143,7 @@ void LexState::createlabel(FuncState *funcState, TString *name, int line, int la
 */
 l_noret LexState::undefgoto([[maybe_unused]] FuncState *funcState, Labeldesc *gt) {
   // breaks are checked when created, cannot be undefined
-  lua_assert(!eqstr(*gt->name, *getBreakName()));
+  moon_assert(!eqstr(*gt->name, *getBreakName()));
   semerror("no visible label '%s' for <goto> at line %d",
            getStringContents(gt->name), gt->line);
 }

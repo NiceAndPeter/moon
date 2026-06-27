@@ -3,28 +3,28 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 
 #include <climits>
 #include <cstring>
 
-#include "lua.h"
+#include "moon.h"
 
-#include "ldebug.h"
-#include "ldo.h"
-#include "lfunc.h"
-#include "llex.h"
-#include "lmem.h"
-#include "lobject.h"
-#include "lopcodes.h"
-#include "lparser.h"
-#include "lstate.h"
-#include "lstring.h"
-#include "ltable.h"
-#include "../memory/lgc.h"
+#include "mdebug.h"
+#include "mdo.h"
+#include "mfunc.h"
+#include "mlex.h"
+#include "mmem.h"
+#include "mobject.h"
+#include "mopcodes.h"
+#include "mparser.h"
+#include "mstate.h"
+#include "mstring.h"
+#include "mtable.h"
+#include "../memory/mgc.h"
 
 
 /* maximum number of variable declarations per function (must be
@@ -50,7 +50,7 @@ inline void check_condition(Parser* parser, bool c, const char* msg) {
 
 
 inline void enterlevel(LexState* lexState) {
-	luaE_incCstack(lexState->getLuaState());
+	moonE_incCstack(lexState->getLuaState());
 }
 
 inline void leavelevel(LexState* lexState) noexcept {
@@ -168,7 +168,7 @@ struct LHS_assign {
 
 l_noret Parser::error_expected(int token) {
   lexState.syntaxError(
-      luaO_pushfstring(lexState.getLuaState(), "%s expected", lexState.tokenToStr(token)));
+      moonO_pushfstring(lexState.getLuaState(), "%s expected", lexState.tokenToStr(token)));
 }
 
 
@@ -209,7 +209,7 @@ void Parser::check_match(int what, int who, int where) {
     if (where == lexState.getLineNumber())  // all in the same line?
       error_expected(what);  // do not need a complex message
     else {
-      lexState.syntaxError(luaO_pushfstring(lexState.getLuaState(),
+      lexState.syntaxError(moonO_pushfstring(lexState.getLuaState(),
              "%s expected (to close %s at line %d)",
               lexState.tokenToStr(what), lexState.tokenToStr(who), where));
     }
@@ -238,7 +238,7 @@ void Parser::codename(ExpDesc& expr) {
 int Parser::new_varkind(TString* name, lu_byte kind) {
   Dyndata *dynData = lexState.getDyndata();
   Vardesc *var;
-  var = dynData->actvar().allocateNew();  // LuaVector automatically grows
+  var = dynData->actvar().allocateNew();  // MoonVector automatically grows
   var->vd.kind = kind;  // default
   var->vd.name = name;
   return dynData->actvar().getN() - 1 - funcState->getFirstLocal();
@@ -284,7 +284,7 @@ void Parser::check_readonly(ExpDesc& expr) {
       break;
     }
     default:
-      lua_assert(expr.getKind() == VINDEXI);  // this one doesn't need any check
+      moon_assert(expr.getKind() == VINDEXI);  // this one doesn't need any check
       return;  // integer index cannot be read-only
   }
   if (variableName)
@@ -341,7 +341,7 @@ void Parser::buildvar(TString& varname, ExpDesc& var) {
     if (info != -1 && lexState.getDyndata()->actvar()[info].vd.kind == GDKCONST)
       var.setIndexedReadOnly(1);  // mark variable as read-only
     else  // anyway must be a global
-      lua_assert(info == -1 || lexState.getDyndata()->actvar()[info].vd.kind == GDKREG);
+      moon_assert(info == -1 || lexState.getDyndata()->actvar()[info].vd.kind == GDKREG);
   }
 }
 
@@ -394,18 +394,18 @@ int Parser::newgotoentry(TString& name, int line) {
 */
 Proto *Parser::addprototype() {
   Proto *clp;
-  lua_State *state = lexState.getLuaState();
+  moon_State *state = lexState.getLuaState();
   FuncState *funcstate = funcState;
   Proto &proto = funcstate->getProto();  // prototype of current function
   if (funcstate->getNumberOfNestedPrototypes() >= proto.getProtosSize()) {
     auto oldsize = proto.getProtosSize();
-    luaM_growvector<Proto*>(state, proto.getProtosRef(), funcstate->getNumberOfNestedPrototypes(), proto.getProtosSizeRef(), MAXARG_Bx, "functions");
+    moonM_growvector<Proto*>(state, proto.getProtosRef(), funcstate->getNumberOfNestedPrototypes(), proto.getProtosSizeRef(), MAXARG_Bx, "functions");
     auto protosSpan = proto.getProtosSpan();
     while (oldsize < static_cast<int>(protosSpan.size()))
       protosSpan[oldsize++] = nullptr;
   }
-  proto.getProtosSpan()[funcstate->getNumberOfNestedPrototypesRef()++] = clp = luaF_newproto(state);
-  luaC_objbarrier(state, &proto, clp);
+  proto.getProtosSpan()[funcstate->getNumberOfNestedPrototypesRef()++] = clp = moonF_newproto(state);
+  moonC_objbarrier(state, &proto, clp);
   return clp;
 }
 
@@ -425,7 +425,7 @@ void Parser::codeclosure( ExpDesc& v) {
 
 
 void Parser::open_func(FuncState *funcstate, BlockCnt& bl) {
-  lua_State *state = lexState.getLuaState();
+  moon_State *state = lexState.getLuaState();
   Proto& f = funcstate->getProto();
   funcstate->setPrev(funcState);  // linked list of funcstates
   setFuncState(funcstate);
@@ -445,7 +445,7 @@ void Parser::open_func(FuncState *funcstate, BlockCnt& bl) {
   funcstate->setFirstLabel(lexState.getDyndata()->label.getN());
   funcstate->setBlock(nullptr);
   f.setSource(lexState.getSource());
-  luaC_objbarrier(state, &f, f.getSource());
+  moonC_objbarrier(state, &f, f.getSource());
   f.setMaxStackSize(2);  // registers 0/1 are always valid
   funcstate->setKCache(Table::create(state));  // create table for function
   sethvalue2s(state, state->getTop().p, funcstate->getKCache());  // anchor it
@@ -455,24 +455,24 @@ void Parser::open_func(FuncState *funcstate, BlockCnt& bl) {
 
 
 void Parser::close_func() {
-  lua_State *state = lexState.getLuaState();
+  moon_State *state = lexState.getLuaState();
   FuncState *funcstate = funcState;
   Proto &f = funcstate->getProto();
-  funcstate->ret(luaY_nvarstack(funcstate), 0);  // final return
+  funcstate->ret(moonY_nvarstack(funcstate), 0);  // final return
   funcstate->leaveblock();
-  lua_assert(funcstate->getBlock() == nullptr);
+  moon_assert(funcstate->getBlock() == nullptr);
   funcstate->finish();
-  luaM_shrinkvector<Instruction>(state, f.getCodeRef(), f.getCodeSizeRef(), funcstate->getPC());
-  luaM_shrinkvector<ls_byte>(state, f.getLineInfoRef(), f.getLineInfoSizeRef(), funcstate->getPC());
-  luaM_shrinkvector<AbsLineInfo>(state, f.getAbsLineInfoRef(), f.getAbsLineInfoSizeRef(),
+  moonM_shrinkvector<Instruction>(state, f.getCodeRef(), f.getCodeSizeRef(), funcstate->getPC());
+  moonM_shrinkvector<ls_byte>(state, f.getLineInfoRef(), f.getLineInfoSizeRef(), funcstate->getPC());
+  moonM_shrinkvector<AbsLineInfo>(state, f.getAbsLineInfoRef(), f.getAbsLineInfoSizeRef(),
                        funcstate->getNumberOfAbsoluteLineInfo());
-  luaM_shrinkvector<TValue>(state, f.getConstantsRef(), f.getConstantsSizeRef(), funcstate->getNumberOfConstants());
-  luaM_shrinkvector<Proto*>(state, f.getProtosRef(), f.getProtosSizeRef(), funcstate->getNumberOfNestedPrototypes());
-  luaM_shrinkvector<LocVar>(state, f.getLocVarsRef(), f.getLocVarsSizeRef(), funcstate->getNumDebugVars());
-  luaM_shrinkvector<Upvaldesc>(state, f.getUpvaluesRef(), f.getUpvaluesSizeRef(), funcstate->getNumUpvalues());
+  moonM_shrinkvector<TValue>(state, f.getConstantsRef(), f.getConstantsSizeRef(), funcstate->getNumberOfConstants());
+  moonM_shrinkvector<Proto*>(state, f.getProtosRef(), f.getProtosSizeRef(), funcstate->getNumberOfNestedPrototypes());
+  moonM_shrinkvector<LocVar>(state, f.getLocVarsRef(), f.getLocVarsSizeRef(), funcstate->getNumDebugVars());
+  moonM_shrinkvector<Upvaldesc>(state, f.getUpvaluesRef(), f.getUpvaluesSizeRef(), funcstate->getNumUpvalues());
   setFuncState(funcstate->getPrev());
   state->getStackSubsystem().pop();  // pop kcache table
-  luaC_checkGC(state);
+  moonC_checkGC(state);
 }
 
 
@@ -610,7 +610,7 @@ void Parser::constructor( ExpDesc& table_exp) {
     if (cc.v.getKind() != VVOID)  // is there a previous list item?
       funcstate->closelistfield(cc);  // close it
     field(cc);
-    luaY_checklimit(funcstate, cc.tostore + cc.na + cc.nh, MAX_CNST,
+    moonY_checklimit(funcstate, cc.tostore + cc.na + cc.nh, MAX_CNST,
                     "items in a constructor");
   } while (testnext( ',') || testnext( ';'));
   check_match( /*{*/ '}', '{' /*}*/, line);
@@ -700,7 +700,7 @@ void Parser::funcargs( ExpDesc& f) {
       else {
         explist(args);
         if (hasmultret(args.getKind()))
-          funcstate->setreturns(args, LUA_MULTRET);
+          funcstate->setreturns(args, MOON_MULTRET);
       }
       check_match( ')', '(', line);
       break;
@@ -718,10 +718,10 @@ void Parser::funcargs( ExpDesc& f) {
       lexState.syntaxError( "function arguments expected");
     }
   }
-  lua_assert(f.getKind() == VNONRELOC);
+  moon_assert(f.getKind() == VNONRELOC);
   base = f.getInfo();  // base register for call
   if (hasmultret(args.getKind()))
-    nparams = LUA_MULTRET;  // open call
+    nparams = MOON_MULTRET;  // open call
   else {
     if (args.getKind() != VVOID)
       funcstate->exp2nextreg(args);  // close last argument
@@ -1093,7 +1093,7 @@ void Parser::exp1() {
   ExpDesc e;
   expr(e);
   funcState->exp2nextreg(e);
-  lua_assert(e.getKind() == VNONRELOC);
+  moon_assert(e.getKind() == VNONRELOC);
 }
 
 
@@ -1423,25 +1423,25 @@ void Parser::retstat() {
   FuncState *funcstate = funcState;
   ExpDesc e;
   int nret;  // number of values being returned
-  int first = luaY_nvarstack(funcstate);  // first slot to be returned
+  int first = moonY_nvarstack(funcstate);  // first slot to be returned
   if (block_follow(1) || lexState.getToken() == ';')
     nret = 0;  // return no values
   else {
     nret = explist(e);  // optional return values
     if (hasmultret(e.getKind())) {
-      funcstate->setreturns(e, LUA_MULTRET);
+      funcstate->setreturns(e, MOON_MULTRET);
       if (e.getKind() == VCALL && nret == 1 && !funcstate->getBlock()->insidetbc) {  // tail call?
         SET_OPCODE(getinstruction(funcstate,e), OP_TAILCALL);
-        lua_assert(InstructionView(getinstruction(funcstate,e)).a() == luaY_nvarstack(funcstate));
+        moon_assert(InstructionView(getinstruction(funcstate,e)).a() == moonY_nvarstack(funcstate));
       }
-      nret = LUA_MULTRET;  // return all values
+      nret = MOON_MULTRET;  // return all values
     }
     else {
       if (nret == 1)  // only one single value?
         first = funcstate->exp2anyreg(e);  // can use original slot
       else {  // values must go to the top of the stack
         funcstate->exp2nextreg(e);
-        lua_assert(nret == funcstate->getFirstFreeRegister() - first);
+        moon_assert(nret == funcstate->getFirstFreeRegister() - first);
       }
     }
   }
@@ -1515,7 +1515,7 @@ void Parser::statement() {
       gotostat(line);
       break;
     }
-#if defined(LUA_COMPAT_GLOBAL)
+#if defined(MOON_COMPAT_GLOBAL)
     case static_cast<int>(RESERVED::TK_NAME): {
       /* compatibility code to parse global keyword when "global"
          is not reserved */
@@ -1536,9 +1536,9 @@ void Parser::statement() {
       break;
     }
   }
-  lua_assert(funcState->getProto().getMaxStackSize() >= funcState->getFirstFreeRegister() &&
-             funcState->getFirstFreeRegister() >= luaY_nvarstack(funcState));
-  funcState->setFirstFreeRegister(luaY_nvarstack(funcState));  // free registers
+  moon_assert(funcState->getProto().getMaxStackSize() >= funcState->getFirstFreeRegister() &&
+             funcState->getFirstFreeRegister() >= moonY_nvarstack(funcState));
+  funcState->setFirstFreeRegister(moonY_nvarstack(funcState));  // free registers
   leavelevel(&lexState);
 }
 
@@ -1549,7 +1549,7 @@ void Parser::statement() {
 
 /*
 ** compiles the main function, which is a regular vararg function with an
-** upvalue named LUA_ENV
+** upvalue named MOON_ENV
 */
 void Parser::mainfunc(FuncState *funcstate) {
   BlockCnt bl;
@@ -1561,7 +1561,7 @@ void Parser::mainfunc(FuncState *funcstate) {
   env->setIndex(0);
   env->setKind(VDKREG);
   env->setName(lexState.getEnvName());
-  luaC_objbarrier(lexState.getLuaState(), &funcstate->getProto(), env->getName());
+  moonC_objbarrier(lexState.getLuaState(), &funcstate->getProto(), env->getName());
   lexState.nextToken();  // read first token
   statlist();  // parse main body
   check(static_cast<int>(RESERVED::TK_EOS));

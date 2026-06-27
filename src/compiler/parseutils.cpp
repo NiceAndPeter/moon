@@ -3,28 +3,28 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 
 #include <climits>
 #include <cstring>
 
-#include "lua.h"
+#include "moon.h"
 
-#include "ldebug.h"
-#include "ldo.h"
-#include "lfunc.h"
-#include "llex.h"
-#include "lmem.h"
-#include "lobject.h"
-#include "lopcodes.h"
-#include "lparser.h"
-#include "lstate.h"
-#include "lstring.h"
-#include "ltable.h"
-#include "../memory/lgc.h"
+#include "mdebug.h"
+#include "mdo.h"
+#include "mfunc.h"
+#include "mlex.h"
+#include "mmem.h"
+#include "mobject.h"
+#include "mopcodes.h"
+#include "mparser.h"
+#include "mstate.h"
+#include "mstring.h"
+#include "mtable.h"
+#include "../memory/mgc.h"
 
 
 /* maximum number of variable declarations per function (must be
@@ -75,19 +75,19 @@ void ExpDesc::initString(TString *s) {
 
 
 // External API wrapper
-void luaY_checklimit (FuncState *funcState, int v, int l, const char *what) {
+void moonY_checklimit (FuncState *funcState, int v, int l, const char *what) {
   funcState->checklimit(v, l, what);
 }
 
 
 // External API wrapper
-lu_byte luaY_nvarstack (FuncState *funcState) {
+lu_byte moonY_nvarstack (FuncState *funcState) {
   return funcState->nvarstack();
 }
 
 
 inline void enterlevel(LexState* lexState) {
-	luaE_incCstack(lexState->getLuaState());
+	moonE_incCstack(lexState->getLuaState());
 }
 
 inline void leavelevel(LexState* lexState) noexcept {
@@ -174,20 +174,20 @@ struct LHS_assign {
 
 /*
 ** compiles the main function, which is a regular vararg function with an
-** upvalue named LUA_ENV
+** upvalue named MOON_ENV
 */
-LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
+LClosure *moonY_parser (moon_State *L, ZIO *z, Mbuffer *buff,
                        Dyndata *dyd, const char *name, int firstchar) {
   LexState lexstate;
   LClosure *cl = LClosure::create(L, 1);  // create main closure
   setclLvalue2s(L, L->getTop().p, cl);  // anchor it (to avoid being collected)
   L->inctop();  lexstate.setTable(Table::create(L));  // create table for scanner
   sethvalue2s(L, L->getTop().p, lexstate.getTable());  // anchor it
-  L->inctop();  Proto* proto = luaF_newproto(L);
+  L->inctop();  Proto* proto = moonF_newproto(L);
   cl->setProto(proto);
-  luaC_objbarrier(L, cl, cl->getProto());
+  moonC_objbarrier(L, cl, cl->getProto());
   proto->setSource(TString::create(L, name));  // create and anchor TString
-  luaC_objbarrier(L, proto, proto->getSource());
+  moonC_objbarrier(L, proto, proto->getSource());
   FuncState funcstate(*proto, lexstate);
   lexstate.setBuffer(buff);
   lexstate.setDyndata(dyd);
@@ -197,9 +197,9 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   lexstate.setInput(L, z, funcstate.getProto().getSource(), firstchar);
   Parser parser(lexstate, nullptr);
   parser.mainfunc(&funcstate);
-  lua_assert(!funcstate.getPrev() && funcstate.getNumUpvalues() == 1);
+  moon_assert(!funcstate.getPrev() && funcstate.getNumUpvalues() == 1);
   // all scopes should be correctly finished
-  lua_assert(dyd->actvar().getN() == 0 && dyd->gt.getN() == 0 && dyd->label.getN() == 0);
+  moon_assert(dyd->actvar().getN() == 0 && dyd->gt.getN() == 0 && dyd->label.getN() == 0);
   L->getStackSubsystem().pop();  // remove scanner's table
   return cl;  // closure is on the stack, too
 }

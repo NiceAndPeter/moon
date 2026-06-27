@@ -6,9 +6,9 @@
 #ifndef gc_core_h
 #define gc_core_h
 
-#include "../../core/lstate.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
+#include "../../core/mstate.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
 
 /*
 ** GCCore - Core garbage collector utility functions
@@ -69,7 +69,7 @@ public:
     ** - L: Lua state
     ** - upvalue: Upvalue to free
     */
-    static void freeupval(lua_State* L, UpVal* upvalue);
+    static void freeupval(moon_State* L, UpVal* upvalue);
 };
 
 #endif  // gc_core_h

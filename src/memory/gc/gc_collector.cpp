@@ -3,9 +3,9 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include "gc_collector.h"
 #include "gc_core.h"
@@ -13,9 +13,9 @@
 #include "gc_sweeping.h"
 #include "gc_finalizer.h"
 #include "gc_weak.h"
-#include "../lgc.h"
-#include "../../core/lstate.h"
-#include "../../objects/lstring.h"
+#include "../mgc.h"
+#include "../../core/mstate.h"
+#include "../../objects/mstring.h"
 
 /*
 ** Maximum number of elements to sweep in each single step.
@@ -28,7 +28,7 @@
 #define CWUFIN	10
 
 
-// Note: propagateall and luaC_runtilstate are declared in lgc.h
+// Note: propagateall and moonC_runtilstate are declared in lgc.h
 
 
 /*
@@ -36,13 +36,13 @@
 ** Completes marking in one indivisible step, handles weak tables,
 ** separates finalizable objects, and flips white color.
 */
-void GCCollector::atomic(lua_State* L) {
+void GCCollector::atomic(moon_State* L) {
   GlobalState* g = G(L);
   GCObject *origweak, *origall;
   GCObject *grayagain = g->getGrayAgain();  // save original list
   g->setGrayAgain(nullptr);
-  lua_assert(g->getEphemeron() == nullptr && g->getWeak() == nullptr);
-  lua_assert(!iswhite(mainthread(g)));
+  moon_assert(g->getEphemeron() == nullptr && g->getWeak() == nullptr);
+  moon_assert(!iswhite(mainthread(g)));
   g->setGCState(GCState::Atomic);
   markobject(*g, L);  // mark running thread
   // registry and global metatables may be changed by API
@@ -73,7 +73,7 @@ void GCCollector::atomic(lua_State* L) {
   GCWeak::clearbyvalues(*g, g->getAllWeak(), origall);
   TString::clearCache(g);
   g->setCurrentWhite(cast_byte(otherwhite(g)));  // flip current white
-  lua_assert(g->getGray() == nullptr);
+  moon_assert(g->getGray() == nullptr);
 }
 
 
@@ -81,7 +81,7 @@ void GCCollector::atomic(lua_State* L) {
 ** FINISH YOUNG COLLECTION
 ** Completes a young-generation collection.
 */
-void GCCollector::finishgencycle(lua_State* L, GlobalState* g) {
+void GCCollector::finishgencycle(moon_State* L, GlobalState* g) {
   g->correctGrayLists();
   GCFinalizer::checkSizes(L, *g);
   g->setGCState(GCState::Propagate);  // skip restart
@@ -95,14 +95,14 @@ void GCCollector::finishgencycle(lua_State* L, GlobalState* g) {
 ** Shifts from minor collection to major collections.
 ** Starts in sweep-all state to clear all objects (mostly black in gen mode).
 */
-void GCCollector::minor2inc(lua_State* L, GlobalState* g, GCKind kind) {
+void GCCollector::minor2inc(moon_State* L, GlobalState* g, GCKind kind) {
   g->setGCMajorMinor(g->getGCMarked());  // number of live bytes
   g->setGCKind(kind);
   g->setReallyOld(nullptr); g->setOld1(nullptr); g->setSurvival(nullptr);
   g->setFinObjROld(nullptr); g->setFinObjOld1(nullptr); g->setFinObjSur(nullptr);
   GCSweeping::entersweep(L);  // continue as an incremental cycle
   // set a debt equal to the step size
-  luaE_setdebt(g, applygcparam(g, STEPSIZE, 100));
+  moonE_setdebt(g, applygcparam(g, STEPSIZE, 100));
 }
 
 
@@ -110,7 +110,7 @@ void GCCollector::minor2inc(lua_State* L, GlobalState* g, GCKind kind) {
 ** CHECK MINOR-TO-MAJOR TRANSITION
 ** Decide whether to shift from minor to major mode based on accumulated old bytes.
 */
-int GCCollector::checkmajorminor(lua_State* L, GlobalState* g) {
+int GCCollector::checkmajorminor(moon_State* L, GlobalState* g) {
   if (g->getGCKind() == GCKind::GenerationalMajor) {  // generational mode?
     l_mem numbytes = g->getTotalBytes();
     l_mem addedbytes = numbytes - g->getGCMajorMinor();
@@ -131,12 +131,12 @@ int GCCollector::checkmajorminor(lua_State* L, GlobalState* g) {
 ** YOUNG COLLECTION
 ** Performs a minor collection in generational mode.
 */
-void GCCollector::youngcollection(lua_State* L, GlobalState* g) {
+void GCCollector::youngcollection(moon_State* L, GlobalState* g) {
   l_mem addedold1 = 0;
   l_mem marked = g->getGCMarked();  // preserve 'g->getGCMarked()'
   GCObject **psurvival;  // to point to first non-dead survival object
   GCObject *dummy;  // dummy out parameter to 'sweepgen'
-  lua_assert(g->getGCState() == GCState::Propagate);
+  moon_assert(g->getGCState() == GCState::Propagate);
   if (g->getFirstOld1()) {  // are there regular OLD1 objects?
     GCMarking::markold(*g, g->getFirstOld1(), g->getReallyOld());  // mark them
     g->setFirstOld1(nullptr);  // no more OLD1 objects (for now)
@@ -183,7 +183,7 @@ void GCCollector::youngcollection(lua_State* L, GlobalState* g) {
 ** TRANSITION: ATOMIC TO GENERATIONAL
 ** Clears gray lists, sweeps all to old, sets up generational sublists.
 */
-void GCCollector::atomic2gen(lua_State* L, GlobalState* g) {
+void GCCollector::atomic2gen(moon_State* L, GlobalState* g) {
   g->clearGrayLists();
   // sweep all elements making them old
   g->setGCState(GCState::SweepAllGC);
@@ -211,9 +211,9 @@ void GCCollector::atomic2gen(lua_State* L, GlobalState* g) {
 ** ENTER GENERATIONAL MODE
 ** Runs to end of atomic cycle, converts all objects to old.
 */
-void GCCollector::entergen(lua_State* L, GlobalState* g) {
-  luaC_runtilstate(*L, GCState::Pause, 1);  // prepare to start a new cycle
-  luaC_runtilstate(*L, GCState::Propagate, 1);  // start new cycle
+void GCCollector::entergen(moon_State* L, GlobalState* g) {
+  moonC_runtilstate(*L, GCState::Pause, 1);  // prepare to start a new cycle
+  moonC_runtilstate(*L, GCState::Propagate, 1);  // start new cycle
   atomic(L);  // propagates all and then do the atomic stuff
   atomic2gen(L, g);
   g->setMinorDebt();  // set debt assuming next cycle will be minor
@@ -224,7 +224,7 @@ void GCCollector::entergen(lua_State* L, GlobalState* g) {
 ** FULL GENERATIONAL COLLECTION
 ** Temporarily switches to incremental for full sweep, then returns to gen mode.
 */
-void GCCollector::fullgen(lua_State* L, GlobalState* g) {
+void GCCollector::fullgen(moon_State* L, GlobalState* g) {
   minor2inc(L, g, GCKind::Incremental);
   entergen(L, g);
 }
@@ -234,13 +234,13 @@ void GCCollector::fullgen(lua_State* L, GlobalState* g) {
 ** FULL INCREMENTAL COLLECTION
 ** Performs a complete GC cycle in incremental mode.
 */
-void GCCollector::fullinc(lua_State* L, GlobalState* g) {
+void GCCollector::fullinc(moon_State* L, GlobalState* g) {
   if (g->keepInvariant())  // black objects?
     GCSweeping::entersweep(L);  // sweep everything to turn them back to white
   // finish any pending sweep phase to start a new cycle
-  luaC_runtilstate(*L, GCState::Pause, 1);
-  luaC_runtilstate(*L, GCState::CallFin, 1);  // run up to finalizers
-  luaC_runtilstate(*L, GCState::Pause, 1);  // finish collection
+  moonC_runtilstate(*L, GCState::Pause, 1);
+  moonC_runtilstate(*L, GCState::CallFin, 1);  // run up to finalizers
+  moonC_runtilstate(*L, GCState::Pause, 1);  // finish collection
   g->setPause();
 }
 
@@ -250,10 +250,10 @@ void GCCollector::fullinc(lua_State* L, GlobalState* g) {
 ** Performs one incremental GC step.
 ** Returns work done or special value indicating state change.
 */
-l_mem GCCollector::singlestep(lua_State* L, int fast) {
+l_mem GCCollector::singlestep(moon_State* L, int fast) {
   GlobalState* g = G(L);
   l_mem stepresult;
-  lua_assert(!g->getGCStopEm());  // collector is not reentrant
+  moon_assert(!g->getGCStopEm());  // collector is not reentrant
   g->setGCStopEm(1);  // no emergency collections while collecting
   switch (g->getGCState()) {
     case GCState::Pause: {
@@ -314,7 +314,7 @@ l_mem GCCollector::singlestep(lua_State* L, int fast) {
       }
       break;
     }
-    default: lua_assert(0); return 0;
+    default: moon_assert(0); return 0;
   }
   g->setGCStopEm(0);
   return stepresult;
@@ -325,7 +325,7 @@ l_mem GCCollector::singlestep(lua_State* L, int fast) {
 ** INCREMENTAL STEP
 ** Performs a basic incremental step with work calculation.
 */
-void GCCollector::incstep(lua_State* L, GlobalState* g) {
+void GCCollector::incstep(moon_State* L, GlobalState* g) {
   l_mem stepsize = applygcparam(g, STEPSIZE, 100);
   l_mem work2do = applygcparam(g, STEPMUL, stepsize / cast_int(sizeof(void*)));
   l_mem stres;
@@ -342,5 +342,5 @@ void GCCollector::incstep(lua_State* L, GlobalState* g) {
   if (g->getGCState() == GCState::Pause)
     g->setPause();  // pause until next cycle
   else
-    luaE_setdebt(g, stepsize);
+    moonE_setdebt(g, stepsize);
 }

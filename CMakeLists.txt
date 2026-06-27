@@ -84,22 +84,22 @@ set(OPTIMIZE_FLAGS
 # Test mode definitions
 if(LUA_BUILD_TESTS)
     add_compile_definitions(
-        LUA_USER_H="ltests.h"
+        MOON_USER_H="mtests.h"
     )
     # If assertions are disabled, tell ltests.h not to enable them
     if(NOT LUA_ENABLE_ASSERTIONS)
-        add_compile_definitions(LUA_TESTS_NO_ASSERT)
+        add_compile_definitions(MOON_TESTS_NO_ASSERT)
     endif()
 endif()
 
 # Assertion control (independent of test mode, for non-test builds)
 if(LUA_ENABLE_ASSERTIONS AND NOT LUA_BUILD_TESTS)
-    add_compile_definitions(LUAI_ASSERT)
+    add_compile_definitions(MOONI_ASSERT)
 endif()
 
 # Platform definitions
 if(LINUX)
-    add_compile_definitions(LUA_USE_LINUX)
+    add_compile_definitions(MOON_USE_LINUX)
 endif()
 
 # Sanitizer options
@@ -143,7 +143,7 @@ if(LUA_ENABLE_LTO)
         # unit. This keeps LTO for the rest of the codebase (incl. the VM hot
         # path); the GC is not the perf-critical inner loop.
         set_source_files_properties(
-            src/memory/lgc.cpp
+            src/memory/mgc.cpp
             src/memory/gc/gc_core.cpp
             src/memory/gc/gc_marking.cpp
             src/memory/gc/gc_sweeping.cpp
@@ -156,43 +156,43 @@ endif()
 
 # Source files organized by subdirectory
 set(LUA_CORE_SOURCES
-    src/core/lapi.cpp
-    src/core/ldo.cpp
-    src/core/lstack.cpp
-    src/core/lstate.cpp
-    src/core/ltm.cpp
-    src/core/ldebug.cpp
+    src/core/mapi.cpp
+    src/core/mdo.cpp
+    src/core/mstack.cpp
+    src/core/mstate.cpp
+    src/core/mtm.cpp
+    src/core/mdebug.cpp
 )
 
 set(LUA_COMPILER_SOURCES
-    src/compiler/lcode.cpp
-    src/compiler/llex.cpp
+    src/compiler/mcode.cpp
+    src/compiler/mlex.cpp
     src/compiler/parser.cpp
     src/compiler/funcstate.cpp
     src/compiler/parselabels.cpp
     src/compiler/parseutils.cpp
-    src/compiler/lopcodes.cpp
+    src/compiler/mopcodes.cpp
 )
 
 set(LUA_VM_SOURCES
-    src/vm/lvm.cpp
-    src/vm/lvm_comparison.cpp
-    src/vm/lvm_conversion.cpp
-    src/vm/lvm_loops.cpp
-    src/vm/lvirtualmachine.cpp
+    src/vm/mvm.cpp
+    src/vm/mvm_comparison.cpp
+    src/vm/mvm_conversion.cpp
+    src/vm/mvm_loops.cpp
+    src/vm/mvirtualmachine.cpp
 )
 
 set(LUA_OBJECT_SOURCES
-    src/objects/lobject.cpp
-    src/objects/ltable.cpp
-    src/objects/lstring.cpp
-    src/objects/lfunc.cpp
-    src/objects/lctype.cpp
+    src/objects/mobject.cpp
+    src/objects/mtable.cpp
+    src/objects/mstring.cpp
+    src/objects/mfunc.cpp
+    src/objects/mctype.cpp
 )
 
 set(LUA_MEMORY_SOURCES
-    src/memory/lgc.cpp
-    src/memory/lmem.cpp
+    src/memory/mgc.cpp
+    src/memory/mmem.cpp
     src/memory/gc/gc_core.cpp
     src/memory/gc/gc_marking.cpp
     src/memory/gc/gc_sweeping.cpp
@@ -202,41 +202,41 @@ set(LUA_MEMORY_SOURCES
 )
 
 set(LUA_SERIALIZATION_SOURCES
-    src/serialization/lundump.cpp
-    src/serialization/ldump.cpp
-    src/serialization/lzio.cpp
+    src/serialization/mundump.cpp
+    src/serialization/mdump.cpp
+    src/serialization/mzio.cpp
 )
 
 set(LUA_AUX_SOURCES
-    src/auxiliary/lauxlib.cpp
-    src/auxiliary/linit.cpp
+    src/auxiliary/mauxlib.cpp
+    src/auxiliary/minit.cpp
 )
 
 set(LUA_LIB_SOURCES
-    src/libraries/lbaselib.cpp
-    src/libraries/ldblib.cpp
-    src/libraries/liolib.cpp
-    src/libraries/lmathlib.cpp
-    src/libraries/loslib.cpp
-    src/libraries/ltablib.cpp
-    src/libraries/lstrlib.cpp
-    src/libraries/lutf8lib.cpp
-    src/libraries/loadlib.cpp
-    src/libraries/lcorolib.cpp
+    src/libraries/mbaselib.cpp
+    src/libraries/mdblib.cpp
+    src/libraries/miolib.cpp
+    src/libraries/mmathlib.cpp
+    src/libraries/moslib.cpp
+    src/libraries/mtablib.cpp
+    src/libraries/mstrlib.cpp
+    src/libraries/mutf8lib.cpp
+    src/libraries/moadlib.cpp
+    src/libraries/mcorolib.cpp
 )
 
 # Test source (only in test mode)
 if(LUA_BUILD_TESTS)
-    set(LUA_TEST_SOURCES src/testing/ltests.cpp)
+    set(LUA_TEST_SOURCES src/testing/mtests.cpp)
 else()
     set(LUA_TEST_SOURCES "")
 endif()
 
 # Public headers
 set(LUA_PUBLIC_HEADERS
-    include/lua.h
-    include/luaconf.h
-    include/lualib.h
+    include/moon.h
+    include/moonconf.h
+    include/moonlib.h
 )
 
 # All library sources
@@ -253,33 +253,33 @@ set(LUA_ALL_SOURCES
 )
 
 # Static library target
-add_library(liblua_static STATIC
+add_library(libmoon_static STATIC
     ${LUA_ALL_SOURCES}
 )
 
 # Set output name to liblua.a (remove double lib prefix)
-set_target_properties(liblua_static PROPERTIES
-    OUTPUT_NAME lua
+set_target_properties(libmoon_static PROPERTIES
+    OUTPUT_NAME moon
     PUBLIC_HEADER "${LUA_PUBLIC_HEADERS}"
 )
 
-target_compile_options(liblua_static PRIVATE
+target_compile_options(libmoon_static PRIVATE
     -Wall
     ${WARNING_FLAGS}
     ${OPTIMIZE_FLAGS}
 )
 
-target_link_libraries(liblua_static PUBLIC
+target_link_libraries(libmoon_static PUBLIC
     m      # Math library
     dl     # Dynamic linking library (for loadlib)
 )
 
 # Export symbols for dynamic loading
-target_link_options(liblua_static PUBLIC
+target_link_options(libmoon_static PUBLIC
     -Wl,-E
 )
 
-target_include_directories(liblua_static
+target_include_directories(libmoon_static
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/auxiliary>
@@ -298,27 +298,27 @@ target_include_directories(liblua_static
 
 # Optional shared library
 if(LUA_BUILD_SHARED)
-    add_library(liblua_shared SHARED
+    add_library(libmoon_shared SHARED
         ${LUA_ALL_SOURCES}
     )
 
-    set_target_properties(liblua_shared PROPERTIES
-        OUTPUT_NAME lua
+    set_target_properties(libmoon_shared PROPERTIES
+        OUTPUT_NAME moon
         VERSION ${PROJECT_VERSION}
         SOVERSION 5.5
         PUBLIC_HEADER "${LUA_PUBLIC_HEADERS}"
     )
 
-    target_compile_options(liblua_shared PRIVATE
+    target_compile_options(libmoon_shared PRIVATE
         -Wall
         ${WARNING_FLAGS}
         ${OPTIMIZE_FLAGS}
     )
 
-    target_link_libraries(liblua_shared PUBLIC m dl)
-    target_link_options(liblua_shared PUBLIC -Wl,-E)
+    target_link_libraries(libmoon_shared PUBLIC m dl)
+    target_link_options(libmoon_shared PUBLIC -Wl,-E)
 
-    target_include_directories(liblua_shared
+    target_include_directories(libmoon_shared
         PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/auxiliary>
@@ -337,21 +337,21 @@ if(LUA_BUILD_SHARED)
 endif()
 
 # Lua interpreter executable
-add_executable(lua
-    src/interpreter/lua.cpp
+add_executable(moon
+    src/interpreter/moon.cpp
 )
 
-target_link_libraries(lua PRIVATE
-    liblua_static
+target_link_libraries(moon PRIVATE
+    libmoon_static
 )
 
-target_compile_options(lua PRIVATE
+target_compile_options(moon PRIVATE
     -Wall
     ${WARNING_FLAGS}
     ${OPTIMIZE_FLAGS}
 )
 
-target_include_directories(lua PRIVATE
+target_include_directories(moon PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/testing
     ${CMAKE_CURRENT_SOURCE_DIR}/src/memory
     ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/gc
@@ -365,21 +365,21 @@ target_include_directories(lua PRIVATE
 # LuaAllocator test executable (optional, for testing the allocator)
 # Note: Only build with GCC due to C++23 libstdc++ compatibility issues with Clang 15
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_executable(test_luaallocator
-        test_luaallocator.cpp
+    add_executable(test_moonallocator
+        test_moonallocator.cpp
     )
 
-    target_link_libraries(test_luaallocator PRIVATE
-        liblua_static
+    target_link_libraries(test_moonallocator PRIVATE
+        libmoon_static
     )
 
-    target_compile_options(test_luaallocator PRIVATE
+    target_compile_options(test_moonallocator PRIVATE
         -Wall
         ${WARNING_FLAGS}
         ${OPTIMIZE_FLAGS}
     )
 
-    target_include_directories(test_luaallocator PRIVATE
+    target_include_directories(test_moonallocator PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/testing
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/gc
@@ -394,7 +394,7 @@ endif()
 # Install targets
 include(GNUInstallDirs)
 
-install(TARGETS liblua_static lua
+install(TARGETS libmoon_static moon
     EXPORT LuaTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -403,7 +403,7 @@ install(TARGETS liblua_static lua
 )
 
 if(LUA_BUILD_SHARED)
-    install(TARGETS liblua_shared
+    install(TARGETS libmoon_shared
         EXPORT LuaTargets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -448,7 +448,7 @@ if(LUA_BUILD_TESTS)
     set(TEST_LIB_OUTPUT_DIR ${TEST_LIB_DIR})
 
     # Common compile options for test libraries
-    set(TEST_LIB_COMPILE_OPTIONS -Wall -O2 -fPIC -ULUA_USER_H)
+    set(TEST_LIB_COMPILE_OPTIONS -Wall -O2 -fPIC -UMOON_USER_H)
 
     # lib1.so
     add_library(lib1 MODULE ${TEST_LIB_DIR}/lib1.c)
@@ -522,7 +522,7 @@ if(LUA_BUILD_TESTS)
 
     add_test(
         NAME LuaTestSuite
-        COMMAND lua all.lua
+        COMMAND moon all.lua
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testes
     )
 

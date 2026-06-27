@@ -1,10 +1,8 @@
 name: Code Coverage
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  # Moon fork Phase 0: coverage runs the full Lua suite, which can't run under the
+  # neutered GC. Manual-only until the suite is restored with ARC (Phase 1+).
   workflow_dispatch:  # Allow manual trigger
 
 jobs:

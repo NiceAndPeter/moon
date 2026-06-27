@@ -6,9 +6,9 @@
 #ifndef gc_marking_h
 #define gc_marking_h
 
-#include "../../core/lstate.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
+#include "../../core/mstate.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
 
 /*
 ** GCMarking - Encapsulates all garbage collector marking logic
@@ -117,7 +117,7 @@ private:
     static l_mem traverseproto(GlobalState& g, Proto* f);
     static l_mem traverseCclosure(GlobalState& g, CClosure* cl);
     static l_mem traverseLclosure(GlobalState& g, LClosure* cl);
-    static l_mem traversethread(GlobalState& g, lua_State* th);
+    static l_mem traversethread(GlobalState& g, moon_State* th);
 };
 
 /*

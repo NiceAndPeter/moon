@@ -6,10 +6,10 @@
 #ifndef gc_weak_h
 #define gc_weak_h
 
-#include "../../core/lstate.h"
-#include "../lgc.h"
-#include "../../objects/lobject.h"
-#include "../../objects/ltable.h"
+#include "../../core/mstate.h"
+#include "../mgc.h"
+#include "../../objects/mobject.h"
+#include "../../objects/mtable.h"
 
 /*
 ** GCWeak - Encapsulates all garbage collector weak table logic

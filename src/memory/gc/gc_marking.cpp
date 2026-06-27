@@ -3,20 +3,20 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 #include <cstring>
 
 #include "gc_marking.h"
 #include "gc_weak.h"
-#include "../lgc.h"
-#include "../../core/ldo.h"
-#include "../../objects/lfunc.h"
-#include "../../objects/lstring.h"
-#include "../../objects/ltable.h"
-#include "../../core/ltm.h"
+#include "../mgc.h"
+#include "../../core/mdo.h"
+#include "../../objects/mfunc.h"
+#include "../../objects/mstring.h"
+#include "../../objects/mtable.h"
+#include "../../core/mtm.h"
 
 /*
 ** GC Marking Module Implementation
@@ -73,7 +73,7 @@ static inline void linkgclistTable(Table* h, GCObject*& p) {
     linkgclist_(obj2gco(h), h->getGclistPtr(), &p);
 }
 
-static inline void linkgclistThread(lua_State* th, GCObject*& p) {
+static inline void linkgclistThread(moon_State* th, GCObject*& p) {
     linkgclist_(obj2gco(th), th->getGclistPtr(), &p);
 }
 
@@ -172,14 +172,14 @@ l_mem GCMarking::traverseLclosure(GlobalState& g, LClosure* cl) {
 /*
 ** Traverse a thread
 */
-l_mem GCMarking::traversethread(GlobalState& g, lua_State* th) {
+l_mem GCMarking::traversethread(GlobalState& g, moon_State* th) {
     UpVal* upvalue;
     StkId o = th->getStack().p;
     if (isold(th) || g.getGCState() == GCState::Propagate)
         linkgclistThread(th, *g.getGrayAgainPtr());
     if (o == nullptr)
         return 0;  // stack not completely built yet
-    lua_assert(g.getGCState() == GCState::Atomic ||
+    moon_assert(g.getGCState() == GCState::Atomic ||
                th->getOpenUpval() == nullptr || th->isInTwups());
     for (; o < th->getTop().p; o++)
         markvalue(g, s2v(o));
@@ -212,12 +212,12 @@ l_mem GCMarking::traversethread(GlobalState& g, lua_State* th) {
 void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
     g.setGCMarked(g.getGCMarked() + objsize(o));
     switch (static_cast<int>(o->getType())) {
-        case static_cast<int>(ctb(LuaT::SHRSTR)):
-        case static_cast<int>(ctb(LuaT::LNGSTR)): {
+        case static_cast<int>(ctb(MoonT::SHRSTR)):
+        case static_cast<int>(ctb(MoonT::LNGSTR)): {
             set2black(o);  // strings have no children
             break;
         }
-        case static_cast<int>(ctb(LuaT::UPVAL)): {
+        case static_cast<int>(ctb(MoonT::UPVAL)): {
             UpVal* upvalue = gco2upv(o);
             if (upvalue->isOpen())
                 set2gray(upvalue);  // open upvalues kept gray
@@ -226,7 +226,7 @@ void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
             markvalue(g, upvalue->getVP());
             break;
         }
-        case static_cast<int>(ctb(LuaT::USERDATA)): {
+        case static_cast<int>(ctb(MoonT::USERDATA)): {
             Udata* u = gco2u(o);
             if (u->getNumUserValues() == 0) {
                 markobjectN(g, u->getMetatable());
@@ -235,16 +235,16 @@ void GCMarking::reallymarkobject(GlobalState& g, GCObject* o) {
             }
             // else fall through to add to gray list
         }  // FALLTHROUGH
-        case static_cast<int>(ctb(LuaT::LCL)):
-        case static_cast<int>(ctb(LuaT::CCL)):
-        case static_cast<int>(ctb(LuaT::TABLE)):
-        case static_cast<int>(ctb(LuaT::THREAD)):
-        case static_cast<int>(ctb(LuaT::PROTO)): {
+        case static_cast<int>(ctb(MoonT::LCL)):
+        case static_cast<int>(ctb(MoonT::CCL)):
+        case static_cast<int>(ctb(MoonT::TABLE)):
+        case static_cast<int>(ctb(MoonT::THREAD)):
+        case static_cast<int>(ctb(MoonT::PROTO)): {
             linkobjgclist(o, *g.getGrayPtr());  // to be visited later
             break;
         }
         default:
-            lua_assert(0);
+            moon_assert(0);
             break;
     }
 }
@@ -258,20 +258,20 @@ l_mem GCMarking::propagatemark(GlobalState& g) {
     nw2black(o);
     g.setGray(*getgclist(o));  // remove from 'gray' list
     switch (static_cast<int>(o->getType())) {
-        case static_cast<int>(ctb(LuaT::TABLE)):
+        case static_cast<int>(ctb(MoonT::TABLE)):
             return traversetable(g, gco2t(o));
-        case static_cast<int>(ctb(LuaT::USERDATA)):
+        case static_cast<int>(ctb(MoonT::USERDATA)):
             return traverseudata(g, gco2u(o));
-        case static_cast<int>(ctb(LuaT::LCL)):
+        case static_cast<int>(ctb(MoonT::LCL)):
             return traverseLclosure(g, gco2lcl(o));
-        case static_cast<int>(ctb(LuaT::CCL)):
+        case static_cast<int>(ctb(MoonT::CCL)):
             return traverseCclosure(g, gco2ccl(o));
-        case static_cast<int>(ctb(LuaT::PROTO)):
+        case static_cast<int>(ctb(MoonT::PROTO)):
             return traverseproto(g, gco2p(o));
-        case static_cast<int>(ctb(LuaT::THREAD)):
+        case static_cast<int>(ctb(MoonT::THREAD)):
             return traversethread(g, gco2th(o));
         default:
-            lua_assert(0);
+            moon_assert(0);
             return 0;
     }
 }
@@ -295,7 +295,7 @@ void GCMarking::propagateall(GlobalState& g) {
 ** Mark metamethods for basic types
 */
 void GCMarking::markmt(GlobalState& g) {
-    for (int i = 0; i < LUA_NUMTYPES; i++)
+    for (int i = 0; i < MOON_NUMTYPES; i++)
         markobjectN(g, g.getMetatable(i));
 }
 
@@ -313,20 +313,20 @@ void GCMarking::markbeingfnz(GlobalState& g) {
 ** Simulates a barrier between each open upvalue and its value
 */
 void GCMarking::remarkupvals(GlobalState& g) {
-    lua_State* thread;
-    lua_State** p = g.getTwupsPtr();
+    moon_State* thread;
+    moon_State** p = g.getTwupsPtr();
     while ((thread = *p) != nullptr) {
         if (!iswhite(thread) && thread->getOpenUpval() != nullptr)
             p = thread->getTwupsPtr();
         else {
             UpVal* upvalue;
-            lua_assert(!isold(thread) || thread->getOpenUpval() == nullptr);
+            moon_assert(!isold(thread) || thread->getOpenUpval() == nullptr);
             *p = thread->getTwups();
             thread->setTwups(thread);  // mark out of list
             for (upvalue = thread->getOpenUpval(); upvalue != nullptr; upvalue = upvalue->getOpenNext()) {
-                lua_assert(getage(upvalue) <= getage(thread));
+                moon_assert(getage(upvalue) <= getage(thread));
                 if (!iswhite(upvalue)) {
-                    lua_assert(upvalue->isOpen() && isgray(upvalue));
+                    moon_assert(upvalue->isOpen() && isgray(upvalue));
                     markvalue(g, upvalue->getVP());
                 }
             }
@@ -355,7 +355,7 @@ void GCMarking::markold(GlobalState& g, GCObject* from, GCObject* to) {
     GCObject* p;
     for (p = from; p != to; p = p->getNext()) {
         if (getage(p) == GCAge::Old1) {
-            lua_assert(!iswhite(p));
+            moon_assert(!iswhite(p));
             setage(p, GCAge::Old);  // now they are old
             if (isblack(p))
                 reallymarkobject(g, p);
@@ -368,7 +368,7 @@ void GCMarking::markold(GlobalState& g, GCObject* from, GCObject* to) {
 ** TOUCHED1 objects go to grayagain, TOUCHED2 advance to OLD.
 */
 void GCMarking::genlink(GlobalState& g, GCObject* o) {
-    lua_assert(isblack(o));
+    moon_assert(isblack(o));
     if (getage(o) == GCAge::Touched1) {  // touched in this cycle?
         linkobjgclist(o, *g.getGrayAgainPtr());  // link it back in 'grayagain'
     }  // everything else does not need to be linked back
@@ -405,7 +405,7 @@ void GCMarking::traversestrongtable(GlobalState& g, Table* h) {
         if (isempty(gval(n)))  // entry is empty?
             clearkey(n);  // clear its key
         else {
-            lua_assert(!n->isKeyNil());
+            moon_assert(!n->isKeyNil());
             markkey(g, n);
             markvalue(g, gval(n));
         }

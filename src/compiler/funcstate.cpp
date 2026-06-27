@@ -3,28 +3,28 @@
 ** See Copyright Notice in lua.h
 */
 
-#define LUA_CORE
+#define MOON_CORE
 
-#include "lprefix.h"
+#include "mprefix.h"
 
 
 #include <climits>
 #include <cstring>
 
-#include "lua.h"
+#include "moon.h"
 
-#include "ldebug.h"
-#include "ldo.h"
-#include "lfunc.h"
-#include "llex.h"
-#include "lmem.h"
-#include "lobject.h"
-#include "lopcodes.h"
-#include "lparser.h"
-#include "lstate.h"
-#include "lstring.h"
-#include "ltable.h"
-#include "../memory/lgc.h"
+#include "mdebug.h"
+#include "mdo.h"
+#include "mfunc.h"
+#include "mlex.h"
+#include "mmem.h"
+#include "mobject.h"
+#include "mopcodes.h"
+#include "mparser.h"
+#include "mstate.h"
+#include "mstring.h"
+#include "mtable.h"
+#include "../memory/mgc.h"
 
 
 /* because all strings are unified by the scanner, the parser
@@ -64,12 +64,12 @@ typedef struct ConsControl {
 
 
 l_noret FuncState::errorlimit(int limit, const char *what) {
-  lua_State *L = getLexState().getLuaState();
+  moon_State *L = getLexState().getLuaState();
   int line = getProto().getLineDefined();
   const char *where = (line == 0)
                       ? "main function"
-                      : luaO_pushfstring(L, "function at line %d", line);
-  const char *msg = luaO_pushfstring(L, "too many %s (limit is %d) in %s",
+                      : moonO_pushfstring(L, "function at line %d", line);
+  const char *msg = moonO_pushfstring(L, "too many %s (limit is %d) in %s",
                              what, limit, where);
   getLexState().syntaxError(msg);
 }
@@ -87,14 +87,14 @@ void FuncState::checklimit(int v, int l, const char *what) {
 short FuncState::registerlocalvar(TString& varname) {
   Proto &proto = getProto();
   int oldsize = proto.getLocVarsSize();
-  luaM_growvector<LocVar>(getLexState().getLuaState(), proto.getLocVarsRef(), getNumDebugVars(), proto.getLocVarsSizeRef(),
+  moonM_growvector<LocVar>(getLexState().getLuaState(), proto.getLocVarsRef(), getNumDebugVars(), proto.getLocVarsSizeRef(),
                   SHRT_MAX, "local variables");
   auto locVarsSpan = proto.getDebugInfo().getLocVarsSpan();
   while (oldsize < static_cast<int>(locVarsSpan.size()))
     locVarsSpan[oldsize++].setVarName(nullptr);
   locVarsSpan[getNumDebugVars()].setVarName(&varname);
   locVarsSpan[getNumDebugVars()].setStartPC(getPC());
-  luaC_objbarrier(getLexState().getLuaState(), &proto, &varname);
+  moonC_objbarrier(getLexState().getLuaState(), &proto, &varname);
   return postIncrementNumDebugVars();
 }
 
@@ -142,7 +142,7 @@ LocVar *FuncState::localdebuginfo(int vidx) {
     return nullptr;  // no debug info. for constants
   else {
     int idx = vd->vd.protoLocalVarIndex;
-    lua_assert(idx < getNumDebugVars());
+    moon_assert(idx < getNumDebugVars());
     return &getProto().getLocVars()[idx];
   }
 }
@@ -192,7 +192,7 @@ Upvaldesc *FuncState::allocupvalue() {
   Proto &proto = getProto();
   int oldsize = proto.getUpvaluesSize();
   checklimit(getNumUpvalues() + 1, MAXUPVAL, "upvalues");
-  luaM_growvector<Upvaldesc>(getLexState().getLuaState(), proto.getUpvaluesRef(), getNumUpvalues(), proto.getUpvaluesSizeRef(),
+  moonM_growvector<Upvaldesc>(getLexState().getLuaState(), proto.getUpvaluesRef(), getNumUpvalues(), proto.getUpvaluesSizeRef(),
                   MAXUPVAL, "upvalues");
   auto upvaluesSpan = proto.getUpvaluesSpan();
   while (oldsize < static_cast<int>(upvaluesSpan.size()))
@@ -208,16 +208,16 @@ int FuncState::newupvalue(TString& name, ExpDesc& v) {
     up->setInStack(1);
     up->setIndex(v.getLocalRegister());
     up->setKind(prevFunc->getlocalvardesc(v.getLocalVarIndex())->vd.kind);
-    lua_assert(eqstr(name, *prevFunc->getlocalvardesc(v.getLocalVarIndex())->vd.name));
+    moon_assert(eqstr(name, *prevFunc->getlocalvardesc(v.getLocalVarIndex())->vd.name));
   }
   else {
     up->setInStack(0);
     up->setIndex(cast_byte(v.getInfo()));
     up->setKind(prevFunc->getProto().getUpvalues()[v.getInfo()].getKind());
-    lua_assert(eqstr(name, *prevFunc->getProto().getUpvalues()[v.getInfo()].getName()));
+    moon_assert(eqstr(name, *prevFunc->getProto().getUpvalues()[v.getInfo()].getName()));
   }
   up->setName(&name);
-  luaC_objbarrier(getLexState().getLuaState(), &getProto(), &name);
+  moonC_objbarrier(getLexState().getLuaState(), &getProto(), &name);
   return getNumUpvalues() - 1;
 }
 
@@ -352,7 +352,7 @@ void FuncState::enterblock(BlockCnt& blk, lu_byte isloop) {
   blk.insidetbc = (getBlock() != nullptr && getBlock()->insidetbc);
   blk.previous = getBlock();  // link block in function's block list
   setBlock(&blk);
-  lua_assert(getFirstFreeRegister() == luaY_nvarstack(this));
+  moon_assert(getFirstFreeRegister() == moonY_nvarstack(this));
 }
 
 
@@ -364,7 +364,7 @@ void FuncState::leaveblock() {
     codeABC(OP_CLOSE, stklevel, 0, 0);
   setFirstFreeRegister(stklevel);  // free registers
   removevars(blk->numberOfActiveVariables);  // remove block locals
-  lua_assert(blk->numberOfActiveVariables == getNumActiveVars());  // back to level on entry
+  moon_assert(blk->numberOfActiveVariables == getNumActiveVars());  // back to level on entry
   if (blk->isloop == 2)  // has to fix pending breaks?
     lexstate.createlabel(this, lexstate.getBreakName(), 0, 0);
   solvegotos(*blk);
@@ -377,7 +377,7 @@ void FuncState::leaveblock() {
 
 
 void FuncState::closelistfield(ConsControl& cc) {
-  lua_assert(cc.tostore > 0);
+  moon_assert(cc.tostore > 0);
   exp2nextreg(cc.v);
   cc.v.setKind(VVOID);
   if (cc.tostore >= cc.maxtostore) {
@@ -391,8 +391,8 @@ void FuncState::closelistfield(ConsControl& cc) {
 void FuncState::lastlistfield(ConsControl& cc) {
   if (cc.tostore == 0) return;
   if (hasmultret(cc.v.getKind())) {
-    setreturns(cc.v, LUA_MULTRET);
-    setlist(cc.t->getInfo(), cc.na, LUA_MULTRET);
+    setreturns(cc.v, MOON_MULTRET);
+    setlist(cc.t->getInfo(), cc.na, MOON_MULTRET);
     cc.na--;  // do not count last expression (unknown number of elements)
   }
   else {
